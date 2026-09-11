@@ -646,7 +646,7 @@ mod test {
     use rstest::rstest;
     use vortex_buffer::BitBuffer;
     use vortex_buffer::buffer;
-    use vortex_error::VortexError;
+    use vortex_error::VortexErrorKind;
     use vortex_error::VortexResult;
     use vortex_mask::Mask;
 
@@ -1019,7 +1019,7 @@ mod test {
             .cast(PType::U32.into())
             .and_then(|a| a.to_canonical().map(|c| c.into_array()))
             .unwrap_err();
-        assert!(matches!(error, VortexError::Compute(..)));
+        assert_eq!(error.kind(), VortexErrorKind::Compute);
         assert!(error.to_string().contains("values exceed target range"));
     }
 
@@ -1033,7 +1033,7 @@ mod test {
             .and_then(|a| a.to_canonical().map(|c| c.into_array()))
             .unwrap_err();
 
-        assert!(matches!(err, VortexError::InvalidArgument(..)));
+        assert_eq!(err.kind(), VortexErrorKind::InvalidArgument);
         assert!(
             err.to_string()
                 .contains("Cannot cast array with invalid values to non-nullable type.")
@@ -1101,7 +1101,7 @@ mod test {
             .cast(PType::I32.into())
             .and_then(|a| a.to_canonical().map(|c| c.into_array()))
             .unwrap_err();
-        assert!(matches!(err, VortexError::Compute(..)));
+        assert_eq!(err.kind(), VortexErrorKind::Compute);
     }
 
     /// All-null array cast between same-width types should succeed without
