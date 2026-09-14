@@ -74,9 +74,11 @@ mod tests {
     use vortex_array::dtype::Nullability;
     use vortex_array::dtype::PType::I32;
     use vortex_array::expr::list_contains;
+    use vortex_array::expr::list_contains_opts;
     use vortex_array::expr::lit;
     use vortex_array::expr::root;
     use vortex_array::scalar::Scalar;
+    use vortex_array::scalar_fn::fns::list_contains::ListContainsOptions;
     use vortex_session::VortexSession;
 
     use crate::Sequence;
@@ -136,6 +138,41 @@ mod tests {
         let expr = list_contains(lit(null_list), root());
         let result = array.apply(&expr).unwrap();
         let expected = BoolArray::from_iter([None::<bool>, None, None]);
+        assert_arrays_eq!(result, expected, &mut SESSION.create_execution_ctx());
+    }
+
+    #[test]
+    fn test_list_contains_null_element_semantics() {
+        // The sequence kernel skips a null element, which is right by default. Under SQL null
+        // semantics a non-match must be null instead, so the adaptor has to hand the constant
+        // list with a null in it to the generic path.
+        let element = DType::Primitive(I32, Nullability::Nullable);
+        let set = Scalar::list(
+            Arc::new(element.clone()),
+            vec![
+                Scalar::primitive(1i32, Nullability::Nullable),
+                Scalar::null(element),
+            ],
+            Nullability::NonNullable,
+        );
+        let array = Sequence::try_new_typed(1, 1, Nullability::NonNullable, 3)
+            .unwrap()
+            .into_array();
+
+        let result = array
+            .clone()
+            .apply(&list_contains(lit(set.clone()), root()))
+            .unwrap();
+        let expected = BoolArray::from_iter([true, false, false]);
+        assert_arrays_eq!(result, expected, &mut SESSION.create_execution_ctx());
+
+        let sql = ListContainsOptions {
+            sql_null_semantics: true,
+        };
+        let result = array
+            .apply(&list_contains_opts(lit(set), root(), sql))
+            .unwrap();
+        let expected = BoolArray::from_iter([Some(true), None, None]);
         assert_arrays_eq!(result, expected, &mut SESSION.create_execution_ctx());
     }
 

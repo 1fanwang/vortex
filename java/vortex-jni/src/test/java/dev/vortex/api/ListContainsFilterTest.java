@@ -36,6 +36,10 @@ import org.junit.jupiter.api.io.TempDir;
  * inside a scan. These tests therefore write a small file and read it back through the filter, asserting on the rows
  * that survive.
  *
+ * <p>The {@code maybe} column is nullable and null on every odd id, and the sets below hold a null element, to pin the
+ * two null rules apart: under SQL's, which {@link Expression#in} and {@link Expression#notIn} use, a null element makes
+ * every non-match null, so {@code NOT IN} keeps nothing; under Vortex's it is simply never a match.
+ *
  * <p>The large-set case is the reason the binding exists. A caller without it has to expand {@code IN} into a chain of
  * equality comparisons, which is why callers cap the set size and fall back to a bounding range; a single
  * {@code list_contains} node carries the whole set, and the stats rewrite falsifies it for a zone only when every
@@ -63,18 +67,28 @@ public final class ListContainsFilterTest {
 
         BufferAllocator allocator = ArrowAllocation.rootAllocator();
         Schema schema = new Schema(List.of(
-                Field.notNullable("id", new ArrowType.Int(32, true)), Field.notNullable("name", new ArrowType.Utf8())));
+                Field.notNullable("id", new ArrowType.Int(32, true)),
+                Field.notNullable("name", new ArrowType.Utf8()),
+                Field.nullable("maybe", new ArrowType.Int(32, true))));
 
         try (VortexWriter writer = VortexWriter.builder(session, filePath, schema, allocator)
                         .build();
                 VectorSchemaRoot root = VectorSchemaRoot.create(schema, allocator)) {
             IntVector id = (IntVector) root.getVector("id");
             VarCharVector name = (VarCharVector) root.getVector("name");
+            IntVector maybe = (IntVector) root.getVector("maybe");
             id.allocateNew(ROW_COUNT);
             name.allocateNew(ROW_COUNT);
+            maybe.allocateNew(ROW_COUNT);
             for (int i = 0; i < ROW_COUNT; i++) {
                 id.setSafe(i, i + 1);
                 name.setSafe(i, ("row-" + (i + 1)).getBytes(UTF_8));
+                // Every other row is null; the rest carry their id.
+                if (i % 2 == 0) {
+                    maybe.setNull(i);
+                } else {
+                    maybe.setSafe(i, i + 1);
+                }
             }
             root.setRowCount(ROW_COUNT);
 
@@ -105,6 +119,33 @@ public final class ListContainsFilterTest {
         // agree, and passing the column as the list would be a type error rather than a silently different filter.
         Expression set = Expression.literalList(Expression.literal(3));
         assertEquals(List.of(3), scanIds(Expression.listContains(set, Expression.column("id"))));
+    }
+
+    @Test
+    public void inWithANullElementKeepsOnlyMatches() {
+        // maybe = [null, 2, null, 4, null, 6]; the set holds 2 and a null.
+        Expression set = Expression.literalList(Expression.literal(2), Expression.nullLiteral(Expression.DType.I32));
+        assertEquals(List.of(2), scanIds(Expression.in(Expression.column("maybe"), set)));
+    }
+
+    @Test
+    public void notInWithANullElementKeepsNothing() {
+        // SQL: x NOT IN (2, NULL) is false for 2 and null for everything else, so no row survives.
+        Expression set = Expression.literalList(Expression.literal(2), Expression.nullLiteral(Expression.DType.I32));
+        assertEquals(List.of(), scanIds(Expression.notIn(Expression.column("maybe"), set)));
+        // Without the null element NOT IN keeps the non-null non-matches.
+        assertEquals(
+                List.of(4, 6),
+                scanIds(Expression.notIn(Expression.column("maybe"), Expression.literalList(Expression.literal(2)))));
+    }
+
+    @Test
+    public void vortexNullRulesTreatANullElementAsNoMatch() {
+        // listContains without SQL semantics: the null element never matches, so a non-match stays false and its
+        // negation keeps the non-null non-matches.
+        Expression set = Expression.literalList(Expression.literal(2), Expression.nullLiteral(Expression.DType.I32));
+        assertEquals(List.of(2), scanIds(Expression.listContains(set, Expression.column("maybe"))));
+        assertEquals(List.of(4, 6), scanIds(Expression.not(Expression.listContains(set, Expression.column("maybe")))));
     }
 
     @Test

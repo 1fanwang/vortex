@@ -14,7 +14,9 @@ use crate::arrays::scalar_fn::ScalarFnArrayExt;
 use crate::arrays::scalar_fn::ScalarFnArrayView;
 use crate::kernel::ExecuteParentKernel;
 use crate::optimizer::rules::ArrayParentReduceRule;
+use crate::scalar::Scalar;
 use crate::scalar_fn::fns::list_contains::ListContains as ListContainsExpr;
+use crate::scalar_fn::fns::list_contains::ListContainsOptions;
 
 /// Check list-contains without reading buffers (metadata-only).
 ///
@@ -46,6 +48,18 @@ pub trait ListContainsElementKernel: VTable {
     ) -> VortexResult<Option<ArrayRef>>;
 }
 
+/// Element kernels treat a null list element as matching nothing, which is only the right answer
+/// when [`ListContainsOptions::sql_null_semantics`] is off. With it on, a constant list holding a
+/// null turns every non-match into `null`, so the kernel is skipped and the generic path runs.
+fn null_element_is_unknown(list: &ArrayRef, options: &ListContainsOptions) -> bool {
+    options.sql_null_semantics
+        && list.as_constant().is_some_and(|list| {
+            list.as_list_opt()
+                .and_then(|list| list.elements())
+                .is_some_and(|elements| elements.iter().any(Scalar::is_null))
+        })
+}
+
 /// Adaptor that wraps a [`ListContainsElementReduce`] impl as an [`ArrayParentReduceRule`].
 #[derive(Default, Debug)]
 pub struct ListContainsElementReduceAdaptor<V>(pub V);
@@ -70,6 +84,9 @@ where
             .as_opt::<ScalarFn>()
             .vortex_expect("ExactScalarFn matcher confirmed ScalarFnArray");
         let list = scalar_fn_array.get_child(0);
+        if null_element_is_unknown(list, parent.options) {
+            return Ok(None);
+        }
         <V as ListContainsElementReduce>::list_contains(list, array)
     }
 }
@@ -99,6 +116,9 @@ where
             .as_opt::<ScalarFn>()
             .vortex_expect("ExactScalarFn matcher confirmed ScalarFnArray");
         let list = scalar_fn_array.get_child(0);
+        if null_element_is_unknown(list, parent.options) {
+            return Ok(None);
+        }
         <V as ListContainsElementKernel>::list_contains(list, array, ctx)
     }
 }

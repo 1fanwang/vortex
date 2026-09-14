@@ -304,7 +304,7 @@ pub(super) fn collect_zip_bits<T: Copy>(
 }
 
 /// Bit-pack the predicate `f(values[i])` over a slice into a [`BitBuffer`].
-pub(super) fn collect_bits<T: Copy>(
+pub(crate) fn collect_bits<T: Copy>(
     values: &[T],
     f: impl Fn(T) -> bool,
     allocator: &BufferAllocatorRef,
