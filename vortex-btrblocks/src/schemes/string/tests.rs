@@ -5,7 +5,10 @@ use std::sync::LazyLock;
 
 use vortex_array::IntoArray;
 use vortex_array::VortexSessionExecute;
+use vortex_array::arrays::Constant;
+use vortex_array::arrays::Masked;
 use vortex_array::arrays::VarBinViewArray;
+use vortex_array::assert_arrays_eq;
 use vortex_array::builders::ArrayBuilder;
 use vortex_array::builders::VarBinViewBuilder;
 use vortex_array::display::DisplayOptions;
@@ -43,8 +46,9 @@ fn test_strings() -> VortexResult<()> {
     Ok(())
 }
 
+/// Mostly-null strings whose valid values are all equal compress to a masked constant.
 #[test]
-fn test_sparse_nulls() -> VortexResult<()> {
+fn test_mostly_null_constant() -> VortexResult<()> {
     let mut strings = VarBinViewBuilder::with_capacity_in(
         DType::Utf8(Nullability::Nullable),
         100,
@@ -58,14 +62,12 @@ fn test_sparse_nulls() -> VortexResult<()> {
 
     let array_ref = strings.into_array();
     let btr = BtrBlocksCompressor::default();
-    let compressed = btr.compress(&array_ref, &mut SESSION.create_execution_ctx())?;
-    assert_eq!(compressed.len(), 100);
+    let mut ctx = SESSION.create_execution_ctx();
+    let compressed = btr.compress(&array_ref, &mut ctx)?;
 
-    let display = compressed
-        .display_as(DisplayOptions::MetadataOnly)
-        .to_string()
-        .to_lowercase();
-    assert_eq!(display, "vortex.sparse(utf8?, len=100)");
+    assert!(compressed.is::<Masked>());
+    assert!(compressed.children()[0].is::<Constant>());
+    assert_arrays_eq!(compressed, array_ref, &mut ctx);
 
     Ok(())
 }
