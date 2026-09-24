@@ -5,6 +5,7 @@ import datetime
 import decimal
 import uuid
 import zoneinfo
+from typing import Literal
 
 import pytest
 
@@ -98,7 +99,7 @@ def test_decimal_ignores_context_precision() -> None:
         ("ms", 3_723_500),
     ],
 )
-def test_time_scalar(unit: str, expected: int) -> None:
+def test_time_scalar(unit: Literal["ns", "us", "ms"], expected: int) -> None:
     scalar = vx.scalar(datetime.time(1, 2, 3, 500_000), dtype=vx.time(unit))
     assert isinstance(scalar, vx.ExtensionScalar)
     assert scalar.dtype == vx.time(unit)
@@ -118,7 +119,7 @@ def test_time_scalar_rejects_precision_loss() -> None:
 
 def test_time_scalar_rejects_timezone() -> None:
     with pytest.raises(ValueError, match="Timezone-aware"):
-        _ = vx.scalar(datetime.time(12, tzinfo=datetime.timezone.utc))
+        _ = vx.scalar(datetime.time(12, tzinfo=datetime.UTC))
 
 
 @pytest.mark.parametrize(
@@ -128,7 +129,7 @@ def test_time_scalar_rejects_timezone() -> None:
         ("ms", 86_400_000),
     ],
 )
-def test_date_scalar(unit: str, expected: int) -> None:
+def test_date_scalar(unit: Literal["days", "ms"], expected: int) -> None:
     scalar = vx.scalar(datetime.date(1970, 1, 2), dtype=vx.date(unit))
     assert isinstance(scalar, vx.ExtensionScalar)
     assert scalar.dtype == vx.date(unit)
@@ -150,7 +151,7 @@ def test_date_scalar_defaults_to_days() -> None:
         ("ns", 86_401_000_000_000),
     ],
 )
-def test_timestamp_scalar(unit: str, expected: int) -> None:
+def test_timestamp_scalar(unit: Literal["s", "ms", "us", "ns"], expected: int) -> None:
     scalar = vx.scalar(datetime.datetime(1970, 1, 2, 0, 0, 1), dtype=vx.timestamp(unit))
     assert scalar.dtype == vx.timestamp(unit)
     assert scalar.as_py() == expected
@@ -174,7 +175,7 @@ def test_timestamp_scalar_stores_aware_values_as_utc() -> None:
 
 
 def test_timestamp_scalar_utc() -> None:
-    scalar = vx.scalar(datetime.datetime(1970, 1, 1, 0, 0, 1, tzinfo=datetime.timezone.utc))
+    scalar = vx.scalar(datetime.datetime(1970, 1, 1, 0, 0, 1, tzinfo=datetime.UTC))
     assert scalar.dtype == vx.timestamp("us", tz="UTC")
     assert scalar.as_py() == 1_000_000
 
@@ -189,7 +190,7 @@ def test_timestamp_scalar_rejects_mismatched_timezone() -> None:
     with pytest.raises(ValueError, match="naive datetime"):
         _ = vx.scalar(datetime.datetime(1970, 1, 1), dtype=vx.timestamp("us", tz="UTC"))
     with pytest.raises(ValueError, match="timezone-aware datetime"):
-        _ = vx.scalar(datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc), dtype=vx.timestamp("us"))
+        _ = vx.scalar(datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC), dtype=vx.timestamp("us"))
 
 
 def test_timestamp_scalar_rejects_precision_loss() -> None:

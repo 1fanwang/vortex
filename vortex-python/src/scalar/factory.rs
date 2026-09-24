@@ -256,7 +256,9 @@ fn scalar_helper_inner(value: &Bound<'_, PyAny>, dtype: Option<&DType>) -> PyRes
     }
 
     // uuid.UUID
-    let uuid_type = py.import(intern!(py, "uuid"))?.getattr(intern!(py, "UUID"))?;
+    let uuid_type = py
+        .import(intern!(py, "uuid"))?
+        .getattr(intern!(py, "UUID"))?;
     if value.is_instance(&uuid_type)? {
         let bytes: Vec<u8> = value.getattr(intern!(py, "bytes"))?.extract()?;
         return Ok(uuid_scalar(&bytes)?);
@@ -427,10 +429,7 @@ fn timestamp_scalar(value: &Bound<'_, PyAny>, dtype: Option<&DType>) -> PyVortex
 /// With a decimal dtype hint the value is rescaled to its scale exactly; otherwise the precision
 /// and scale are inferred from the value's digits and exponent. Non-finite values, values with
 /// more than [`MAX_PRECISION`] digits, and rescaling that would drop non-zero digits are errors.
-fn decimal_scalar(
-    value: &Bound<'_, PyAny>,
-    hint: Option<&DecimalDType>,
-) -> PyVortexResult<Scalar> {
+fn decimal_scalar(value: &Bound<'_, PyAny>, hint: Option<&DecimalDType>) -> PyVortexResult<Scalar> {
     let py = value.py();
     let parts = value.call_method0(intern!(py, "as_tuple"))?;
     // The exponent is a string ('n', 'N' or 'F') for NaN and infinities.
@@ -542,7 +541,9 @@ fn narrowest_decimal_value(value: i256, dtype: &DecimalDType) -> PyResult<Decima
 /// Build a UUID extension scalar from its 16 big-endian bytes, matching `uuid.UUID.bytes`.
 fn uuid_scalar(bytes: &[u8]) -> PyVortexResult<Scalar> {
     let list_size = u32::try_from(UUID_BYTE_LEN).map_err(|_| {
-        PyValueError::new_err(format!("UUID byte length {UUID_BYTE_LEN} does not fit in u32"))
+        PyValueError::new_err(format!(
+            "UUID byte length {UUID_BYTE_LEN} does not fit in u32"
+        ))
     })?;
     if bytes.len() != UUID_BYTE_LEN {
         return Err(PyValueError::new_err(format!(
