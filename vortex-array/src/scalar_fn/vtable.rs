@@ -24,6 +24,7 @@ use crate::dtype::DType;
 use crate::expr::BoundExpression;
 use crate::expr::Expression;
 use crate::expr::display::ExprDisplay;
+use crate::scalar_fn::ScalarFnCache;
 use crate::scalar_fn::ScalarFnId;
 use crate::scalar_fn::ScalarFnRef;
 use crate::scalar_fn::TypedScalarFnInstance;
@@ -440,18 +441,34 @@ pub trait ExecutionArgs {
 
     /// Returns the row count of the execution scope.
     fn row_count(&self) -> usize;
+
+    /// Returns the cache of the bound expression node being evaluated, when there is one.
+    fn cache(&self) -> Option<&ScalarFnCache> {
+        None
+    }
 }
 
 /// A concrete [`ExecutionArgs`] backed by a `Vec<ArrayRef>`.
 pub struct VecExecutionArgs {
     inputs: Vec<ArrayRef>,
     row_count: usize,
+    cache: Option<ScalarFnCache>,
 }
 
 impl VecExecutionArgs {
     /// Create a new `VecExecutionArgs`.
     pub fn new(inputs: Vec<ArrayRef>, row_count: usize) -> Self {
-        Self { inputs, row_count }
+        Self {
+            inputs,
+            row_count,
+            cache: None,
+        }
+    }
+
+    /// Hands the function the cache of the bound expression node being evaluated.
+    pub fn with_cache(mut self, cache: Option<ScalarFnCache>) -> Self {
+        self.cache = cache;
+        self
     }
 }
 
@@ -472,6 +489,10 @@ impl ExecutionArgs for VecExecutionArgs {
 
     fn row_count(&self) -> usize {
         self.row_count
+    }
+
+    fn cache(&self) -> Option<&ScalarFnCache> {
+        self.cache.as_ref()
     }
 }
 

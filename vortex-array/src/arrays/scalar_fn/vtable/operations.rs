@@ -28,7 +28,8 @@ impl OperationsVTable<ScalarFn> for ScalarFn {
             .map(|child| Ok(ConstantArray::new(child.execute_scalar(index, ctx)?, 1).into_array()))
             .collect::<VortexResult<_>>()?;
 
-        let args = VecExecutionArgs::new(inputs, 1);
+        // One row of the same node over the same constants, so it shares the node's cache.
+        let args = VecExecutionArgs::new(inputs, 1).with_cache(array.cache().cloned());
         let result = array.scalar_fn().execute(&args, ctx)?;
 
         let scalar = match result.execute::<Columnar>(ctx)? {
@@ -146,7 +147,10 @@ mod tests {
         let dtype = lhs.dtype().clone();
         let scalar_fn = TypedScalarFnInstance::new(Binary, Operator::Add).erased();
         let vtable = ScalarFn { id: scalar_fn.id() };
-        let data = ScalarFnData { scalar_fn };
+        let data = ScalarFnData {
+            scalar_fn,
+            cache: None,
+        };
         let slots = [Some(lhs), None].into_iter().collect::<ArraySlots>();
 
         let Err(err) = Array::<ScalarFn>::try_from_parts(

@@ -114,9 +114,15 @@ impl ArrayParentReduceRule<ScalarFn> for ScalarFnSliceReduceRule {
             .map(|c| c.slice(range.clone()))
             .collect::<VortexResult<_>>()?;
 
+        // A slice evaluates the same node over the same constants, so it shares the node's cache.
         Ok(Some(
-            ScalarFnArray::try_new_with_len(array.scalar_fn().clone(), children, range.len())?
-                .into_array(),
+            ScalarFnArray::try_new_cached(
+                array.scalar_fn().clone(),
+                children,
+                range.len(),
+                array.cache().cloned(),
+            )?
+            .into_array(),
         ))
     }
 }
@@ -165,9 +171,15 @@ impl ArrayParentReduceRule<ScalarFn> for ScalarFilterPushdownRule {
             })
             .try_collect()?;
 
+        // A filter evaluates the same node over the same constants, so it shares the node's cache.
         Ok(Some(
-            ScalarFnArray::try_new_with_len(child.scalar_fn().clone(), new_children, parent.len())?
-                .into_array(),
+            ScalarFnArray::try_new_cached(
+                child.scalar_fn().clone(),
+                new_children,
+                parent.len(),
+                child.cache().cloned(),
+            )?
+            .into_array(),
         ))
     }
 }

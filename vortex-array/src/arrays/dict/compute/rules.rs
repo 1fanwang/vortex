@@ -174,9 +174,15 @@ impl ArrayParentReduceRule<Dict> for DictionaryScalarFnValuesPushDownRule {
             }
         }
 
-        let transformed_values = ScalarFnArray::try_new(scalar_fn.clone(), value_children)?
-            .into_array()
-            .optimize()?;
+        // Over values of the dictionary's own dtype this is the same node with the same constants,
+        // so it shares the node's cache; a narrower dtype is another node.
+        let cache = (array.values().dtype() == array.dtype())
+            .then(|| parent.cache().cloned())
+            .flatten();
+        let transformed_values =
+            ScalarFnArray::try_new_cached(scalar_fn.clone(), value_children, values_len, cache)?
+                .into_array()
+                .optimize()?;
 
         // A non-strict function reaches this point only when the codes are all valid, but their
         // dtype may still be nullable. Remove that declared nullability while rebuilding the

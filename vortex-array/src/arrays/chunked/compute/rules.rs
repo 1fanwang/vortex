@@ -21,7 +21,6 @@ use crate::optimizer::rules::ArrayParentReduceRule;
 use crate::optimizer::rules::ParentRuleSet;
 use crate::scalar_fn::fns::cast::CastReduceAdaptor;
 use crate::scalar_fn::fns::fill_null::FillNullReduceAdaptor;
-use crate::scalar_fn::fns::list_contains::ListContains;
 
 pub(crate) const PARENT_RULES: ParentRuleSet<Chunked> = ParentRuleSet::new(&[
     ParentRuleSet::lift(&CastReduceAdaptor(Chunked)),
@@ -49,9 +48,14 @@ impl ArrayParentReduceRule<Chunked> for ChunkedUnaryScalarFnPushDownRule {
         let new_chunks: Vec<_> = array
             .iter_chunks()
             .map(|chunk| {
-                ScalarFnArray::try_new(parent.scalar_fn().clone(), vec![chunk.clone()])?
-                    .into_array()
-                    .optimize()
+                ScalarFnArray::try_new_cached(
+                    parent.scalar_fn().clone(),
+                    vec![chunk.clone()],
+                    chunk.len(),
+                    parent.cache().cloned(),
+                )?
+                .into_array()
+                .optimize()
             })
             .try_collect()?;
 
@@ -73,12 +77,6 @@ impl ArrayParentReduceRule<Chunked> for ChunkedConstantScalarFnPushDownRule {
         parent: ArrayView<'_, ScalarFn>,
         child_idx: usize,
     ) -> VortexResult<Option<ArrayRef>> {
-        // `list_contains` prepares its constant set once and probes every chunk of the needles with
-        // it, which splitting it per chunk here would undo.
-        if child_idx == 1 && parent.scalar_fn().is::<ListContains>() {
-            return Ok(None);
-        }
-
         for (idx, child) in parent.iter_children().enumerate() {
             if idx == child_idx {
                 continue;
@@ -107,9 +105,16 @@ impl ArrayParentReduceRule<Chunked> for ChunkedConstantScalarFnPushDownRule {
                     })
                     .collect();
 
-                ScalarFnArray::try_new(parent.scalar_fn().clone(), new_children)?
-                    .into_array()
-                    .optimize()
+                // Each chunk evaluates the same node with the same constants, so it shares the
+                // node's cache.
+                ScalarFnArray::try_new_cached(
+                    parent.scalar_fn().clone(),
+                    new_children,
+                    chunk.len(),
+                    parent.cache().cloned(),
+                )?
+                .into_array()
+                .optimize()
             })
             .try_collect()?;
 

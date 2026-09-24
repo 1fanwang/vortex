@@ -18,6 +18,8 @@ use crate::arrays::scalar_fn::vtable::ScalarFn;
 use crate::expr::Expression;
 use crate::expr::lit;
 use crate::legacy_session;
+use crate::scalar_fn::ScalarFnCache;
+use crate::scalar_fn::ScalarFnRef;
 use crate::scalar_fn::TypedScalarFnInstance;
 use crate::scalar_fn::VecExecutionArgs;
 use crate::scalar_fn::fns::literal::Literal;
@@ -26,9 +28,13 @@ use crate::validity::Validity;
 /// Execute an expression tree recursively.
 ///
 /// This assumes all leaf expressions are either ArrayExpr (wrapping actual arrays) or Literals.
+///
+/// The tree wraps the array's own node, which shares the array's [`ScalarFnCache`] wherever the
+/// tree evaluates it.
 fn execute_expr(
     expr: &Expression,
     row_count: usize,
+    node: (&ScalarFnRef, Option<&ScalarFnCache>),
     ctx: &mut ExecutionCtx,
 ) -> VortexResult<ArrayRef> {
     // Only Expression::Scalar is executable
@@ -46,10 +52,15 @@ fn execute_expr(
     let inputs: Vec<ArrayRef> = expr
         .children()
         .iter()
-        .map(|child| execute_expr(child, row_count, ctx))
+        .map(|child| execute_expr(child, row_count, node, ctx))
         .collect::<VortexResult<_>>()?;
 
-    let args = VecExecutionArgs::new(inputs, row_count);
+    let (node_fn, node_cache) = node;
+    let cache = scalar_fn
+        .ptr_eq(node_fn)
+        .then(|| node_cache.cloned())
+        .flatten();
+    let args = VecExecutionArgs::new(inputs, row_count).with_cache(cache);
 
     Ok(scalar_fn.execute(&args, ctx)?.into_array())
 }
@@ -78,6 +89,7 @@ impl ValidityVTable<ScalarFn> for ScalarFn {
         Ok(Validity::Array(execute_expr(
             &validity_expr,
             array.len(),
+            (array.scalar_fn(), array.cache()),
             ctx,
         )?))
     }

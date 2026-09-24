@@ -47,9 +47,11 @@ use crate::match_each_integer_ptype;
 use crate::match_each_unsigned_integer_ptype;
 use crate::proto::expr as pb;
 use crate::scalar::Scalar;
+use crate::scalar::ScalarValue;
 use crate::scalar_fn::Arity;
 use crate::scalar_fn::ChildName;
 use crate::scalar_fn::ExecutionArgs;
+use crate::scalar_fn::ScalarFnCache;
 use crate::scalar_fn::ScalarFnId;
 use crate::scalar_fn::ScalarFnVTable;
 use crate::scalar_fn::ScalarFnVTableExt;
@@ -204,7 +206,7 @@ impl ScalarFnVTable for ListContains {
             return Ok(ConstantArray::new(result, args.row_count()).into_array());
         }
 
-        compute_list_contains(&list_array, &value_array, options, ctx)
+        compute_list_contains(&list_array, &value_array, options, args.cache(), ctx)
     }
 
     fn simplify_untyped(
@@ -321,6 +323,7 @@ fn compute_list_contains(
     array: &ArrayRef,
     value: &ArrayRef,
     options: &ListContainsOptions,
+    cache: Option<&ScalarFnCache>,
     ctx: &mut ExecutionCtx,
 ) -> VortexResult<ArrayRef> {
     let DType::List(elem_dtype, _) = array.dtype() else {
@@ -354,9 +357,57 @@ fn compute_list_contains(
         return lists_contain_needles(array, value, nullability, options, ctx);
     }
 
-    let set = ListContainsSet::try_new(array, value.dtype(), options, ctx)?
-        .ok_or_else(|| vortex_err!("A non-null constant list of {} has a set", value.dtype()))?;
-    set.prepare(ctx)?.contains(value, ctx)
+    prepared_set(array, value.dtype(), options, cache, ctx)?
+        .set
+        .contains(value, ctx)
+}
+
+/// A set prepared from a constant list, with the list and needle dtype it was prepared for.
+struct CachedSet {
+    list: Arc<[Option<ScalarValue>]>,
+    needle_dtype: DType,
+    set: PreparedSet,
+}
+
+/// The set prepared from the constant `list`, taken from the bound node's `cache` when it holds.
+///
+/// A bound node's constant list is fixed, so the node prepares its set once for every batch it
+/// evaluates. The cached set is used only when it was prepared from this very list — the same
+/// shared storage — and for this needle dtype; anything else prepares afresh.
+fn prepared_set(
+    list: &ArrayRef,
+    needle_dtype: &DType,
+    options: &ListContainsOptions,
+    cache: Option<&ScalarFnCache>,
+    ctx: &mut ExecutionCtx,
+) -> VortexResult<Arc<CachedSet>> {
+    let values = list
+        .as_opt::<Constant>()
+        .and_then(|constant| match constant.scalar().value() {
+            Some(ScalarValue::Tuple(values)) => Some(Arc::clone(values)),
+            _ => None,
+        })
+        .ok_or_else(|| vortex_err!("Expected a non-null constant list, got {}", list.dtype()))?;
+
+    let prepare = |ctx: &mut ExecutionCtx| -> VortexResult<CachedSet> {
+        let set = ListContainsSet::try_new(list, needle_dtype, options, ctx)?
+            .ok_or_else(|| vortex_err!("A non-null constant list of {needle_dtype} has a set"))?;
+        Ok(CachedSet {
+            list: Arc::clone(&values),
+            needle_dtype: needle_dtype.clone(),
+            set: set.prepare(ctx)?,
+        })
+    };
+
+    let Some(cache) = cache else {
+        return prepare(ctx).map(Arc::new);
+    };
+    let cached = cache.get_or_try_init(|| prepare(ctx))?;
+    if Arc::ptr_eq(&cached.list, &values) && &cached.needle_dtype == needle_dtype {
+        Ok(cached)
+    } else {
+        prepare(ctx).map(Arc::new)
+    }
 }
 
 /// Returns a [`BoolArray`] where each bit represents if a list contains the scalar.
@@ -767,17 +818,15 @@ mod tests {
     use crate::VortexSessionExecute;
     use crate::array_session;
     use crate::arrays::BoolArray;
-    use crate::arrays::Chunked;
     use crate::arrays::ChunkedArray;
     use crate::arrays::ConstantArray;
     use crate::arrays::DictArray;
     use crate::arrays::ListArray;
     use crate::arrays::ListViewArray;
     use crate::arrays::PrimitiveArray;
-    use crate::arrays::ScalarFn;
+    use crate::arrays::ScalarFnArray;
     use crate::arrays::VarBinArray;
     use crate::arrays::VarBinViewArray;
-    use crate::arrays::scalar_fn::ScalarFnArrayExt;
     use crate::assert_arrays_eq;
     use crate::dtype::DType;
     use crate::dtype::NativePType;
@@ -785,6 +834,7 @@ mod tests {
     use crate::dtype::PType;
     use crate::dtype::PType::I32;
     use crate::dtype::StructFields;
+    use crate::expr::BoundExpression;
     use crate::expr::Expression;
     use crate::expr::and;
     use crate::expr::col;
@@ -800,6 +850,9 @@ mod tests {
     use crate::expr::stats::Stat;
     use crate::scalar::PValue;
     use crate::scalar::Scalar;
+    use crate::scalar_fn::ScalarFnCache;
+    use crate::scalar_fn::ScalarFnVTableExt;
+    use crate::scalar_fn::fns::list_contains::CachedSet;
     use crate::scalar_fn::fns::list_contains::ListContains;
     use crate::scalar_fn::fns::list_contains::ListContainsOptions;
     use crate::scalar_fn::fns::literal::Literal;
@@ -1697,10 +1750,45 @@ mod tests {
         assert_integer_membership(vec![i64::MIN, i64::MAX])
     }
 
+    /// The set a bound `list_contains` node has cached, if it has prepared one.
+    fn cached_set(bound: &BoundExpression) -> Option<Arc<CachedSet>> {
+        let BoundExpression::Scalar { cache, .. } = bound else {
+            return None;
+        };
+        cache.get::<CachedSet>()
+    }
+
+    #[test]
+    fn bound_node_prepares_its_set_once() -> VortexResult<()> {
+        let dtype = DType::Primitive(I32, Nullability::Nullable);
+        let bound = list_contains(lit(i32_set(vec![Some(2), Some(4)])), root()).bind(&dtype)?;
+        assert!(cached_set(&bound).is_none());
+
+        // Two batches through the same bound node: the second finds the first's set.
+        let mut ctx = array_session().create_execution_ctx();
+        let first = PrimitiveArray::from_option_iter([Some(1i32), Some(2), None]).into_array();
+        assert_arrays_eq!(
+            first.apply_bound(&bound)?,
+            BoolArray::from_iter([Some(false), Some(true), None]),
+            &mut ctx
+        );
+        let prepared = cached_set(&bound).vortex_expect("the first batch prepared the set");
+
+        let second = PrimitiveArray::from_option_iter([Some(4i32), Some(5)]).into_array();
+        assert_arrays_eq!(
+            second.apply_bound(&bound)?,
+            BoolArray::from_iter([Some(true), Some(false)]),
+            &mut ctx
+        );
+        let reused = cached_set(&bound).vortex_expect("the set stays cached");
+        assert!(Arc::ptr_eq(&prepared, &reused));
+        Ok(())
+    }
+
     #[rstest]
     #[case::default(ListContainsOptions::default())]
     #[case::sql(SQL)]
-    fn chunked_needles_probe_one_prepared_set(
+    fn chunked_needles_share_the_bound_set(
         #[case] options: ListContainsOptions,
     ) -> VortexResult<()> {
         // Chunks in different encodings, one of them empty, against a set with a null element.
@@ -1714,15 +1802,9 @@ mod tests {
             .into_array(),
         ];
         let dtype = chunks[0].dtype().clone();
-        let chunked = ChunkedArray::try_new(chunks, dtype)?.into_array();
+        let chunked = ChunkedArray::try_new(chunks, dtype.clone())?.into_array();
         let expr = list_contains_opts(lit(i32_set(vec![Some(2), None, Some(4)])), root(), options);
-
-        // The chunked array reaches the kernel whole rather than being split per chunk.
-        let result = chunked.apply(&expr)?;
-        let scalar_fn = result
-            .as_opt::<ScalarFn>()
-            .vortex_expect("list_contains is not pushed into the chunks");
-        assert!(scalar_fn.get_child(1).is::<Chunked>());
+        let bound = expr.bind(&dtype)?;
 
         let mut ctx = array_session().create_execution_ctx();
         let flat =
@@ -1730,11 +1812,39 @@ mod tests {
                 .into_array()
                 .apply(&expr)?
                 .execute::<BoolArray>(&mut ctx)?;
-        assert_rows_agree(result, flat)
+        assert_rows_agree(chunked.apply_bound(&bound)?, flat)?;
+        assert!(cached_set(&bound).is_some());
+        Ok(())
     }
 
     #[test]
-    fn chunked_strings_probe_one_prepared_set() -> VortexResult<()> {
+    fn cached_set_answers_only_for_its_own_list() -> VortexResult<()> {
+        // One cache handed to arrays over two different lists: the second must not be answered
+        // with the set prepared for the first.
+        let cache = ScalarFnCache::default();
+        let needles = PrimitiveArray::from_option_iter([Some(1i32), Some(2)]).into_array();
+        let mut ctx = array_session().create_execution_ctx();
+        for (set, expected) in [
+            (i32_set(vec![Some(1)]), [Some(true), Some(false)]),
+            (i32_set(vec![Some(2)]), [Some(false), Some(true)]),
+        ] {
+            let array = ScalarFnArray::try_new_cached(
+                ListContains.bind(ListContainsOptions::default()),
+                vec![
+                    ConstantArray::new(set, needles.len()).into_array(),
+                    needles.clone(),
+                ],
+                needles.len(),
+                Some(cache.clone()),
+            )?
+            .into_array();
+            assert_arrays_eq!(array, BoolArray::from_iter(expected), &mut ctx);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn chunked_strings_share_the_bound_set() -> VortexResult<()> {
         let chunks = vec![
             VarBinViewArray::from_iter_nullable_str([Some("a"), None]).into_array(),
             VarBinViewArray::from_iter_nullable_str([
@@ -1744,12 +1854,15 @@ mod tests {
             .into_array(),
         ];
         let dtype = chunks[0].dtype().clone();
-        let chunked = ChunkedArray::try_new(chunks, dtype)?.into_array();
+        let chunked = ChunkedArray::try_new(chunks, dtype.clone())?.into_array();
         let set = utf8_set(vec![Some("a"), Some("a value longer than twelve bytes")]);
+        let bound = list_contains(lit(set), root()).bind(&dtype)?;
         assert_rows_agree(
-            chunked.apply(&list_contains(lit(set), root()))?,
+            chunked.apply_bound(&bound)?,
             BoolArray::from_iter([Some(true), None, Some(true), Some(false)]),
-        )
+        )?;
+        assert!(cached_set(&bound).is_some());
+        Ok(())
     }
 
     #[test]

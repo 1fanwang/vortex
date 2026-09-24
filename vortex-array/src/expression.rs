@@ -20,6 +20,7 @@ impl ArrayRef {
         let BoundExpression::Scalar {
             scalar_fn,
             children,
+            cache,
             ..
         } = expr
         else {
@@ -35,8 +36,13 @@ impl ArrayRef {
             .map(|child| self.clone().apply_bound(child))
             .try_collect()?;
 
-        let array =
-            ScalarFnArray::try_new_with_len(scalar_fn.clone(), children, self.len())?.into_array();
+        let array = ScalarFnArray::try_new_cached(
+            scalar_fn.clone(),
+            children,
+            self.len(),
+            Some(cache.clone()),
+        )?
+        .into_array();
 
         array.optimize()
     }
