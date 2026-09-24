@@ -46,7 +46,6 @@ pub(crate) fn init(py: Python, parent: &Bound<PyModule>) -> PyResult<()> {
     install_module("vortex._lib.scalar", &m)?;
 
     m.add_function(wrap_pyfunction!(factory::scalar, &m)?)?;
-    m.add_function(wrap_pyfunction!(factory::geometry_scalar, &m)?)?;
 
     m.add_class::<PyScalar>()?;
 

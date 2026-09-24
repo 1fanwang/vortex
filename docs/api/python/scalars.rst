@@ -13,8 +13,6 @@ Factory Function
 
 .. autofunction:: vortex.scalar
 
-.. autofunction:: vortex.geometry_scalar
-
 
 Base Class
 ----------

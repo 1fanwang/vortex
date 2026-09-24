@@ -3,14 +3,16 @@
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Literal, TypeAlias, final
+from uuid import UUID
 
 from typing_extensions import override
 
 from .dtype import DType
 from .scalar import ScalarPyType
 
-IntoExpr: TypeAlias = Expr | bool | int | float | str | bytes | date | datetime | time | None
+IntoExpr: TypeAlias = Expr | bool | int | float | str | bytes | Decimal | date | datetime | time | UUID | None
 """A value accepted anywhere an expression is expected. Non-``Expr`` values become literals."""
 
 VariantPath: TypeAlias = str | int | Sequence[str | int]
