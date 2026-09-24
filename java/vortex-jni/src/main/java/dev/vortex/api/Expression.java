@@ -239,6 +239,34 @@ public final class Expression {
     }
 
     /**
+     * Create a Time (time-of-day) literal. The {@code value} is the number of {@code unit} units since midnight.
+     *
+     * @param unit any unit except {@link TimeUnit#DAYS}. {@link TimeUnit#SECONDS} and {@link TimeUnit#MILLISECONDS}
+     *     values must fit in an {@code int}.
+     */
+    public static Expression literalTime(long value, TimeUnit unit) {
+        return new Expression(NativeExpression.literalTime(value, unit.tag(), false));
+    }
+
+    /** Null Time literal. See {@link #literalTime(long, TimeUnit)} for the {@code unit} constraints. */
+    public static Expression nullLiteralTime(TimeUnit unit) {
+        return new Expression(NativeExpression.literalTime(0L, unit.tag(), true));
+    }
+
+    /**
+     * Create a geometry literal from its OGC Well-Known Binary (WKB) encoding, for use with Vortex's spatial
+     * functions and predicate pushdown over geometry columns.
+     *
+     * <p>The value is decoded into the native Vortex geometry type matching its kind: Point, LineString, Polygon,
+     * MultiPoint, MultiLineString or MultiPolygon, in XY with no coordinate reference system. Geometry collections and
+     * malformed WKB are rejected.
+     */
+    public static Expression literalGeometry(byte[] wkb) {
+        Preconditions.checkArgument(wkb != null, "geometry literal WKB must not be null");
+        return new Expression(NativeExpression.literalGeometry(wkb));
+    }
+
+    /**
      * Create a UUID literal, enabling predicate pushdown over UUID columns. The value is stored as its 16-byte
      * big-endian (network order) representation, matching Vortex's UUID extension type and Arrow's canonical UUID type.
      */
@@ -332,7 +360,7 @@ public final class Expression {
         }
     }
 
-    /** Time units for Date/Timestamp literals. Tag values must match the Rust {@code parse_time_unit} table. */
+    /** Time units for Date/Time/Timestamp literals. Tag values must match the Rust {@code parse_time_unit} table. */
     public enum TimeUnit {
         NANOSECONDS((byte) 0),
         MICROSECONDS((byte) 1),

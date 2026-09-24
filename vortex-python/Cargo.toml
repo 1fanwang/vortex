@@ -60,6 +60,7 @@ vortex = { workspace = true, features = [
 vortex-arrow = { workspace = true }
 vortex-cloud = { workspace = true, features = ["opendal"] }
 vortex-python-abi = { path = "../vortex-python-abi" }
+vortex-spatial = { workspace = true }
 vortex-tui = { workspace = true, optional = true }
 
 [dev-dependencies]

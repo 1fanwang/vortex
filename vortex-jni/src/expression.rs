@@ -46,6 +46,7 @@ use vortex::expr::pack;
 use vortex::expr::root;
 use vortex::expr::select;
 use vortex::extension::datetime::Date;
+use vortex::extension::datetime::Time;
 use vortex::extension::datetime::TimeUnit;
 use vortex::extension::datetime::Timestamp;
 use vortex::extension::uuid::Uuid;
@@ -62,6 +63,8 @@ use vortex::scalar_fn::fns::like::Like;
 use vortex::scalar_fn::fns::like::LikeOptions;
 use vortex::scalar_fn::fns::merge::DuplicateHandling;
 use vortex::scalar_fn::fns::operators::Operator;
+use vortex_arrow::ArrowSession;
+use vortex_spatial::extension::native_geometry_scalar_from_wkb;
 
 use crate::errors::JNIError;
 use crate::errors::try_or_throw;
@@ -593,6 +596,64 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalTimestamp(
             dtype,
             Some(ScalarValue::from(value)),
         )?)))
+    })
+}
+
+/// Build a time-of-day literal. `value` is the number of `unit` units since midnight.
+///
+/// Seconds and milliseconds are stored as `i32`, microseconds and nanoseconds as `i64`; days are
+/// rejected by [`Time::try_new`].
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalTime(
+    mut env: EnvUnowned,
+    _class: JClass,
+    value: jlong,
+    time_unit_tag: jbyte,
+    is_null_flag: jboolean,
+) -> jlong {
+    try_or_throw(&mut env, |_| {
+        let unit = parse_time_unit(time_unit_tag)?;
+        let nullability = if is_null_flag {
+            Nullability::Nullable
+        } else {
+            Nullability::NonNullable
+        };
+        let ext = Time::try_new(unit, nullability)?;
+        let dtype = DType::Extension(ext.erased());
+        if is_null_flag {
+            return Ok(into_raw(lit(Scalar::null(dtype))));
+        }
+        let storage_value = match unit {
+            TimeUnit::Seconds | TimeUnit::Milliseconds => ScalarValue::from(
+                i32::try_from(value)
+                    .map_err(|_| vortex_err!("time value does not fit in i32 {unit}: {value}"))?,
+            ),
+            _ => ScalarValue::from(value),
+        };
+        Ok(into_raw(lit(Scalar::try_new(dtype, Some(storage_value))?)))
+    })
+}
+
+/// Build a geometry literal from its OGC Well-Known Binary (WKB) encoding.
+///
+/// The value is decoded into the native geometry extension type matching its geometry kind
+/// (`Point`, `LineString`, `Polygon`, `MultiPoint`, `MultiLineString` or `MultiPolygon`, all XY
+/// with no CRS), which is the form the spatial scalar functions and pruning rules operate on.
+/// Geometry collections and malformed WKB are rejected.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalGeometry(
+    mut env: EnvUnowned,
+    _class: JClass,
+    wkb: JByteArray,
+) -> jlong {
+    try_or_throw(&mut env, |env| {
+        if wkb.is_null() {
+            throw_runtime!("geometry literal WKB bytes must not be null");
+        }
+        let bytes = env.convert_byte_array(&wkb)?;
+        let scalar = native_geometry_scalar_from_wkb(&bytes, &ArrowSession::default())?
+            .ok_or_else(|| vortex_err!("unsupported WKB geometry type for a geometry literal"))?;
+        Ok(into_raw(lit(scalar)))
     })
 }
 

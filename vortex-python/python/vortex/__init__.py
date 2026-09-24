@@ -79,6 +79,7 @@ from ._lib.scalar import (
     Scalar,
     StructScalar,
     Utf8Scalar,
+    geometry_scalar,
     scalar,
 )
 from ._lib.serde import ArrayContext, SerializedArray
@@ -202,6 +203,7 @@ __all__ = [
     "FastLanesFoRArray",
     # Scalars
     "scalar",
+    "geometry_scalar",
     "Scalar",
     "NullScalar",
     "BoolScalar",

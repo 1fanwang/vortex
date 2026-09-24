@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use pyo3::exceptions::PyValueError;
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyBool;
 use pyo3::types::PyBytes;
@@ -18,13 +19,19 @@ use vortex::dtype::FieldName;
 use vortex::dtype::FieldNames;
 use vortex::dtype::Nullability;
 use vortex::dtype::StructFields;
+use vortex::extension::datetime::Time;
+use vortex::extension::datetime::TimeUnit;
 use vortex::scalar::DecimalValue;
 use vortex::scalar::Scalar;
+use vortex::scalar::ScalarValue;
+use vortex_arrow::ArrowSessionExt;
+use vortex_spatial::extension::native_geometry_scalar_from_wkb;
 
 use crate::dtype::PyDType;
 use crate::error::PyVortexResult;
 use crate::scalar::PyScalar;
 use crate::scalar::bool;
+use crate::session::session;
 
 #[pyfunction(name = "scalar")]
 #[pyo3(signature = (value, *, dtype=None))]
@@ -212,8 +219,114 @@ fn scalar_helper_inner(value: &Bound<'_, PyAny>, dtype: Option<&DType>) -> PyRes
         }
     }
 
+    // datetime.time
+    let time_type = value
+        .py()
+        .import(intern!(value.py(), "datetime"))?
+        .getattr(intern!(value.py(), "time"))?;
+    if value.is_instance(&time_type)? {
+        return Ok(time_scalar(value, dtype)?);
+    }
+
     Err(pyo3::exceptions::PyTypeError::new_err(format!(
         "Cannot convert Python object to Vortex scalar: {}",
         value.get_type()
     )))
+}
+
+/// Convert a naive `datetime.time` into a Vortex `Time` scalar.
+///
+/// The unit is taken from `dtype` when it is a `Time` dtype, and otherwise defaults to
+/// microseconds, the resolution of `datetime.time`. Converting to a coarser unit that would drop
+/// a non-zero fraction of a second is an error rather than a silent truncation.
+fn time_scalar(value: &Bound<'_, PyAny>, dtype: Option<&DType>) -> PyVortexResult<Scalar> {
+    let py = value.py();
+    if !value.getattr(intern!(py, "tzinfo"))?.is_none() {
+        return Err(PyValueError::new_err(
+            "Timezone-aware datetime.time values cannot be converted to a Vortex time scalar",
+        )
+        .into());
+    }
+    let hour: i64 = value.getattr(intern!(py, "hour"))?.extract()?;
+    let minute: i64 = value.getattr(intern!(py, "minute"))?.extract()?;
+    let second: i64 = value.getattr(intern!(py, "second"))?.extract()?;
+    let microsecond: i64 = value.getattr(intern!(py, "microsecond"))?.extract()?;
+    let micros = ((hour * 60 + minute) * 60 + second) * 1_000_000 + microsecond;
+
+    let unit = dtype
+        .and_then(DType::as_extension_opt)
+        .and_then(|ext| ext.metadata_opt::<Time>())
+        .copied()
+        .unwrap_or(TimeUnit::Microseconds);
+
+    let coarse = |per_unit: i64| -> PyResult<ScalarValue> {
+        if micros % per_unit != 0 {
+            return Err(PyValueError::new_err(format!(
+                "Time value {micros}us cannot be represented in {unit} without losing precision"
+            )));
+        }
+        let value = i32::try_from(micros / per_unit)
+            .map_err(|_| PyValueError::new_err(format!("Time value does not fit in i32 {unit}")))?;
+        Ok(ScalarValue::from(value))
+    };
+    let storage = match unit {
+        TimeUnit::Nanoseconds => ScalarValue::from(micros * 1_000),
+        TimeUnit::Microseconds => ScalarValue::from(micros),
+        TimeUnit::Milliseconds => coarse(1_000)?,
+        TimeUnit::Seconds => coarse(1_000_000)?,
+        TimeUnit::Days => {
+            return Err(PyValueError::new_err("Time type does not support time unit days").into());
+        }
+    };
+
+    let ext = Time::try_new(unit, Nullability::NonNullable)?;
+    Ok(Scalar::try_new(
+        DType::Extension(ext.erased()),
+        Some(storage),
+    )?)
+}
+
+/// Construct a geometry scalar from its OGC Well-Known Binary (WKB) encoding.
+///
+/// The value is decoded into the native Vortex geometry type matching its kind (``Point``,
+/// ``LineString``, ``Polygon``, ``MultiPoint``, ``MultiLineString`` or ``MultiPolygon``, in XY
+/// with no coordinate reference system), which is the form Vortex's spatial functions and
+/// pruning operate on. The resulting scalar can be used anywhere an expression is expected.
+///
+/// Parameters
+/// ----------
+/// wkb : :class:`bytes`
+///     The WKB-encoded geometry, for example ``shapely.Point(1, 2).wkb``.
+///
+/// Returns
+/// -------
+/// :class:`vortex.Scalar`
+///
+/// Raises
+/// ------
+/// ValueError
+///     If the bytes are not valid WKB, or encode an unsupported geometry such as a
+///     ``GeometryCollection``.
+///
+/// Examples
+/// --------
+///
+/// ```python
+/// >>> import struct
+/// >>> import vortex as vx
+/// >>> point = vx.geometry_scalar(struct.pack("<BIdd", 1, 1, 1.0, 2.0))
+/// >>> isinstance(point, vx.ExtensionScalar)
+/// True
+/// ```
+#[pyfunction(name = "geometry_scalar")]
+pub fn geometry_scalar<'py>(
+    py: Python<'py>,
+    wkb: &Bound<'py, PyBytes>,
+) -> PyResult<Bound<'py, PyScalar>> {
+    let scalar = native_geometry_scalar_from_wkb(wkb.as_bytes(), &session().arrow())
+        .map_err(|err| PyValueError::new_err(err.to_string()))?
+        .ok_or_else(|| {
+            PyValueError::new_err("Unsupported WKB geometry type for a Vortex geometry scalar")
+        })?;
+    PyScalar::init(py, scalar)
 }

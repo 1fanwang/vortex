@@ -12,7 +12,6 @@ use std::sync::atomic::Ordering;
 
 use vortex::VortexSessionDefault;
 use vortex::io::runtime::BlockingRuntime;
-#[cfg(unix)]
 use vortex::io::runtime::Handle;
 use vortex::io::session::RuntimeSessionExt;
 #[cfg(unix)]
@@ -46,9 +45,7 @@ pub(crate) fn session() -> &'static VortexSession {
             return unsafe { &*current };
         }
 
-        let fresh = Box::into_raw(Box::new(
-            VortexSession::default().with_handle(runtime.handle()),
-        ));
+        let fresh = Box::into_raw(Box::new(build_session(runtime.handle())));
         match SESSION.compare_exchange(current, fresh, Ordering::AcqRel, Ordering::Acquire) {
             Ok(_) => {
                 // SAFETY: `fresh` was just published and published sessions are never freed.
@@ -64,7 +61,15 @@ pub(crate) fn session() -> &'static VortexSession {
 
 #[cfg(not(unix))]
 fn new_session() -> VortexSession {
-    VortexSession::default().with_handle(current_runtime().handle())
+    build_session(current_runtime().handle())
+}
+
+/// Build a session on `handle` with the spatial extension types, functions and pruning rules
+/// registered, so geometry columns and literals are understood.
+fn build_session(handle: Handle) -> VortexSession {
+    let session = VortexSession::default().with_handle(handle);
+    vortex_spatial::initialize(&session);
+    session
 }
 
 /// Point the shared session at `handle`, replacing any previously configured runtime handle.

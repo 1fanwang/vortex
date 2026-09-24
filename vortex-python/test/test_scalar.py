@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright the Vortex contributors
 
+import datetime
 import decimal
+import struct
 
 import pytest
 
@@ -85,3 +87,46 @@ def test_decimal_ignores_context_precision() -> None:
     assert isinstance(value, decimal.Decimal)
     assert len(value.as_tuple().digits) == 38
     assert str(value) == f"{digits[:19]}.{digits[19:]}"
+
+
+@pytest.mark.parametrize(
+    "unit,expected",
+    [
+        ("ns", 3_723_500_000_000),
+        ("us", 3_723_500_000),
+        ("ms", 3_723_500),
+    ],
+)
+def test_time_scalar(unit: str, expected: int) -> None:
+    scalar = vx.scalar(datetime.time(1, 2, 3, 500_000), dtype=vx.time(unit))
+    assert isinstance(scalar, vx.ExtensionScalar)
+    assert scalar.dtype == vx.time(unit)
+    assert scalar.as_py() == expected
+
+
+def test_time_scalar_defaults_to_microseconds() -> None:
+    scalar = vx.scalar(datetime.time(0, 0, 1, 7))
+    assert scalar.dtype == vx.time("us")
+    assert scalar.as_py() == 1_000_007
+
+
+def test_time_scalar_rejects_precision_loss() -> None:
+    with pytest.raises(ValueError, match="without losing precision"):
+        _ = vx.scalar(datetime.time(0, 0, 1, 500_000), dtype=vx.time("s"))
+
+
+def test_time_scalar_rejects_timezone() -> None:
+    with pytest.raises(ValueError, match="Timezone-aware"):
+        _ = vx.scalar(datetime.time(12, tzinfo=datetime.timezone.utc))
+
+
+def test_geometry_scalar_point() -> None:
+    wkb = struct.pack("<BIdd", 1, 1, 1.0, 2.0)
+    scalar = vx.geometry_scalar(wkb)
+    assert isinstance(scalar, vx.ExtensionScalar)
+    assert "vortex.st.point" in repr(scalar.dtype)
+
+
+def test_geometry_scalar_rejects_malformed_wkb() -> None:
+    with pytest.raises(ValueError):
+        _ = vx.geometry_scalar(b"\x01\x02\x03")

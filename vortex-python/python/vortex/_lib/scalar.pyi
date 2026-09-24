@@ -9,6 +9,7 @@ from .dtype import DType
 ScalarPyType: TypeAlias = None | int | float | str | Decimal | bytes | list[ScalarPyType] | dict[str, ScalarPyType]
 
 def scalar(value: object, *, dtype: DType | None = None) -> Scalar: ...
+def geometry_scalar(wkb: bytes) -> Scalar: ...
 
 class Scalar:
     @property
