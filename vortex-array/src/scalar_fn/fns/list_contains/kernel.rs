@@ -99,7 +99,7 @@ pub trait ListContainsListKernel: VTable {
 /// [`ListContainsElementReduce`] rule, which may not read buffers, works from the list's scalar.
 pub struct ListContainsSet {
     elements: ArrayRef,
-    nullability: Nullability,
+    pub(super) nullability: Nullability,
     non_match_is_unknown: bool,
     /// Whether every needle, a null one included, is absent: an empty list off SQL null semantics.
     matches_nothing: bool,

@@ -2,8 +2,8 @@
 // SPDX-FileCopyrightText: Copyright the Vortex contributors
 
 mod kernel;
+mod prepared;
 
-use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -15,20 +15,16 @@ use std::sync::Arc;
 use arrow_buffer::bit_iterator::BitIndexIterator;
 pub use kernel::*;
 use num_traits::Zero;
+pub use prepared::PreparedSet;
 use prost::Message;
 use vortex_buffer::BitBuffer;
-use vortex_buffer::BitBufferMut;
 use vortex_buffer::Buffer;
-use vortex_buffer::BufferAllocatorRef;
 use vortex_buffer::BufferMut;
-use vortex_error::VortexExpect;
 use vortex_error::VortexResult;
 use vortex_error::vortex_bail;
 use vortex_error::vortex_err;
 use vortex_session::VortexSession;
 use vortex_session::registry::CachedId;
-use vortex_utils::aliases::hash_set::HashSet;
-use vortex_utils::iter::ReduceBalancedIterExt;
 
 use crate::ArrayRef;
 use crate::ExecutionCtx;
@@ -39,16 +35,12 @@ use crate::arrays::ConstantArray;
 use crate::arrays::ListViewArray;
 use crate::arrays::PrimitiveArray;
 use crate::arrays::ScalarFnArray;
-use crate::arrays::VarBinViewArray;
 use crate::arrays::bool::BoolArrayExt;
 use crate::arrays::listview::ListViewArraySlotsExt;
 use crate::arrays::primitive::PrimitiveArrayExt;
-use crate::arrays::varbinview::BinaryView;
-use crate::builtins::ArrayBuiltins;
 use crate::dtype::DType;
 use crate::dtype::IntegerPType;
 use crate::dtype::Nullability;
-use crate::dtype::PType;
 use crate::expr::Expression;
 use crate::expr::lit;
 use crate::match_each_integer_ptype;
@@ -62,7 +54,6 @@ use crate::scalar_fn::ScalarFnId;
 use crate::scalar_fn::ScalarFnVTable;
 use crate::scalar_fn::ScalarFnVTableExt;
 use crate::scalar_fn::fns::binary::Binary;
-use crate::scalar_fn::fns::binary::collect_bits;
 use crate::scalar_fn::fns::literal::Literal;
 use crate::scalar_fn::fns::operators::Operator;
 use crate::validity::Validity;
@@ -365,218 +356,7 @@ fn compute_list_contains(
 
     let set = ListContainsSet::try_new(array, value.dtype(), options, ctx)?
         .ok_or_else(|| vortex_err!("A non-null constant list of {} has a set", value.dtype()))?;
-    constant_list_scalar_contains(&set, value, ctx)
-}
-
-/// There is a constant list scalar (haystack) being compared to an array of needles: the `IN`
-/// shape, `list_contains(lit([...]), column)`.
-///
-/// Primitive and string needles take a single pass over the column against a set built once from
-/// the list; everything else falls back to one equality comparison per element, OR-ed together.
-/// A null element is dropped from the set — it never equals anything — and, under SQL null
-/// semantics, makes every non-matching row `null` instead of `false`.
-///
-/// These are the canonical implementations. An encoding that can answer from its encoded form
-/// instead implements [`ListContainsElementKernel`], which is dispatched before this runs.
-fn constant_list_scalar_contains(
-    set: &ListContainsSet,
-    values: &ArrayRef,
-    ctx: &mut ExecutionCtx,
-) -> VortexResult<ArrayRef> {
-    match values.dtype() {
-        DType::Primitive(..) => primitive_set_contains(set, values, ctx),
-        DType::Utf8(_) | DType::Binary(_) => bytes_set_contains(set, values, ctx),
-        _ => element_comparison_fold(set, values, ctx),
-    }
-}
-
-/// Single-pass membership of primitive needles in a constant set.
-///
-/// A float is a member exactly when the compare kernel would call it equal to an element, which is
-/// when their bit patterns match — distinguishing `-0.0` from `0.0` and one NaN payload from
-/// another — so floats are probed by their bits, and every primitive set is a set of integers.
-fn primitive_set_contains(
-    set: &ListContainsSet,
-    values: &ArrayRef,
-    ctx: &mut ExecutionCtx,
-) -> VortexResult<ArrayRef> {
-    let primitive = values.clone().execute::<PrimitiveArray>(ctx)?;
-    let ptype = bit_pattern_ptype(primitive.ptype());
-    let needles = primitive.reinterpret_cast(ptype);
-    let elements = set
-        .elements()
-        .clone()
-        .execute::<PrimitiveArray>(ctx)?
-        .reinterpret_cast(ptype);
-    let bits = match_each_integer_ptype!(ptype, |T| {
-        integer_set_bits(
-            elements.as_slice::<T>(),
-            needles.as_slice::<T>(),
-            ctx.allocator(),
-        )
-    });
-    set.finish(bits, primitive.validity()?)
-}
-
-/// The integer type with a float's bit pattern, or the type itself for an integer.
-fn bit_pattern_ptype(ptype: PType) -> PType {
-    match ptype {
-        PType::F16 => PType::U16,
-        PType::F32 => PType::U32,
-        PType::F64 => PType::U64,
-        _ => ptype,
-    }
-}
-
-/// A set whose span of values needs at most this many bits per element is probed through a bitmap
-/// over the span, bounding the bitmap to a few words per element.
-const BITMAP_BITS_PER_ELEMENT: u128 = 64;
-/// A span this narrow is probed through a bitmap whatever the size of the set.
-const BITMAP_MIN_BITS: u128 = 1 << 12;
-
-/// One bit per needle, set when the needle is an element: through a bitmap when the set's values
-/// span a dense range, and a binary search otherwise.
-///
-/// A hash set and, for a handful of elements, a linear scan both lost to the binary search at every
-/// set size measured by the `list_contains_set` benchmark, up to 16 384 elements.
-fn integer_set_bits<T: IntegerPType + Hash>(
-    elements: &[T],
-    needles: &[T],
-    allocator: &BufferAllocatorRef,
-) -> BitBuffer {
-    let (Some(&min), Some(&max)) = (elements.iter().min(), elements.iter().max()) else {
-        return BitBuffer::new_unset_in(needles.len(), allocator.clone());
-    };
-    let span = integer_span(min, max);
-
-    // The offset from `min` is computed in `usize`, which then has to hold every value of `T`.
-    if size_of::<T>() <= size_of::<usize>()
-        && span < (elements.len() as u128 * BITMAP_BITS_PER_ELEMENT).max(BITMAP_MIN_BITS)
-    {
-        let span = usize::try_from(span).vortex_expect("span bounded by the bitmap limit");
-        let mut bitmap = BitBufferMut::new_unset(span + 1);
-        let min_offset: usize = min.as_();
-        for &element in elements {
-            bitmap.set(element.as_().wrapping_sub(min_offset));
-        }
-        let bitmap = bitmap.freeze();
-        // A needle below `min` wraps past `span`, so one comparison checks both bounds.
-        return collect_bits(
-            needles,
-            |needle| {
-                let offset = needle.as_().wrapping_sub(min_offset);
-                offset <= span && bitmap.value(offset)
-            },
-            allocator,
-        );
-    }
-
-    // A set normalized while the expression was optimized arrives sorted already.
-    let sorted: Cow<[T]> = if elements.is_sorted_by(|a, b| a < b) {
-        Cow::Borrowed(elements)
-    } else {
-        let mut sorted = elements.to_vec();
-        sorted.sort_unstable();
-        sorted.dedup();
-        Cow::Owned(sorted)
-    };
-    collect_bits(
-        needles,
-        |needle| sorted.binary_search(&needle).is_ok(),
-        allocator,
-    )
-}
-
-/// How far `max` lies above `min`, wider than either so that it cannot overflow.
-fn integer_span<T: IntegerPType>(min: T, max: T) -> u128 {
-    let wide = |value: T| {
-        value
-            .to_i128()
-            .vortex_expect("an integer ptype fits in i128")
-    };
-    u128::try_from(wide(max) - wide(min)).vortex_expect("max is at least min")
-}
-
-/// Single-pass membership of UTF-8 or binary needles in a constant set, hashed by bytes.
-fn bytes_set_contains(
-    set: &ListContainsSet,
-    values: &ArrayRef,
-    ctx: &mut ExecutionCtx,
-) -> VortexResult<ArrayRef> {
-    let elements = set.elements().clone().execute::<VarBinViewArray>(ctx)?;
-    let element_buffers = data_buffers(&elements);
-    let bytes: HashSet<&[u8]> = elements
-        .views()
-        .iter()
-        .map(|view| view_bytes(view, &element_buffers))
-        .collect();
-
-    let array = values.clone().execute::<VarBinViewArray>(ctx)?;
-    let buffers = data_buffers(&array);
-    let bits = collect_bits(
-        array.views(),
-        |view: BinaryView| bytes.contains(view_bytes(&view, &buffers)),
-        ctx.allocator(),
-    );
-    set.finish(bits, array.validity()?)
-}
-
-/// The host slices of an array's data buffers, indexed by a view's buffer index.
-fn data_buffers(array: &VarBinViewArray) -> Vec<&[u8]> {
-    (0..array.data_buffers().len())
-        .map(|idx| array.buffer(idx).as_slice())
-        .collect()
-}
-
-/// The bytes a view points at, inlined in the view itself or out of line in one of `buffers`.
-fn view_bytes<'a>(view: &'a BinaryView, buffers: &[&'a [u8]]) -> &'a [u8] {
-    if view.is_inlined() {
-        view.as_inlined().value()
-    } else {
-        let reference = view.as_view();
-        &buffers[reference.buffer_index as usize][reference.as_range()]
-    }
-}
-
-/// Membership of needles of any other dtype: one equality per element, folded with Kleene OR.
-///
-/// A null needle compares null to every element and so stays null. The elements hold no null, so
-/// under SQL null semantics one all-null term stands in for however many the list held: Kleene OR
-/// leaves a match `true` and turns a non-match into `null`.
-fn element_comparison_fold(
-    set: &ListContainsSet,
-    values: &ArrayRef,
-    ctx: &mut ExecutionCtx,
-) -> VortexResult<ArrayRef> {
-    let len = values.len();
-    let elements = set.elements();
-    let unknown = set.non_match_is_unknown().then(|| {
-        ConstantArray::new(Scalar::null(DType::Bool(Nullability::Nullable)), len).into_array()
-    });
-    let result = (0..elements.len())
-        .map(|idx| {
-            let element = elements.execute_scalar(idx, ctx)?;
-            Ok(Binary::try_new(
-                ConstantArray::new(element, len).into_array(),
-                values.clone(),
-                Operator::Eq,
-            )?
-            .into_array())
-        })
-        .collect::<VortexResult<Vec<_>>>()?
-        .into_iter()
-        .chain(unknown)
-        .try_reduce_balanced(|acc, res| acc.binary(res, Operator::Or))?;
-
-    match result {
-        Some(result) => Ok(result),
-        // The list is empty or held nothing but nulls, and a non-match is known to be false:
-        // nothing matches, and the set settles what a null needle answers.
-        None => set.finish(
-            BitBuffer::full_in(false, len, ctx.allocator().clone()),
-            values.validity()?,
-        ),
-    }
+    set.prepare(ctx)?.contains(value, ctx)
 }
 
 /// Returns a [`BoolArray`] where each bit represents if a list contains the scalar.
@@ -987,13 +767,17 @@ mod tests {
     use crate::VortexSessionExecute;
     use crate::array_session;
     use crate::arrays::BoolArray;
+    use crate::arrays::Chunked;
+    use crate::arrays::ChunkedArray;
     use crate::arrays::ConstantArray;
     use crate::arrays::DictArray;
     use crate::arrays::ListArray;
     use crate::arrays::ListViewArray;
     use crate::arrays::PrimitiveArray;
+    use crate::arrays::ScalarFn;
     use crate::arrays::VarBinArray;
     use crate::arrays::VarBinViewArray;
+    use crate::arrays::scalar_fn::ScalarFnArrayExt;
     use crate::assert_arrays_eq;
     use crate::dtype::DType;
     use crate::dtype::NativePType;
@@ -1913,6 +1697,61 @@ mod tests {
         assert_integer_membership(vec![i64::MIN, i64::MAX])
     }
 
+    #[rstest]
+    #[case::default(ListContainsOptions::default())]
+    #[case::sql(SQL)]
+    fn chunked_needles_probe_one_prepared_set(
+        #[case] options: ListContainsOptions,
+    ) -> VortexResult<()> {
+        // Chunks in different encodings, one of them empty, against a set with a null element.
+        let chunks = vec![
+            PrimitiveArray::from_option_iter([Some(1i32), None, Some(4)]).into_array(),
+            PrimitiveArray::from_option_iter::<i32, _>([]).into_array(),
+            DictArray::try_new(
+                PrimitiveArray::from_option_iter([Some(0u32), None, Some(1)]).into_array(),
+                PrimitiveArray::from_option_iter([Some(2i32), Some(9)]).into_array(),
+            )?
+            .into_array(),
+        ];
+        let dtype = chunks[0].dtype().clone();
+        let chunked = ChunkedArray::try_new(chunks, dtype)?.into_array();
+        let expr = list_contains_opts(lit(i32_set(vec![Some(2), None, Some(4)])), root(), options);
+
+        // The chunked array reaches the kernel whole rather than being split per chunk.
+        let result = chunked.apply(&expr)?;
+        let scalar_fn = result
+            .as_opt::<ScalarFn>()
+            .vortex_expect("list_contains is not pushed into the chunks");
+        assert!(scalar_fn.get_child(1).is::<Chunked>());
+
+        let mut ctx = array_session().create_execution_ctx();
+        let flat =
+            PrimitiveArray::from_option_iter([Some(1i32), None, Some(4), Some(2), None, Some(9)])
+                .into_array()
+                .apply(&expr)?
+                .execute::<BoolArray>(&mut ctx)?;
+        assert_rows_agree(result, flat)
+    }
+
+    #[test]
+    fn chunked_strings_probe_one_prepared_set() -> VortexResult<()> {
+        let chunks = vec![
+            VarBinViewArray::from_iter_nullable_str([Some("a"), None]).into_array(),
+            VarBinViewArray::from_iter_nullable_str([
+                Some("a value longer than twelve bytes"),
+                Some("b"),
+            ])
+            .into_array(),
+        ];
+        let dtype = chunks[0].dtype().clone();
+        let chunked = ChunkedArray::try_new(chunks, dtype)?.into_array();
+        let set = utf8_set(vec![Some("a"), Some("a value longer than twelve bytes")]);
+        assert_rows_agree(
+            chunked.apply(&list_contains(lit(set), root()))?,
+            BoolArray::from_iter([Some(true), None, Some(true), Some(false)]),
+        )
+    }
+
     #[test]
     fn strict_only_under_sql_semantics() {
         let default = list_contains(lit(empty_i32_list()), root());
@@ -1938,6 +1777,25 @@ mod tests {
             [Some(false), None],
         )?;
         assert_result(needles.apply(&in_list(root(), lit(set))), [None, None])
+    }
+
+    #[test]
+    fn constant_set_fallback_keeps_the_declared_nullability() -> VortexResult<()> {
+        // A nullable element dtype decides nothing off SQL null semantics, so non-null needles give
+        // a non-nullable result, though each comparison is against a nullable element.
+        let needles = BoolArray::from_iter([true, false]).into_array();
+        let element = DType::Bool(Nullability::Nullable);
+        let set = Scalar::list(
+            Arc::new(element.clone()),
+            vec![
+                Scalar::bool(true, Nullability::Nullable),
+                Scalar::null(element),
+            ],
+            Nullability::NonNullable,
+        );
+        let result = needles.apply(&list_contains(lit(set), root()))?;
+        assert_eq!(result.dtype(), &DType::Bool(Nullability::NonNullable));
+        assert_rows_agree(result, BoolArray::from_iter([true, false]))
     }
 
     #[test]
