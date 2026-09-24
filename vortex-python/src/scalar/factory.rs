@@ -447,7 +447,7 @@ fn decimal_scalar(value: &Bound<'_, PyAny>, hint: Option<&DecimalDType>) -> PyVo
         None => &[][..],
     };
 
-    let scale = hint.map_or((-exponent).max(0), |d| i64::from(d.scale()));
+    let scale: i64 = hint.map_or_else(|| (-exponent).max(0), |d| d.scale().into());
     // Shift the digits so that they represent the unscaled value at `scale`.
     let shift = exponent + scale;
     let unscaled_digits: Vec<u8> = if digits.is_empty() {
@@ -501,10 +501,10 @@ fn decimal_scalar(value: &Bound<'_, PyAny>, hint: Option<&DecimalDType>) -> PyVo
         }
     };
 
-    let ten = i256::from(10i64);
+    let ten = i256::from_i128(10);
     let mut unscaled = i256::ZERO;
     for digit in unscaled_digits {
-        unscaled = unscaled * ten + i256::from(i64::from(digit));
+        unscaled = unscaled * ten + i256::from_i128(digit.into());
     }
     if negative {
         unscaled = -unscaled;
