@@ -5,6 +5,7 @@
 
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::sync::Arc;
 
 use itertools::Itertools;
 use vortex_buffer::BufferString;
@@ -37,7 +38,9 @@ pub enum ScalarValue {
     /// A tuple of potentially null scalar values.
     ///
     /// Used as the underlying representation for list, fixed-size list, map, and struct scalars.
-    Tuple(Vec<Option<ScalarValue>>),
+    /// The values are shared, so cloning a scalar, such as the constant behind every batch of an
+    /// array, does not copy them.
+    Tuple(Arc<[Option<ScalarValue>]>),
     /// A present union value carrying its selected type ID and raw child value.
     Union(UnionValue),
     /// A row-specific scalar wrapped by `DType::Variant`.
@@ -60,20 +63,20 @@ impl ScalarValue {
             DType::Decimal(dt, ..) => Self::Decimal(DecimalValue::zero(dt)),
             DType::Utf8(_) => Self::Utf8(BufferString::empty()),
             DType::Binary(_) => Self::Binary(ByteBuffer::empty()),
-            DType::List(..) => Self::Tuple(vec![]),
-            DType::Map(..) => Self::Tuple(vec![]),
+            DType::List(..) => Self::Tuple(Arc::new([])),
+            DType::Map(..) => Self::Tuple(Arc::new([])),
             DType::FixedSizeList(edt, size, _) => {
                 let elements = (0..*size)
                     .map(|_| Self::try_zero_value(edt).map(Some))
                     .collect::<Option<Vec<_>>>()?;
-                Self::Tuple(elements)
+                Self::Tuple(elements.into())
             }
             DType::Struct(fields, _) => {
                 let field_values = fields
                     .fields()
                     .map(|f| Self::try_zero_value(&f).map(Some))
                     .collect::<Option<Vec<_>>>()?;
-                Self::Tuple(field_values)
+                Self::Tuple(field_values.into())
             }
             DType::Union(variants, _) => {
                 let child_dtype = variants
@@ -112,20 +115,20 @@ impl ScalarValue {
             DType::Decimal(dt, ..) => Self::Decimal(DecimalValue::zero(dt)),
             DType::Utf8(_) => Self::Utf8(BufferString::empty()),
             DType::Binary(_) => Self::Binary(ByteBuffer::empty()),
-            DType::List(..) => Self::Tuple(vec![]),
-            DType::Map(..) => Self::Tuple(vec![]),
+            DType::List(..) => Self::Tuple(Arc::new([])),
+            DType::Map(..) => Self::Tuple(Arc::new([])),
             DType::FixedSizeList(edt, size, _) => {
                 let elements = (0..*size)
                     .map(|_| Self::try_default_value(edt))
                     .collect::<Option<Vec<_>>>()?;
-                Self::Tuple(elements)
+                Self::Tuple(elements.into())
             }
             DType::Struct(fields, _) => {
                 let field_values = fields
                     .fields()
                     .map(|field| Self::try_default_value(&field))
                     .collect::<Option<Vec<_>>>()?;
-                Self::Tuple(field_values)
+                Self::Tuple(field_values.into())
             }
             DType::Union(variants, _) => {
                 let child_dtype = variants

@@ -54,9 +54,9 @@ mod tests {
                 Arc::from(DType::Primitive(PType::U16, Nullability::Nullable)),
                 Nullability::Nullable,
             ),
-            Some(ScalarValue::Tuple(vec![Some(ScalarValue::Primitive(
-                PValue::U16(6),
-            ))])),
+            Some(ScalarValue::Tuple(
+                vec![Some(ScalarValue::Primitive(PValue::U16(6)))].into(),
+            )),
         );
 
         // Change element nullability from Nullable to NonNullable.
@@ -97,11 +97,14 @@ mod tests {
                 Arc::from(DType::Primitive(PType::U16, Nullability::Nullable)),
                 Nullability::Nullable,
             ),
-            Some(ScalarValue::Tuple(vec![
-                Some(ScalarValue::Primitive(PValue::U16(6))),
-                None,
-                Some(ScalarValue::Primitive(PValue::U16(10))),
-            ])),
+            Some(ScalarValue::Tuple(
+                vec![
+                    Some(ScalarValue::Primitive(PValue::U16(6))),
+                    None,
+                    Some(ScalarValue::Primitive(PValue::U16(10))),
+                ]
+                .into(),
+            )),
         );
 
         // Cast to different element type with nullable elements - should succeed.
@@ -200,10 +203,9 @@ mod tests {
                 Arc::from(DType::Primitive(PType::U16, Nullability::Nullable)),
                 Nullability::Nullable,
             ),
-            Some(ScalarValue::Tuple(vec![
-                Some(ScalarValue::Primitive(PValue::U16(6))),
-                None,
-            ])),
+            Some(ScalarValue::Tuple(
+                vec![Some(ScalarValue::Primitive(PValue::U16(6))), None].into(),
+            )),
         );
 
         // Casting to non-nullable element type should fail.

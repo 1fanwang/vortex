@@ -38,7 +38,7 @@ impl OperationsVTable<Struct> for Struct {
         Ok(unsafe {
             Scalar::new_unchecked(
                 array.dtype().clone(),
-                Some(ScalarValue::Tuple(field_values)),
+                Some(ScalarValue::Tuple(field_values.into())),
             )
         })
     }

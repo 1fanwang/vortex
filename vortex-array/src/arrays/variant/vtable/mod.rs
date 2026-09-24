@@ -338,7 +338,7 @@ fn merge_struct_payload(typed: &Scalar, raw: Option<&Scalar>) -> VortexResult<Sc
     );
     Scalar::try_new(
         DType::Struct(fields, Nullability::NonNullable),
-        Some(ScalarValue::Tuple(values)),
+        Some(ScalarValue::Tuple(values.into())),
     )
 }
 

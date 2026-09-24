@@ -182,14 +182,14 @@ impl Scalar {
                     );
                 }
 
-                Ok(Some(ScalarValue::Tuple(vec![
+                Ok(Some(ScalarValue::Tuple(Arc::new([
                     key.into_value(),
                     value.into_value(),
-                ])))
+                ]))))
             })
             .collect::<VortexResult<Vec<_>>>()?;
 
-        Self::try_new(dtype, Some(ScalarValue::Tuple(entries)))
+        Self::try_new(dtype, Some(ScalarValue::Tuple(entries.into())))
     }
 
     /// Creates a list [`Scalar`] from an element dtype, children, nullability, and list kind.
@@ -224,7 +224,7 @@ impl Scalar {
             ListKind::FixedSize => DType::FixedSizeList(element_dtype, size, nullability),
         };
 
-        Self::try_new(dtype, Some(ScalarValue::Tuple(children)))
+        Self::try_new(dtype, Some(ScalarValue::Tuple(children.into())))
             .vortex_expect("unable to construct a list `Scalar`")
     }
 

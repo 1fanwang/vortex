@@ -6,6 +6,7 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::hash::Hash;
+use std::sync::Arc;
 
 use itertools::Itertools;
 use vortex_error::VortexExpect;
@@ -174,14 +175,14 @@ impl<'a> MapScalar<'a> {
                         .vortex_expect("map entry is non-null")
                         .as_list(),
                 );
-                Ok(Some(ScalarValue::Tuple(vec![
+                Ok(Some(ScalarValue::Tuple(Arc::new([
                     key.cast(&target_key)?.into_value(),
                     value.cast(&target_value)?.into_value(),
-                ])))
+                ]))))
             })
             .collect::<VortexResult<Vec<_>>>()?;
 
-        Scalar::try_new(dtype.clone(), Some(ScalarValue::Tuple(entries)))
+        Scalar::try_new(dtype.clone(), Some(ScalarValue::Tuple(entries.into())))
     }
 
     fn entry_scalars(&self, values: &[Option<ScalarValue>]) -> (Scalar, Scalar) {
@@ -269,9 +270,12 @@ mod tests {
         let dtype = dtype()?;
         let malformed = Scalar::try_new(
             dtype,
-            Some(ScalarValue::Tuple(vec![Some(ScalarValue::Tuple(vec![
-                Some(ScalarValue::Primitive(1i32.into())),
-            ]))])),
+            Some(ScalarValue::Tuple(
+                vec![Some(ScalarValue::Tuple(
+                    vec![Some(ScalarValue::Primitive(1i32.into()))].into(),
+                ))]
+                .into(),
+            )),
         );
 
         assert!(malformed.is_err());
@@ -282,10 +286,12 @@ mod tests {
     fn rejects_null_keys() -> VortexResult<()> {
         let malformed = Scalar::try_new(
             dtype()?,
-            Some(ScalarValue::Tuple(vec![Some(ScalarValue::Tuple(vec![
-                None,
-                Some(ScalarValue::Utf8("value".into())),
-            ]))])),
+            Some(ScalarValue::Tuple(
+                vec![Some(ScalarValue::Tuple(
+                    vec![None, Some(ScalarValue::Utf8("value".into()))].into(),
+                ))]
+                .into(),
+            )),
         );
 
         assert!(malformed.is_err());

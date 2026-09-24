@@ -3,6 +3,8 @@
 
 //! Scalar downcasting methods to typed views.
 
+use std::sync::Arc;
+
 use vortex_buffer::BufferString;
 use vortex_buffer::ByteBuffer;
 use vortex_error::VortexExpect;
@@ -310,7 +312,7 @@ impl ScalarValue {
     }
 
     /// Returns the tuple elements, panicking if the value is not a [`Tuple`](ScalarValue::Tuple).
-    pub fn into_list(self) -> Vec<Option<ScalarValue>> {
+    pub fn into_list(self) -> Arc<[Option<ScalarValue>]> {
         match self {
             ScalarValue::Tuple(elements) => elements,
             _ => vortex_panic!("ScalarValue is not a Tuple"),

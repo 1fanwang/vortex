@@ -225,7 +225,7 @@ impl<'a> ListScalar<'a> {
                             .cast(target_element_dtype)
                             .map(|x| x.into_value())
                     })
-                    .collect::<VortexResult<Vec<Option<ScalarValue>>>>()?,
+                    .collect::<VortexResult<Arc<[Option<ScalarValue>]>>>()?,
             )),
         )
     }

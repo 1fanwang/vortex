@@ -381,7 +381,7 @@ pub unsafe extern "C-unwind" fn vx_scalar_new_list(
         let values = scalar_values_from_raw(elements, len)?;
         Ok(vx_scalar::new(Scalar::try_new(
             dtype,
-            Some(ScalarValue::Tuple(values)),
+            Some(ScalarValue::Tuple(values.into())),
         )?))
     })
 }
@@ -406,7 +406,7 @@ pub unsafe extern "C-unwind" fn vx_scalar_new_fixed_size_list(
         let values = scalar_values_from_raw(elements, len as usize)?;
         Ok(vx_scalar::new(Scalar::try_new(
             dtype,
-            Some(ScalarValue::Tuple(values)),
+            Some(ScalarValue::Tuple(values.into())),
         )?))
     })
 }
@@ -426,7 +426,7 @@ pub unsafe extern "C-unwind" fn vx_scalar_new_struct(
         let values = scalar_values_from_raw(fields, len)?;
         Ok(vx_scalar::new(Scalar::try_new(
             vx_dtype::as_ref(struct_dtype).clone(),
-            Some(ScalarValue::Tuple(values)),
+            Some(ScalarValue::Tuple(values.into())),
         )?))
     })
 }
