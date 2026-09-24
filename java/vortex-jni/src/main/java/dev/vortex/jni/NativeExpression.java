@@ -29,6 +29,8 @@ public final class NativeExpression {
 
     public static native long binary(byte operator, long lhs, long rhs);
 
+    public static native long spatial(byte function, long[] operands);
+
     public static native long not(long childPointer);
 
     public static native long isNull(long childPointer);
@@ -49,6 +51,16 @@ public final class NativeExpression {
     public static native long literalI32(int value, boolean isNull);
 
     public static native long literalI64(long value, boolean isNull);
+
+    public static native long literalU8(byte bits, boolean isNull);
+
+    public static native long literalU16(short bits, boolean isNull);
+
+    public static native long literalU32(int bits, boolean isNull);
+
+    public static native long literalU64(long bits, boolean isNull);
+
+    public static native long literalF16(float value, boolean isNull);
 
     public static native long literalF32(float value, boolean isNull);
 
@@ -71,6 +83,22 @@ public final class NativeExpression {
     public static native long literalGeometry(byte[] wkb);
 
     public static native long literalNull(byte dtypeTag);
+
+    public static native long literalList(
+            long[] elementPointers, long elementTypePointer, boolean elementsNullable, boolean isNull);
+
+    public static native long literalFixedSizeList(
+            long[] elementPointers, long elementTypePointer, boolean elementsNullable, int size, boolean isNull);
+
+    public static native long literalStruct(String[] fieldNames, long[] fieldPointers, boolean isNull);
+
+    public static native long literalMap(
+            long[] keyPointers,
+            long[] valuePointers,
+            long keyTypePointer,
+            long valueTypePointer,
+            boolean valuesNullable,
+            boolean isNull);
 
     public static native void free(long pointer);
 }

@@ -591,10 +591,11 @@ fn time_scalar(value: &Bound<'_, PyAny>, dtype: Option<&DType>) -> PyVortexResul
     let ext = Time::try_new(unit, Nullability::NonNullable)?;
     let value = micros_to_unit(time_of_day_micros(value)?, unit)?;
     let storage = match unit {
-        TimeUnit::Seconds | TimeUnit::Milliseconds => ScalarValue::from(
-            i32::try_from(value)
-                .map_err(|_| PyValueError::new_err(format!("Time value does not fit in i32 {unit}")))?,
-        ),
+        TimeUnit::Seconds | TimeUnit::Milliseconds => {
+            ScalarValue::from(i32::try_from(value).map_err(|_| {
+                PyValueError::new_err(format!("Time value does not fit in i32 {unit}"))
+            })?)
+        }
         _ => ScalarValue::from(value),
     };
     Ok(Scalar::try_new(
