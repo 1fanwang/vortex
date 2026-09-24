@@ -24,11 +24,10 @@ import org.junit.jupiter.api.Test;
  * <p>Five enums carry a tag that the Rust side switches on: {@link BinaryOp} against {@code parse_op},
  * {@link DuplicateHandling} against {@code parse_duplicate_handling}, {@link TimeUnit} against
  * {@code TimeUnit::try_from}, {@link DType} against the table in {@code literalNull}, and {@link SpatialFunction}
- * against the table in {@code spatial}. Three of the four say in
- * their javadoc that the values must match the Rust table, but nothing checked it. Drift compiles on both sides, and
- * the two failure modes are not equally loud: a tag past the end of a table reaches the {@code other =>} arm and
- * throws, while a tag that collides with a sibling decodes to the wrong operator or the wrong time unit and returns an
- * expression that reads valid.
+ * against the table in {@code spatial}. Four of the five say in their javadoc that the values must match the Rust
+ * table, but nothing checked it. Drift compiles on both sides, and the two failure modes are not equally loud: a tag
+ * past the end of a table reaches the {@code other =>} arm and throws, while a tag that collides with a sibling decodes
+ * to the wrong operator or the wrong time unit and returns an expression that reads valid.
  *
  * <p>So each table is pinned twice: the constants against the bytes Rust matches, and every constant against the native
  * call that consumes it. Both temporal types are exercised because between them they reject enough units to tell the

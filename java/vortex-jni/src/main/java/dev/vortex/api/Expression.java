@@ -211,8 +211,8 @@ public final class Expression {
     }
 
     /**
-     * Create an unsigned 64-bit integer literal from its bit pattern, so values above {@link Long#MAX_VALUE} are
-     * passed as negative longs (for example via {@link Long#parseUnsignedLong(String)}).
+     * Create an unsigned 64-bit integer literal from its bit pattern, so values above {@link Long#MAX_VALUE} are passed
+     * as negative longs (for example via {@link Long#parseUnsignedLong(String)}).
      */
     public static Expression literalU64(long bits) {
         return new Expression(NativeExpression.literalU64(bits, false));
@@ -307,8 +307,8 @@ public final class Expression {
     }
 
     /**
-     * Create a geometry literal from its OGC Well-Known Binary (WKB) encoding, for use with Vortex's spatial
-     * functions and predicate pushdown over geometry columns.
+     * Create a geometry literal from its OGC Well-Known Binary (WKB) encoding, for use with Vortex's spatial functions
+     * and predicate pushdown over geometry columns.
      *
      * <p>The value is decoded into the native Vortex geometry type matching its kind: Point, LineString, Polygon,
      * MultiPoint, MultiLineString or MultiPolygon, in XY with no coordinate reference system. Geometry collections and
@@ -427,16 +427,9 @@ public final class Expression {
      * {@code valueType} literal with nullability {@code valuesNullable}. Keys are not asserted to be sorted.
      */
     public static Expression literalMap(
-            Expression keyType,
-            Expression valueType,
-            boolean valuesNullable,
-            Expression[] keys,
-            Expression[] values) {
+            Expression keyType, Expression valueType, boolean valuesNullable, Expression[] keys, Expression[] values) {
         Preconditions.checkArgument(
-                keys.length == values.length,
-                "map literal has %s keys but %s values",
-                keys.length,
-                values.length);
+                keys.length == values.length, "map literal has %s keys but %s values", keys.length, values.length);
         return new Expression(NativeExpression.literalMap(
                 nativePointers(keys),
                 nativePointers(values),

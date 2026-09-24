@@ -69,8 +69,8 @@ public final class ExpressionTest {
             assertNotNull(Expression.literalTime(3_600L, unit), unit::name);
             assertNotNull(Expression.nullLiteralTime(unit), unit::name);
         }
-        RuntimeException exception = assertThrows(
-                RuntimeException.class, () -> Expression.literalTime(0L, Expression.TimeUnit.DAYS));
+        RuntimeException exception =
+                assertThrows(RuntimeException.class, () -> Expression.literalTime(0L, Expression.TimeUnit.DAYS));
         assertTrue(
                 exception.getMessage().contains("Time type does not support time unit"),
                 () -> "unexpected message: " + exception.getMessage());
@@ -145,8 +145,8 @@ public final class ExpressionTest {
         Expression i32 = Expression.nullLiteral(Expression.DType.I32);
         // Long elements are cast down to the i32 element type.
         assertNotNull(Expression.literalList(i32, false, Expression.literal(1L), Expression.literal(2L)));
-        assertNotNull(Expression.literalList(
-                i32, true, Expression.literal(1), Expression.nullLiteral(Expression.DType.I32)));
+        assertNotNull(
+                Expression.literalList(i32, true, Expression.literal(1), Expression.nullLiteral(Expression.DType.I32)));
         assertNotNull(Expression.literalList(i32, false));
         assertNotNull(Expression.nullLiteralList(i32, false));
     }
@@ -154,8 +154,8 @@ public final class ExpressionTest {
     @Test
     public void listLiteralsRejectNonLiteralElements() {
         Expression i32 = Expression.nullLiteral(Expression.DType.I32);
-        RuntimeException exception = assertThrows(
-                RuntimeException.class, () -> Expression.literalList(i32, false, Expression.column("a")));
+        RuntimeException exception =
+                assertThrows(RuntimeException.class, () -> Expression.literalList(i32, false, Expression.column("a")));
         assertTrue(
                 exception.getMessage().contains("must be a literal expression"),
                 () -> "unexpected message: " + exception.getMessage());
@@ -173,11 +173,9 @@ public final class ExpressionTest {
         String[] names = {"a", "b"};
         assertNotNull(
                 Expression.literalStruct(names, new Expression[] {Expression.literal(1), Expression.literal("x")}));
-        assertNotNull(Expression.nullLiteralStruct(
-                names,
-                new Expression[] {
-                    Expression.nullLiteral(Expression.DType.I32), Expression.nullLiteral(Expression.DType.UTF8)
-                }));
+        assertNotNull(Expression.nullLiteralStruct(names, new Expression[] {
+            Expression.nullLiteral(Expression.DType.I32), Expression.nullLiteral(Expression.DType.UTF8)
+        }));
     }
 
     @Test
