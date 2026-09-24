@@ -11,10 +11,9 @@ use crate::IntoArray;
 use crate::array::ArrayView;
 use crate::array::VTable;
 use crate::arrays::BoolArray;
-use crate::arrays::ListViewArray;
+use crate::arrays::Constant;
 use crate::arrays::ScalarFn;
-use crate::arrays::listview::ListViewArrayExt;
-use crate::arrays::listview::ListViewArraySlotsExt;
+use crate::arrays::constant::list_scalar_elements;
 use crate::arrays::scalar_fn::ExactScalarFn;
 use crate::arrays::scalar_fn::ScalarFnArrayExt;
 use crate::arrays::scalar_fn::ScalarFnArrayView;
@@ -86,28 +85,31 @@ pub trait ListContainsListKernel: VTable {
 
 /// The constant haystack of a `list_contains`, prepared for one pass over a column of needles.
 ///
-/// This is the `IN` shape, `list_contains(lit([...]), column)`: the list's elements are executed
-/// once into [`elements`](Self::elements), a kernel builds a probe structure from them and tests
-/// every needle against it, then hands the membership bits back to [`finish`](Self::finish).
+/// This is the `IN` shape, `list_contains(lit([...]), column)`: the list's elements are written
+/// once into the array [`elements`](Self::elements), a kernel builds a probe structure from them and
+/// tests every needle against it, then hands the membership bits back to [`finish`](Self::finish).
 /// Shared by the canonical implementations and the element kernels, so that the result nullability
 /// and the SQL null semantics have one definition.
 ///
 /// A null element is dropped from the elements — it never equals a needle — and only decides
-/// whether a non-match is [unknown](Self::non_match_is_unknown).
+/// whether a non-match is [unknown](Self::non_match_is_unknown). An empty list is an empty set,
+/// whose answer for a null needle [`finish`](Self::finish) settles by the options.
 ///
-/// Preparing the set executes the list, so this serves [`ListContainsElementKernel`]. A
+/// Preparing the set allocates and executes, so this serves [`ListContainsElementKernel`]. A
 /// [`ListContainsElementReduce`] rule, which may not read buffers, works from the list's scalar.
 pub struct ListContainsSet {
     elements: ArrayRef,
     nullability: Nullability,
     non_match_is_unknown: bool,
+    /// Whether every needle, a null one included, is absent: an empty list off SQL null semantics.
+    matches_nothing: bool,
 }
 
 impl ListContainsSet {
     /// Prepares the constant list `list` to be probed by needles of dtype `needle_dtype`.
     ///
-    /// Returns `None` when there is no set to probe: a list that is not a constant, is null, or is
-    /// empty, or a needle whose dtype does not match the list's elements.
+    /// Returns `None` when there is no set to probe: a list that is not a constant or is null, or a
+    /// needle whose dtype does not match the list's elements.
     pub fn try_new(
         list: &ArrayRef,
         needle_dtype: &DType,
@@ -124,22 +126,16 @@ impl ListContainsSet {
         }
         // Every needle is probed against the same set, so the haystack has to be one constant
         // list, and a null one holds no elements at all.
-        let Some(list_scalar) = list.as_constant() else {
+        let Some(constant) = list.as_opt::<Constant>() else {
             return Ok(None);
         };
-        if list.is_empty() || list_scalar.is_null() {
+        let list_scalar = constant.scalar();
+        if list_scalar.is_null() {
             return Ok(None);
         }
 
-        // One row holds every element of a constant list, and executing it hands the elements over
-        // as an array rather than as a scalar each.
-        let list_view = list.slice(0..1)?.execute::<ListViewArray>(ctx)?;
-        let offset = list_view.offset_at(0);
-        let size = list_view.size_at(0);
-        if size == 0 {
-            return Ok(None);
-        }
-        let elements = list_view.elements().slice(offset..offset + size)?;
+        let elements = list_scalar_elements(&list_scalar.as_list(), ctx.allocator());
+        let size = elements.len();
 
         let valid = elements.validity()?.execute_mask(size, ctx)?;
         let non_match_is_unknown = options.sql_null_semantics && !valid.all_true();
@@ -154,6 +150,7 @@ impl ListContainsSet {
             elements,
             nullability: options.result_nullability(list.dtype(), needle_dtype),
             non_match_is_unknown,
+            matches_nothing: size == 0 && !options.sql_null_semantics,
         }))
     }
 
@@ -170,16 +167,14 @@ impl ListContainsSet {
         self.non_match_is_unknown
     }
 
-    /// The nullability of the result, as declared by the expression's return dtype.
-    pub fn nullability(&self) -> Nullability {
-        self.nullability
-    }
-
     /// Assembles the result from one membership bit per needle and the needles' validity.
     ///
-    /// When a non-match is unknown, only the rows that matched stay valid.
+    /// A null needle stays null, unless the list is empty off SQL null semantics, which answers
+    /// `false` for every needle. When a non-match is unknown, only the rows that matched stay valid.
     pub fn finish(&self, bits: BitBuffer, needle_validity: Validity) -> VortexResult<ArrayRef> {
-        let validity = if self.non_match_is_unknown {
+        let validity = if self.matches_nothing {
+            Validity::NonNullable
+        } else if self.non_match_is_unknown {
             needle_validity.and(Validity::from(bits.clone()))?
         } else {
             needle_validity
