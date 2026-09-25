@@ -108,7 +108,7 @@ where
     let mut output = ctx.device_alloc::<U>(array_len)?;
     ctx.stream()
         .memcpy_dtod(&input_view, &mut output)
-        .map_err(|err| vortex_err!("Failed to copy shared ZigZag input: {err}"))?;
+        .map_err(|err| vortex_err!(Io: "Failed to copy shared ZigZag input: {err}"))?;
     ctx.launch_kernel(&cuda_function, array_len, |args| {
         args.arg(&mut output).arg(&array_len_u64);
     })?;

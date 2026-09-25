@@ -44,7 +44,9 @@ impl OperationsVTable<OnPair> for OnPair {
             .execute_scalar(index, ctx)?
             .as_primitive()
             .as_::<usize>()
-            .ok_or_else(|| vortex_err!("OnPair uncompressed_lengths[{index}] is null"))?;
+            .ok_or_else(
+                || vortex_err!(AssertionFailed: "OnPair uncompressed_lengths[{index}] is null"),
+            )?;
         let mut buf: Vec<u8> = Vec::with_capacity(len);
         let written =
             match onpair::try_decode_into(codes.as_slice(), dict, buf.spare_capacity_mut()) {

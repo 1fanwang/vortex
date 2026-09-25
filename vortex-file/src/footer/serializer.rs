@@ -243,7 +243,7 @@ fn write_buffer(
     buffer: ByteBuffer,
 ) -> VortexResult<(Vec<ByteBuffer>, PostscriptSegment)> {
     let length = u32::try_from(buffer.len())
-        .map_err(|_| vortex_err!("metadata segment length exceeds maximum u32"))?;
+        .map_err(|_| vortex_err!(Overflow: "metadata segment length exceeds maximum u32"))?;
     let alignment = buffer.alignment();
 
     let padding = offset.next_multiple_of(alignment.as_usize() as u64) - *offset;

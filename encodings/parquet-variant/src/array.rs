@@ -385,11 +385,11 @@ fn parquet_shredded_field_from_logical(
             .as_opt::<ParquetVariant>()
             .ok_or_else(|| {
                 vortex_err!(
-                    "cannot rebuild Parquet shredded field: nested Variant lacks Parquet Variant core storage"
+                    NotImplemented: "cannot rebuild Parquet shredded field: nested Variant lacks Parquet Variant core storage"
                 )
             })?;
         let value = core.value().cloned().ok_or_else(|| {
-            vortex_err!("cannot rebuild Parquet shredded field: partially shredded Variant has no residual value")
+            vortex_err!(InvalidArgument: "cannot rebuild Parquet shredded field: partially shredded Variant has no residual value")
         })?;
         let typed_value = variant
             .shredded()

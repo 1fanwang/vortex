@@ -37,7 +37,7 @@ pub fn split(timestamp: i64, time_unit: TimeUnit) -> VortexResult<TimestampParts
         TimeUnit::Microseconds => split_with_divisor::<1_000_000>(timestamp),
         TimeUnit::Milliseconds => split_with_divisor::<1_000>(timestamp),
         TimeUnit::Seconds => split_with_divisor::<1>(timestamp),
-        TimeUnit::Days => vortex_bail!("Cannot handle day-level data"),
+        TimeUnit::Days => vortex_bail!(NotImplemented: "Cannot handle day-level data"),
     })
 }
 

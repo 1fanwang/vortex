@@ -126,11 +126,11 @@ impl SequenceData {
         length: usize,
     ) -> VortexResult<()> {
         let DType::Primitive(ptype, _) = dtype else {
-            vortex_bail!("only primitive dtypes are supported in SequenceArray currently");
+            vortex_bail!(NotImplemented: "only primitive dtypes are supported in SequenceArray currently");
         };
 
         if !ptype.is_int() {
-            vortex_bail!("only integer ptypes are supported in SequenceArray currently")
+            vortex_bail!(NotImplemented: "only integer ptypes are supported in SequenceArray currently")
         }
 
         vortex_ensure!(length > 0, "SequenceArray length must be greater than zero");
@@ -181,11 +181,13 @@ impl SequenceData {
         match multiplier
             .kind
             .as_ref()
-            .ok_or_else(|| vortex_err!("multiplier value missing kind"))?
+            .ok_or_else(|| vortex_err!(Serde: "multiplier value missing kind"))?
         {
             Kind::Int64Value(_) => Ok(PType::I64),
             Kind::Uint64Value(_) => Ok(PType::U64),
-            _ => vortex_bail!("only integer ptypes are supported in SequenceArray currently"),
+            _ => {
+                vortex_bail!(NotImplemented: "only integer ptypes are supported in SequenceArray currently")
+            }
         }
     }
 
@@ -366,7 +368,7 @@ impl VTable for Sequence {
         );
         let DType::Primitive(output_ptype, _) = dtype else {
             vortex_bail!(
-                "only primitive dtypes are supported in SequenceArray currently, got {dtype}"
+                NotImplemented: "only primitive dtypes are supported in SequenceArray currently, got {dtype}"
             );
         };
         let metadata = SequenceMetadata::decode(metadata)?;
@@ -374,12 +376,12 @@ impl VTable for Sequence {
         let base_metadata = metadata
             .base
             .as_ref()
-            .ok_or_else(|| vortex_err!("base required"))?;
+            .ok_or_else(|| vortex_err!(Serde: "base required"))?;
 
         let multiplier_metadata = metadata
             .multiplier
             .as_ref()
-            .ok_or_else(|| vortex_err!("multiplier required"))?;
+            .ok_or_else(|| vortex_err!(Serde: "multiplier required"))?;
 
         // We go via Scalar to validate that the value is valid for the ptype.
         let base = Scalar::from_proto_value(
@@ -716,9 +718,9 @@ mod tests {
             &SESSION,
         )?;
 
-        let decoded_sequence = decoded
-            .as_opt::<Sequence>()
-            .ok_or_else(|| vortex_err!("decoded array should still be a SequenceArray"))?;
+        let decoded_sequence = decoded.as_opt::<Sequence>().ok_or_else(
+            || vortex_err!(AssertionFailed: "decoded array should still be a SequenceArray"),
+        )?;
         assert_eq!(decoded_sequence.ptype(), output_ptype);
         assert_eq!(decoded_sequence.multiplier(), array.multiplier());
         assert_eq!(decoded.dtype(), &dtype);

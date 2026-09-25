@@ -91,11 +91,11 @@ impl RepeatedArrayProbe {
         }
         self.validity
             .as_mut()
-            .ok_or_else(|| vortex_err!("validity probe was just initialized"))?
+            .ok_or_else(|| vortex_err!(AssertionFailed: "validity probe was just initialized"))?
             .execute_scalar(index, ctx)?
             .as_bool()
             .value()
-            .ok_or_else(|| vortex_err!("validity value at index {index} is null"))
+            .ok_or_else(|| vortex_err!(AssertionFailed: "validity value at index {index} is null"))
     }
 
     /// Whether the row at `index` is null.

@@ -108,10 +108,9 @@ impl ExtVTable for Uuid {
         // Verify the parsed UUID matches the expected version, if one is set.
         if let Some(expected) = ext_dtype.metadata().version {
             let expected = expected as u8;
-            let actual = parsed
-                .get_version()
-                .ok_or_else(|| vortex_err!("UUID has unrecognized version nibble"))?
-                as u8;
+            let actual = parsed.get_version().ok_or_else(
+                || vortex_err!(InvalidArgument: "UUID has unrecognized version nibble"),
+            )? as u8;
 
             vortex_ensure_eq!(
                 expected,
@@ -231,7 +230,7 @@ mod tests {
     #[test]
     fn unpack_native_uuid() -> VortexResult<()> {
         let expected = uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000")
-            .map_err(|e| vortex_error::vortex_err!("{e}"))?;
+            .map_err(|e| vortex_error::vortex_err!(InvalidArgument: "{e}"))?;
 
         let ext_dtype = ExtDType::try_new(
             UuidMetadata::default(),
@@ -261,7 +260,7 @@ mod tests {
     fn unpack_native_rejects_version_mismatch() -> VortexResult<()> {
         // This is a v4 UUID.
         let v4_uuid = uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000")
-            .map_err(|e| vortex_error::vortex_err!("{e}"))?;
+            .map_err(|e| vortex_error::vortex_err!(InvalidArgument: "{e}"))?;
         assert_eq!(v4_uuid.get_version(), Some(Version::Random));
 
         // Metadata says v7, but the UUID is v4.
@@ -309,7 +308,7 @@ mod tests {
     fn unpack_native_accepts_matching_version() -> VortexResult<()> {
         // This is a v4 UUID.
         let v4_uuid = uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000")
-            .map_err(|e| vortex_error::vortex_err!("{e}"))?;
+            .map_err(|e| vortex_error::vortex_err!(InvalidArgument: "{e}"))?;
 
         let ext_dtype = ExtDType::try_new(
             UuidMetadata {
@@ -328,7 +327,7 @@ mod tests {
     fn unpack_native_any_version_accepts_all() -> VortexResult<()> {
         // A v4 UUID should be accepted when metadata has no version constraint.
         let v4_uuid = uuid::Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000")
-            .map_err(|e| vortex_error::vortex_err!("{e}"))?;
+            .map_err(|e| vortex_error::vortex_err!(InvalidArgument: "{e}"))?;
 
         let ext_dtype = ExtDType::try_new(
             UuidMetadata::default(),

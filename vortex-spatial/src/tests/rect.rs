@@ -100,7 +100,7 @@ fn roundtrips_through_arrow() -> VortexResult<()> {
             &storage
                 .as_struct()
                 .field(name)
-                .ok_or_else(|| vortex_err!("missing {name}"))?,
+                .ok_or_else(|| vortex_err!(NotFound: "missing {name}"))?,
         )
     };
     assert_eq!(corner(0, "xmin")?, 0.0);

@@ -196,7 +196,7 @@ impl PrivateData {
         let export_event = ctx
             .stream()
             .record_event(None)
-            .map_err(|_| vortex_err!("failed to create CUDA export event"))?;
+            .map_err(|_| vortex_err!(Io: "failed to create CUDA export event"))?;
 
         let dictionary = dictionary
             .map(|array| Box::into_raw(Box::new(array)))
@@ -382,9 +382,9 @@ impl DeviceArrayStreamPrivateData {
             }
         }
 
-        self.schema
-            .as_ref()
-            .ok_or_else(|| vortex_err!("ArrowDeviceArrayStream schema was not initialized"))
+        self.schema.as_ref().ok_or_else(
+            || vortex_err!(AssertionFailed: "ArrowDeviceArrayStream schema was not initialized"),
+        )
     }
 
     /// Export the next array, or return a released array at end of stream.
@@ -955,15 +955,15 @@ mod tests {
         let private = unsafe { &*array.private_data.cast::<PrivateData>() };
         let buffer = private.buffers[index]
             .as_ref()
-            .ok_or_else(|| vortex_err!("missing exported buffer {index}"))?;
+            .ok_or_else(|| vortex_err!(NotFound: "missing exported buffer {index}"))?;
         buffer.cuda_device_ptr()?;
         buffer.try_to_host_sync()
     }
 
     pub(super) fn last_error(stream: &mut ArrowDeviceArrayStream) -> VortexResult<String> {
-        let get_last_error = stream
-            .get_last_error
-            .ok_or_else(|| vortex_err!("stream missing get_last_error callback"))?;
+        let get_last_error = stream.get_last_error.ok_or_else(
+            || vortex_err!(InvalidArgument: "stream missing get_last_error callback"),
+        )?;
         let error = unsafe { get_last_error(stream as *mut ArrowDeviceArrayStream) };
         Ok(if error.is_null() {
             String::new()
@@ -986,7 +986,7 @@ mod tests {
         let mut schema = FFI_ArrowSchema::empty();
         let get_schema = device_stream
             .get_schema
-            .ok_or_else(|| vortex_err!("stream missing get_schema callback"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing get_schema callback"))?;
         let status = unsafe {
             get_schema(
                 &raw mut device_stream,
@@ -999,7 +999,7 @@ mod tests {
 
         let get_next = device_stream
             .get_next
-            .ok_or_else(|| vortex_err!("stream missing get_next callback"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing get_next callback"))?;
         let mut first_array = ArrowDeviceArray::empty();
         let status = unsafe { get_next(&raw mut device_stream, &raw mut first_array) };
         assert_eq!(status, 0);
@@ -1018,7 +1018,7 @@ mod tests {
             release_schema(&mut schema);
             let release = device_stream
                 .release
-                .ok_or_else(|| vortex_err!("stream missing release callback"))?;
+                .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing release callback"))?;
             release(&raw mut device_stream);
             release(&raw mut device_stream);
         }
@@ -1037,7 +1037,7 @@ mod tests {
 
         let get_schema = device_stream
             .get_schema
-            .ok_or_else(|| vortex_err!("stream missing get_schema callback"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing get_schema callback"))?;
         let mut schema = FFI_ArrowSchema::empty();
         let status = unsafe {
             get_schema(
@@ -1051,7 +1051,7 @@ mod tests {
 
         let get_next = device_stream
             .get_next
-            .ok_or_else(|| vortex_err!("stream missing get_next callback"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing get_next callback"))?;
         let mut eos = ArrowDeviceArray::empty();
         let status = unsafe { get_next(&raw mut device_stream, &raw mut eos) };
         assert_eq!(status, 0);
@@ -1061,7 +1061,7 @@ mod tests {
             release_schema(&mut schema);
             let release = device_stream
                 .release
-                .ok_or_else(|| vortex_err!("stream missing release callback"))?;
+                .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing release callback"))?;
             release(&raw mut device_stream);
         }
         Ok(())
@@ -1077,14 +1077,14 @@ mod tests {
 
         let get_schema = device_stream
             .get_schema
-            .ok_or_else(|| vortex_err!("stream missing get_schema callback"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing get_schema callback"))?;
         let status = unsafe { get_schema(&raw mut device_stream, ptr::null_mut()) };
         assert_eq!(status, LIBC_EINVAL);
         assert_eq!(last_error(&mut device_stream)?, "null ArrowSchema output");
 
         let get_next = device_stream
             .get_next
-            .ok_or_else(|| vortex_err!("stream missing get_next callback"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing get_next callback"))?;
         let status = unsafe { get_next(&raw mut device_stream, ptr::null_mut()) };
         assert_eq!(status, LIBC_EINVAL);
         assert_eq!(
@@ -1095,7 +1095,7 @@ mod tests {
         unsafe {
             let release = device_stream
                 .release
-                .ok_or_else(|| vortex_err!("stream missing release callback"))?;
+                .ok_or_else(|| vortex_err!(InvalidArgument: "stream missing release callback"))?;
             release(&raw mut device_stream);
         }
         Ok(())

@@ -664,7 +664,7 @@ fn walk_views(
             buffers.push(buffer.slice(segment_start..offset));
             segment_start = offset;
             let Some(next_index) = buf_index.checked_add(1) else {
-                error = Some(vortex_err!("Zstd values need more than u32::MAX buffers"));
+                error = Some(vortex_err!(Overflow: "Zstd values need more than u32::MAX buffers"));
                 break;
             };
             buf_index = next_index;
@@ -1298,8 +1298,9 @@ impl ZstdData {
         ctx: &mut ExecutionCtx,
     ) -> VortexResult<Self> {
         let canonical = array.execute::<Canonical>(ctx)?;
-        Self::from_canonical(&canonical, level, values_per_frame, ctx)?
-            .ok_or_else(|| vortex_err!("Zstd can only encode Primitive and VarBinView arrays"))
+        Self::from_canonical(&canonical, level, values_per_frame, ctx)?.ok_or_else(
+            || vortex_err!(MismatchedTypes: "Zstd can only encode Primitive and VarBinView arrays"),
+        )
     }
 
     fn byte_width(dtype: &DType) -> usize {

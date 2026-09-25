@@ -144,7 +144,7 @@ impl VortexReadAt for JavaReadable {
                         vortex_bail!(Overflow: "read length {length} exceeds ByteBuffer limit");
                     }
                     let joffset = i64::try_from(offset)
-                        .map_err(|_| vortex_err!("read offset {offset} exceeds i64"))?;
+                        .map_err(|_| vortex_err!(Overflow: "read offset {offset} exceeds i64"))?;
 
                     let mut buffer = ByteBufferMut::with_capacity_aligned(length, alignment);
                     with_jvm(&vm, |env| {
@@ -176,7 +176,7 @@ impl VortexReadAt for JavaReadable {
                             .i()?;
                         if remaining != 0 {
                             return Err(vortex_err!(
-                                "readFully returned with {remaining} of {length} bytes unfilled"
+                                Io: "readFully returned with {remaining} of {length} bytes unfilled"
                             )
                             .into());
                         }
@@ -252,7 +252,7 @@ impl JavaFileSystem {
     ) -> VortexResult<()> {
         match self.files.entry_ref(&path) {
             EntryRef::Occupied(_) => {
-                vortex_bail!("multiple Java readables normalize to path '{path}'");
+                vortex_bail!(InvalidArgument: "multiple Java readables normalize to path '{path}'");
             }
             EntryRef::Vacant(v) => v.insert(JavaFileEntry { readable, size }),
         };
@@ -294,10 +294,9 @@ impl FileSystem for JavaFileSystem {
     }
 
     async fn open_read(&self, path: &str) -> VortexResult<Arc<dyn VortexReadAt>> {
-        let entry = self
-            .files
-            .get(path)
-            .ok_or_else(|| vortex_err!("no Java readable registered for path '{path}'"))?;
+        let entry = self.files.get(path).ok_or_else(
+            || vortex_err!(NotFound: "no Java readable registered for path '{path}'"),
+        )?;
         Ok(Arc::new(JavaReadable::new(
             self.vm.clone(),
             Arc::clone(&entry.readable),

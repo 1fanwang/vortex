@@ -89,7 +89,7 @@ fn decode_tensor_storage<T: NativePType>(
         );
         let Some(expected_elements) = row_count.checked_mul(stride) else {
             vortex_bail!(
-                "tensor row storage length must fit usize, got {row_count} rows of width {stride}",
+                Overflow: "tensor row storage length must fit usize, got {row_count} rows of width {stride}",
             );
         };
         expected_elements
@@ -154,7 +154,7 @@ unsafe impl<T: Float + NativePType> InputElement for TensorRow<T> {
             extension.storage_array().clone()
         } else {
             vortex_bail!(
-                "a tensor batch constant must use the Constant encoding or constant extension \
+                MismatchedTypes: "a tensor batch constant must use the Constant encoding or constant extension \
                  storage, got {}",
                 array.encoding_id()
             );

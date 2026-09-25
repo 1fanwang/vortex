@@ -100,7 +100,7 @@ pub fn dict_encode(array: &ArrayRef, ctx: &mut ExecutionCtx) -> VortexResult<Dic
     let dict_array = dict_encode_with_constraints(array, &UNCONSTRAINED, ctx)?;
     if dict_array.len() != array.len() {
         vortex_bail!(
-            "must have encoded all {} elements, but only encoded {}",
+            AssertionFailed: "must have encoded all {} elements, but only encoded {}",
             array.len(),
             dict_array.len(),
         );

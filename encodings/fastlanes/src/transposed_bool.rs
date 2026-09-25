@@ -209,7 +209,7 @@ impl VTable for TransposedBool {
         _array: ArrayView<'_, Self>,
         _session: &VortexSession,
     ) -> VortexResult<Option<Vec<u8>>> {
-        vortex_bail!("Cannot serialise TransposedBoolArray");
+        vortex_bail!(NotImplemented: "Cannot serialise TransposedBoolArray");
     }
 
     fn deserialize(
@@ -221,7 +221,7 @@ impl VTable for TransposedBool {
         _children: &dyn ArrayChildren,
         _session: &VortexSession,
     ) -> VortexResult<ArrayParts<Self>> {
-        vortex_bail!("Cannot deserialise TransposedBoolArray");
+        vortex_bail!(NotImplemented: "Cannot deserialise TransposedBoolArray");
     }
 
     fn slot_name(_array: ArrayView<'_, Self>, idx: usize) -> String {

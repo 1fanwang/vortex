@@ -104,7 +104,7 @@ fn build_scan_request(
         ))?),
         3 => Selection::IncludeRoaring(deserialize_roaring_selection(selection_roaring_bitmap)?),
         4 => Selection::ExcludeRoaring(deserialize_roaring_selection(selection_roaring_bitmap)?),
-        other => vortex_bail!("unknown selection include code: {other}"),
+        other => vortex_bail!(Serde: "unknown selection include code: {other}"),
     };
 
     let row_range = (row_range_begin > 0 || row_range_end > 0).then_some(Range {

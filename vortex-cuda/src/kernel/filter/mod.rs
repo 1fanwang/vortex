@@ -106,7 +106,7 @@ async fn filter_sized<T: DeviceRepr + CubFilterable + Debug + Send + Sync + 'sta
     let len = len as i64;
 
     let temp_bytes =
-        T::get_temp_size(len).map_err(|e| vortex_err!("CUB filter_temp_size failed: {}", e))?;
+        T::get_temp_size(len).map_err(|e| vortex_err!(Io: "CUB filter_temp_size failed: {}", e))?;
 
     // Allocate device buffers for input, output, mask, and temp space
     let mut d_temp = ctx.device_alloc::<u8>(temp_bytes.max(1))?;
@@ -153,7 +153,7 @@ async fn filter_sized<T: DeviceRepr + CubFilterable + Debug + Send + Sync + 'sta
             len,
             stream_ptr,
         )
-        .map_err(|e| vortex_err!("CUB filter_bitmask failed: {}", e))
+        .map_err(|e| vortex_err!(Io: "CUB filter_bitmask failed: {}", e))
     })?;
     drop((
         record_d_input,

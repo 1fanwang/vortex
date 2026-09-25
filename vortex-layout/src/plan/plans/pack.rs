@@ -214,13 +214,13 @@ fn validate_field_child(
 ) -> VortexResult<()> {
     if child.dtype() != expected_dtype {
         vortex_bail!(
-            "Pack field child {index} has dtype {} but the field has dtype {expected_dtype}",
+            MismatchedTypes: "Pack field child {index} has dtype {} but the field has dtype {expected_dtype}",
             child.dtype()
         );
     }
     if child.row_count() != expected_row_count {
         vortex_bail!(
-            "Pack field child {index} has {} rows but the plan has {expected_row_count}",
+            InvalidArgument: "Pack field child {index} has {} rows but the plan has {expected_row_count}",
             child.row_count()
         );
     }
@@ -231,13 +231,13 @@ fn validate_validity_child(expected_row_count: u64, child: &PlanRef) -> VortexRe
     let expected_dtype = DType::Bool(Nullability::NonNullable);
     if child.dtype() != &expected_dtype {
         vortex_bail!(
-            "Pack validity child has dtype {} but must have dtype {expected_dtype}",
+            MismatchedTypes: "Pack validity child has dtype {} but must have dtype {expected_dtype}",
             child.dtype()
         );
     }
     if child.row_count() != expected_row_count {
         vortex_bail!(
-            "Pack validity child has {} rows but the plan has {expected_row_count}",
+            InvalidArgument: "Pack validity child has {} rows but the plan has {expected_row_count}",
             child.row_count()
         );
     }
@@ -356,10 +356,9 @@ impl PlanParentReduceRule<Pack> for ExpressionPackRule {
                 .and_then(|scalar_fn| scalar_fn.as_opt::<PackFn>())
                 && partition.children().len() == 1
             {
-                let value_name = pack
-                    .names
-                    .get(0)
-                    .ok_or_else(|| vortex_err!("Struct expression partition pack is empty"))?;
+                let value_name = pack.names.get(0).ok_or_else(
+                    || vortex_err!(AssertionFailed: "Struct expression partition pack is empty"),
+                )?;
                 collapsed.push((name.clone(), value_name.clone()));
                 partition.children()[0].clone()
             } else {
@@ -449,13 +448,13 @@ pub(super) fn rewrite_partition_root(
 fn field_name(fields: &StructFields, index: usize) -> VortexResult<FieldName> {
     Ok(fields
         .field_name(index)
-        .ok_or_else(|| vortex_err!("Struct field {index} has no name"))?
+        .ok_or_else(|| vortex_err!(AssertionFailed: "Struct field {index} has no name"))?
         .clone())
 }
 
 fn field_plan(plan: &Plan<Pack>, index: usize) -> VortexResult<PlanRef> {
     plan.child(index)?
-        .ok_or_else(|| vortex_err!("Struct field {index} has no plan"))
+        .ok_or_else(|| vortex_err!(NotFound: "Struct field {index} has no plan"))
 }
 
 fn expanded_struct_root(

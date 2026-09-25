@@ -63,7 +63,8 @@ pub fn check(dir: &Path, mode: Mode, exclude: &[String]) -> VortexResult<()> {
     }
 
     // Generate fresh fixtures into a temp directory.
-    let tmp_dir = tempfile::tempdir().map_err(|e| vortex_err!("failed to create temp dir: {e}"))?;
+    let tmp_dir =
+        tempfile::tempdir().map_err(|e| vortex_err!(Io: "failed to create temp dir: {e}"))?;
 
     eprintln!("generating fresh fixtures for comparison...");
     for fixture in &fixtures {
@@ -214,7 +215,7 @@ pub fn check(dir: &Path, mode: Mode, exclude: &[String]) -> VortexResult<()> {
         for f in &result.failed {
             eprintln!("  FAIL {}: {}", f.name, f.error);
         }
-        vortex_bail!("{} fixture(s) failed", result.failed.len());
+        vortex_bail!(AssertionFailed: "{} fixture(s) failed", result.failed.len());
     }
 
     Ok(())

@@ -210,7 +210,7 @@ pub(crate) fn from_arrow_data_type(
             );
             let DataType::Struct(fields) = entries.data_type() else {
                 vortex_bail!(
-                    "Arrow map entries field must have Struct type, got {:?}",
+                    MismatchedTypes: "Arrow map entries field must have Struct type, got {:?}",
                     entries.data_type()
                 );
             };
@@ -281,7 +281,7 @@ pub(crate) fn from_arrow_schema_naive(schema: &Schema) -> VortexResult<DType> {
 /// builtin `arrow.parquet.variant` special-case.
 fn to_arrow_schema_naive(dtype: &DType) -> VortexResult<Schema> {
     let DType::Struct(struct_dtype, nullable) = dtype else {
-        vortex_bail!("only DType::Struct can be converted to arrow schema");
+        vortex_bail!(MismatchedTypes: "only DType::Struct can be converted to arrow schema");
     };
 
     if *nullable != Nullability::NonNullable {

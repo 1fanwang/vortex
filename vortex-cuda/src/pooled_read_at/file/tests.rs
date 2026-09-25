@@ -91,9 +91,9 @@ impl FileReadBackend for FakeFileReadBackend {
                     release,
                     finished: completion,
                 })
-                .map_err(|_| vortex_err!("fake read controller dropped"))?;
+                .map_err(|_| vortex_err!(Io: "fake read controller dropped"))?;
             wait.recv_timeout(WAIT)
-                .map_err(|error| vortex_err!("fake read was not released: {error}"))?;
+                .map_err(|error| vortex_err!(Io: "fake read was not released: {error}"))?;
             Some(finished)
         } else {
             None

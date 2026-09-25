@@ -460,7 +460,7 @@ impl ArrowSession {
                 );
                 let DataType::Struct(fields) = entries.data_type() else {
                     vortex_bail!(
-                        "Arrow map entries field must have Struct type, got {:?}",
+                        MismatchedTypes: "Arrow map entries field must have Struct type, got {:?}",
                         entries.data_type()
                     );
                 };

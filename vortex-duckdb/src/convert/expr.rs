@@ -587,7 +587,7 @@ fn try_from_expression_inner(
     Ok(Some(match class {
         BoundRef => {
             let Some(col) = ctx.col_sub else {
-                vortex_bail!("BoundRef requested but no column supplied");
+                vortex_bail!(InvalidArgument: "BoundRef requested but no column supplied");
             };
             col.clone()
         }
@@ -705,7 +705,9 @@ fn try_from_expression_inner(
                 DUCKDB_VX_EXPR_TYPE::DUCKDB_VX_EXPR_TYPE_CONJUNCTION_OR => {
                     or_collect(children).vortex_expect("cannot be empty")
                 }
-                _ => vortex_bail!("unexpected operator {:?} in bound conjunction", conj.op),
+                _ => {
+                    vortex_bail!(AssertionFailed: "unexpected operator {:?} in bound conjunction", conj.op)
+                }
             }
         }
         ExpressionClass::BoundAggregate(_) => return Ok(None),
@@ -734,7 +736,9 @@ fn try_from_compare_in(
             Ok(Some(
                 value
                     .as_opt::<Literal>()
-                    .ok_or_else(|| vortex_err!("cannot have a non literal in a in_list"))?
+                    .ok_or_else(
+                        || vortex_err!(InvalidArgument: "cannot have a non literal in a in_list"),
+                    )?
                     .clone(),
             ))
         })

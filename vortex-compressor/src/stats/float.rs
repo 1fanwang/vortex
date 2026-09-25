@@ -199,7 +199,7 @@ where
     let null_count = array
         .statistics()
         .compute_null_count(ctx)
-        .ok_or_else(|| vortex_err!("Failed to compute null_count"))?;
+        .ok_or_else(|| vortex_err!(AssertionFailed: "Failed to compute null_count"))?;
     let value_count = array.len() - null_count;
 
     // Keep a HashMap of T, then convert the keys into PValue afterward since value is

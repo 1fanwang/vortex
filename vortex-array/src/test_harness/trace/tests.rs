@@ -157,7 +157,7 @@ impl VTable for StackParent {
         vortex_ensure!(len == 3, "unexpected stack parent length");
         vortex_ensure!(slots.len() == 1, "stack parent must have one child slot");
         let Some(child) = &slots[0] else {
-            vortex_bail!("stack parent child slot is missing");
+            vortex_bail!(NotFound: "stack parent child slot is missing");
         };
         vortex_ensure!(child.dtype() == dtype, "stack parent child dtype mismatch");
         vortex_ensure!(child.len() == len, "stack parent child length mismatch");
@@ -212,7 +212,7 @@ impl VTable for StackParent {
 
     fn execute(array: Array<Self>, _ctx: &mut ExecutionCtx) -> VortexResult<ExecutionResult> {
         let Some(child) = array.slots()[0].as_ref() else {
-            vortex_bail!("stack parent child slot is missing");
+            vortex_bail!(NotFound: "stack parent child slot is missing");
         };
         if !child.is::<Primitive>() {
             return Ok(ExecutionResult::execute_slot::<Primitive>(array, 0));

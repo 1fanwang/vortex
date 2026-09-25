@@ -478,9 +478,9 @@ pub(crate) fn remove_nulls(data: arrow_data::ArrayData) -> VortexResult<arrow_da
     if let Some(children) = children {
         builder = builder.child_data(children);
     }
-    builder
-        .build()
-        .map_err(|e| vortex_err!("Failed to reconstruct Arrow array without nulls: {e}"))
+    builder.build().map_err(
+        |e| vortex_err!(InvalidArgument: "Failed to reconstruct Arrow array without nulls: {e}"),
+    )
 }
 
 /// Conversion of an Arrow struct array into a Vortex `Struct` array, converting each column.
@@ -602,7 +602,7 @@ pub(crate) fn map_from_arrow_parts(
 ) -> VortexResult<ArrayRef> {
     let DType::Struct(struct_dtype, Nullability::NonNullable) = entries.dtype() else {
         vortex_bail!(
-            "Arrow map entries must import as non-nullable struct, got {}",
+            MismatchedTypes: "Arrow map entries must import as non-nullable struct, got {}",
             entries.dtype()
         );
     };

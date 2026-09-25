@@ -84,7 +84,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeDataSource_open(
             }
         }
         if glob_strings.is_empty() {
-            return Err(vortex_err!("no paths provided").into());
+            return Err(vortex_err!(InvalidArgument: "no paths provided").into());
         }
 
         let glob_urls: Vec<Url> = glob_strings
@@ -149,7 +149,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeDataSource_openFiles(
                 throw_runtime!("path '{path}' contains glob characters, which are unsupported");
             }
             let size = u64::try_from(sizes[idx])
-                .map_err(|_| vortex_err!("negative length for path '{path}'"))?;
+                .map_err(|_| vortex_err!(InvalidArgument: "negative length for path '{path}'"))?;
 
             let readable = readables.get_element(env, idx)?;
             if readable.is_null() {

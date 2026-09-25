@@ -141,7 +141,7 @@ pub fn parse_genotype(gt: Option<EntryValue>) -> VortexResult<Option<u64>> {
     {
         [None, None] => Ok(None),
         [Some(l), Some(r)] => Ok(Some(l as u64 + r as u64)),
-        _ => vortex_bail!("wtf {:?}", gt),
+        _ => vortex_bail!(AssertionFailed: "wtf {:?}", gt),
     }
 }
 

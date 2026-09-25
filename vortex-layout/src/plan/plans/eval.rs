@@ -98,7 +98,7 @@ impl PlanVTable for Eval {
         validate_expression_child(plan.expression(), &child)?;
         if child.row_count() != plan.row_count() {
             vortex_error::vortex_bail!(
-                "Eval child has {} rows but the plan has {}",
+                InvalidArgument: "Eval child has {} rows but the plan has {}",
                 child.row_count(),
                 plan.row_count()
             );
@@ -118,7 +118,7 @@ impl PlanVTable for Eval {
 fn validate_expression_child(expression: &BoundExpression, child: &PlanRef) -> VortexResult<()> {
     if !expression.is_root_bound_to(child.dtype()) {
         vortex_bail!(
-            "Eval expression is not bound to child dtype {}",
+            MismatchedTypes: "Eval expression is not bound to child dtype {}",
             child.dtype()
         );
     }

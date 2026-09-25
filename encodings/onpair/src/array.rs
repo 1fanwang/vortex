@@ -513,7 +513,7 @@ impl VTable for OnPair {
         _session: &VortexSession,
     ) -> VortexResult<Option<Vec<u8>>> {
         let dict_size = u32::try_from(array.dict_offsets().len().saturating_sub(1))
-            .map_err(|_| vortex_err!("OnPair dict_size exceeds u32"))?;
+            .map_err(|_| vortex_err!(Overflow: "OnPair dict_size exceeds u32"))?;
         let codes_len = array.codes().len() as u64;
         Ok(Some(
             OnPairMetadata {

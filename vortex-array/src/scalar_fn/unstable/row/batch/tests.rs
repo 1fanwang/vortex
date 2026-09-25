@@ -1022,7 +1022,7 @@ fn test_deferred_bool_output_reports_valid_row_failure() -> VortexResult<()> {
 
     let error = match execute_rows(&DeferredGreaterThan::<true>, &EmptyOptions, &args, &mut ctx) {
         Err(error) => error.to_string(),
-        Ok(_) => vortex_bail!("a valid-row deferred failure was not reported"),
+        Ok(_) => vortex_bail!(AssertionFailed: "a valid-row deferred failure was not reported"),
     };
 
     assert!(

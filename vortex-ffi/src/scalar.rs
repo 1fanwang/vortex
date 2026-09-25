@@ -245,7 +245,7 @@ pub unsafe extern "C-unwind" fn vx_scalar_new_extension(
         let storage = vx_scalar::as_ref(storage);
         let DType::Extension(ext) = dtype else {
             vortex_bail!(
-                "vx_scalar_new_extension: dtype {} is not an extension type",
+                MismatchedTypes: "vx_scalar_new_extension: dtype {} is not an extension type",
                 dtype
             );
         };
@@ -458,7 +458,7 @@ fn scalar_values_from_raw(
         .enumerate()
         .map(|(idx, value)| {
             if value.is_null() {
-                vortex_bail!("scalar pointer at index {idx} is null");
+                vortex_bail!(InvalidArgument: "scalar pointer at index {idx} is null");
             }
             Ok(vx_scalar::as_ref(*value).clone().into_value())
         })

@@ -187,7 +187,7 @@ impl VTable for Chunked {
             );
         }
         if children.is_empty() {
-            vortex_bail!("Chunked array needs at least one child");
+            vortex_bail!(InvalidArgument: "Chunked array needs at least one child");
         }
 
         let nchunks = children.len() - 1;

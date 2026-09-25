@@ -262,7 +262,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
     fn merge_from(&mut self, other: &mut dyn DynAccumulator) -> VortexResult<()> {
         let Some(other) = other.downcast_mut::<V>() else {
             vortex_bail!(
-                "Cannot merge into a {} accumulator from an accumulator of a different aggregate",
+                MismatchedTypes: "Cannot merge into a {} accumulator from an accumulator of a different aggregate",
                 self.aggregate_fn,
             );
         };

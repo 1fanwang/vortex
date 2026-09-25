@@ -302,7 +302,7 @@ impl RunEnd {
             let data = unsafe { RunEndData::new_unchecked(0) };
             Array::try_from_parts(ArrayParts::new(RunEnd, dtype, len, data).with_slots(slots))
         } else {
-            vortex_bail!("REE can only encode primitive arrays")
+            vortex_bail!(MismatchedTypes: "REE can only encode primitive arrays")
         }
     }
 }
@@ -445,7 +445,7 @@ impl RunEndData {
             // SAFETY: runend_encode handles this
             unsafe { Ok(Self::new_unchecked(0)) }
         } else {
-            vortex_bail!("REE can only encode primitive arrays")
+            vortex_bail!(MismatchedTypes: "REE can only encode primitive arrays")
         }
     }
 

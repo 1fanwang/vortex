@@ -202,7 +202,7 @@ pub(crate) fn linestring_geometries(
                 .ok_or_else(
                     || vortex_err!(InvalidArgument: "spatial: null geometry is not supported"),
                 )?
-                .map_err(|e| vortex_err!("spatial: geometry access failed: {e}"))?
+                .map_err(|e| vortex_err!(Serde: "spatial: geometry access failed: {e}"))?
                 .to_geometry())
         })
         .collect()
@@ -217,7 +217,7 @@ fn linestring_array(storage: &ArrayRef, ctx: &mut ExecutionCtx) -> VortexResult<
     let session = ctx.session().clone();
     let arrow = session.arrow().execute_arrow(storage.clone(), None, ctx)?;
     LineStringArray::try_from((arrow.as_ref(), linestring_type))
-        .map_err(|e| vortex_err!("failed to construct LineStringArray: {e}"))
+        .map_err(|e| vortex_err!(InvalidArgument: "failed to construct LineStringArray: {e}"))
 }
 
 /// A validated `LineString` array (`try_from` checks the extension type).
@@ -307,7 +307,9 @@ impl ArrowExportVTable for LineString {
 
         // Round-trip through GeoArrow's line-string array; `into_arrow` is concrete, so wrap in `Arc`.
         let linestrings = LineStringArray::try_from((arrow_storage.as_ref(), linestring_meta))
-            .map_err(|e| vortex_err!("failed to construct LineStringArray: {e}"))?;
+            .map_err(
+                |e| vortex_err!(InvalidArgument: "failed to construct LineStringArray: {e}"),
+            )?;
 
         Ok(ArrowExport::Exported(Arc::new(linestrings.into_arrow())))
     }

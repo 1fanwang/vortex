@@ -223,7 +223,7 @@ impl VTable for ALPRD {
             left_parts_dictionary,
             u8::try_from(metadata.right_bit_width).map_err(|_| {
                 vortex_err!(
-                    "right_bit_width {} out of u8 range",
+                    Overflow: "right_bit_width {} out of u8 range",
                     metadata.right_bit_width
                 )
             })?,
@@ -492,7 +492,7 @@ fn validate_parts(
     }
     if dtype.is_nullable() != left_parts.dtype().is_nullable() {
         vortex_bail!(
-            "ALPRDArray dtype nullability ({}) must match left_parts dtype nullability ({})",
+            InvalidArgument: "ALPRDArray dtype nullability ({}) must match left_parts dtype nullability ({})",
             dtype,
             left_parts.dtype()
         );

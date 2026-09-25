@@ -65,7 +65,7 @@ impl VTable for Chunked {
     ) -> VortexResult<Self::LayoutData> {
         let chunk_offsets = chunk_offsets(args.children)?;
         if chunk_offsets.last().copied() != Some(args.row_count) {
-            vortex_bail!("Chunked child row counts do not add up to parent row count");
+            vortex_bail!(InvalidArgument: "Chunked child row counts do not add up to parent row count");
         }
         Ok(ChunkedData { chunk_offsets })
     }

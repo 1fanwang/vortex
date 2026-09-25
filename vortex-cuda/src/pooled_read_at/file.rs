@@ -168,7 +168,7 @@ impl PooledFileReadAt {
         let permit = Arc::clone(&self.read_slots)
             .acquire_owned()
             .await
-            .map_err(|error| vortex_err!("file read semaphore closed: {error}"))?;
+            .map_err(|error| vortex_err!(Io: "file read semaphore closed: {error}"))?;
         self.handle
             .spawn_blocking(move || {
                 // A started blocking read cannot be cancelled. Keep its permit and buffer owners

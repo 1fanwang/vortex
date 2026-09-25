@@ -263,7 +263,7 @@ mod tests {
         assert!(sliced.is::<OnPair>(), "slice dropped OnPair encoding");
         let sliced = sliced
             .try_downcast::<OnPair>()
-            .map_err(|_| vortex_err!("sliced array was not OnPair"))?;
+            .map_err(|_| vortex_err!(AssertionFailed: "sliced array was not OnPair"))?;
 
         let rhs = ConstantArray::new("hello", sliced.len()).into_array();
         let eq = <OnPair as CompareKernel>::compare(

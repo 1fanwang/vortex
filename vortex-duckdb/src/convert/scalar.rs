@@ -81,15 +81,21 @@ impl ToDuckDBScalar for Scalar {
             DType::Decimal(..) => self.as_decimal().try_to_duckdb_scalar(),
             DType::Utf8(_) => self.as_utf8().try_to_duckdb_scalar(),
             DType::Binary(_) => self.as_binary().try_to_duckdb_scalar(),
-            DType::List(..) => vortex_bail!("Vortex List scalars aren't supported"),
+            DType::List(..) => vortex_bail!(NotImplemented: "Vortex List scalars aren't supported"),
             DType::FixedSizeList(..) => {
-                vortex_bail!("Vortex FixedSizeList scalars aren't supported")
+                vortex_bail!(NotImplemented: "Vortex FixedSizeList scalars aren't supported")
             }
-            DType::Map(..) => vortex_bail!("Vortex Map scalars aren't supported"),
-            DType::Variant(_) => vortex_bail!("Vortex Variant scalars aren't supported"),
-            DType::Struct(..) => vortex_bail!("Vortex Struct scalars aren't supported"),
+            DType::Map(..) => vortex_bail!(NotImplemented: "Vortex Map scalars aren't supported"),
+            DType::Variant(_) => {
+                vortex_bail!(NotImplemented: "Vortex Variant scalars aren't supported")
+            }
+            DType::Struct(..) => {
+                vortex_bail!(NotImplemented: "Vortex Struct scalars aren't supported")
+            }
             // TODO(connor): Union
-            DType::Union(..) => vortex_bail!("Vortex Union scalars aren't supported"),
+            DType::Union(..) => {
+                vortex_bail!(NotImplemented: "Vortex Union scalars aren't supported")
+            }
             DType::Extension(..) => self.as_extension().try_to_duckdb_scalar(),
         }
     }
@@ -126,7 +132,7 @@ impl ToDuckDBScalar for DecimalScalar<'_> {
         let decimal_type = self
             .dtype()
             .as_decimal_opt()
-            .ok_or_else(|| vortex_err!("decimal scalar without decimal dtype"))?;
+            .ok_or_else(|| vortex_err!(AssertionFailed: "decimal scalar without decimal dtype"))?;
 
         let Some(decimal_value) = self.decimal_value() else {
             let lt = LogicalType::try_from(self.dtype())?;
@@ -139,7 +145,9 @@ impl ToDuckDBScalar for DecimalScalar<'_> {
             DecimalValue::I32(v) => v as i128,
             DecimalValue::I64(v) => v as i128,
             DecimalValue::I128(v) => v,
-            DecimalValue::I256(_) => vortex_bail!("cannot handle a i256 decimal in duckdb"),
+            DecimalValue::I256(_) => {
+                vortex_bail!(NotImplemented: "cannot handle a i256 decimal in duckdb")
+            }
         };
 
         Ok(Value::new_decimal(
@@ -228,7 +236,9 @@ impl ToDuckDBScalar for ExtScalar<'_> {
                     Some(days) => Value::new_date(days),
                     None => Value::null(&*ext_logical_type(self)?),
                 },
-                _ => vortex_bail!("cannot have TimeUnit {unit}, so represent a day"),
+                _ => {
+                    vortex_bail!(InvalidArgument: "cannot have TimeUnit {unit}, so represent a day")
+                }
             },
             TemporalMetadata::Time(unit) => match unit {
                 TimeUnit::Microseconds => Value::new_time(value()?),
@@ -255,7 +265,7 @@ fn timestamp_tz_micros(unit: TimeUnit, raw: i64) -> VortexResult<i64> {
         TimeUnit::Milliseconds => raw.checked_mul(1_000).ok_or_else(overflow),
         TimeUnit::Microseconds => Ok(raw),
         TimeUnit::Nanoseconds => Ok(raw / 1_000),
-        TimeUnit::Days => vortex_bail!("timestamp_tz cannot have a day time unit"),
+        TimeUnit::Days => vortex_bail!(InvalidArgument: "timestamp_tz cannot have a day time unit"),
     }
 }
 
@@ -289,10 +299,10 @@ impl<'a> TryFrom<&'a ValueRef> for Scalar {
             ExtractedValue::Integer(v) => Ok(Scalar::primitive(v, Nullable)),
             ExtractedValue::BigInt(v) => Ok(Scalar::primitive(v, Nullable)),
             ExtractedValue::HugeInt(_) => {
-                vortex_bail!("DuckDB HugeInt is not yet supported in Vortex");
+                vortex_bail!(NotImplemented: "DuckDB HugeInt is not yet supported in Vortex");
             }
             ExtractedValue::UHugeInt(_) => {
-                vortex_bail!("DuckDB UHugeInt is not yet supported in Vortex");
+                vortex_bail!(NotImplemented: "DuckDB UHugeInt is not yet supported in Vortex");
             }
             ExtractedValue::UTinyInt(v) => Ok(Scalar::primitive(v, Nullable)),
             ExtractedValue::USmallInt(v) => Ok(Scalar::primitive(v, Nullable)),

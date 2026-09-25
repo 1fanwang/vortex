@@ -65,7 +65,7 @@ impl Expression {
         loop {
             if loop_counter > 100 {
                 vortex_error::vortex_bail!(
-                    "Exceeded maximum optimization iterations (possible infinite loop)"
+                    AssertionFailed: "Exceeded maximum optimization iterations (possible infinite loop)"
                 );
             }
             loop_counter += 1;
@@ -194,7 +194,9 @@ impl SimplifyCtx for SimplifyCache<'_> {
             .try_collect()?;
         let dtype = expr
             .as_scalar()
-            .ok_or_else(|| vortex_err!("cannot type a non-scalar expression: {expr}"))?
+            .ok_or_else(
+                || vortex_err!(InvalidArgument: "cannot type a non-scalar expression: {expr}"),
+            )?
             .return_dtype(&input_dtypes)?;
         self.dtype_cache
             .borrow_mut()

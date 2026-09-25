@@ -108,7 +108,9 @@ fn point_coordinates(
                     fields
                         .field(name)
                         .map(|value| ConstantArray::new(value, len).into_array())
-                        .ok_or_else(|| vortex_err!("spatial: point coordinate missing {name}"))
+                        .ok_or_else(
+                            || vortex_err!(NotFound: "spatial: point coordinate missing {name}"),
+                        )
                 })
                 .collect::<VortexResult<Vec<_>>>()?;
             StructArray::try_new(names, arrays, len, Validity::NonNullable)
@@ -346,7 +348,7 @@ mod tests {
             .execute::<Columnar>(&mut ctx)?;
         let Columnar::Constant(lines) = result else {
             return Err(vortex_err!(
-                "make_line of two constants should remain constant"
+                AssertionFailed: "make_line of two constants should remain constant"
             ));
         };
         assert_eq!(lines.len(), 3);
@@ -408,7 +410,7 @@ mod tests {
             .execute::<Columnar>(&mut ctx)?;
         let Columnar::Constant(lines) = result else {
             return Err(vortex_err!(
-                "make_line with a null constant should remain constant"
+                AssertionFailed: "make_line with a null constant should remain constant"
             ));
         };
         assert_eq!(lines.len(), 2);

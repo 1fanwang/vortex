@@ -126,7 +126,7 @@ fn pack_variant_chunks(
             for chunk in &variant_chunks[1..] {
                 let shredded = chunk.shredded().ok_or_else(|| {
                     vortex_err!(
-                        "cannot canonicalize ChunkedArray<Variant>: chunks disagree on shredded presence"
+                        NotImplemented: "cannot canonicalize ChunkedArray<Variant>: chunks disagree on shredded presence"
                     )
                 })?;
                 vortex_ensure!(

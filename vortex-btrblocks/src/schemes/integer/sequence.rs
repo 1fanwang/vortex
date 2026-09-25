@@ -138,6 +138,6 @@ impl Scheme for SequenceScheme {
             vortex_bail!(InvalidArgument: "sequence encoding does not support nulls");
         }
         sequence_encode(data.array_as_primitive(), exec_ctx)?
-            .ok_or_else(|| vortex_err!("cannot sequence encode array"))
+            .ok_or_else(|| vortex_err!(AssertionFailed: "cannot sequence encode array"))
     }
 }

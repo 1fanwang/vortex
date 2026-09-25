@@ -126,7 +126,7 @@ pub fn search_sorted_canonical_array(
                         })
                     })
                     .transpose()?
-                    .ok_or_else(|| vortex_err!("unexpected null scalar"))?;
+                    .ok_or_else(|| vortex_err!(AssertionFailed: "unexpected null scalar"))?;
                 SearchNullableSlice(opt_values).search_sorted(&Some(to_find), side)
             })
         }

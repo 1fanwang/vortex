@@ -95,13 +95,13 @@ impl EditionId {
     /// [`test_harness::validate_edition`].
     pub fn validate(&self) -> VortexResult<()> {
         if self.family.is_empty() || !self.family.chars().all(|c| c.is_ascii_lowercase()) {
-            vortex_bail!("edition {self} must have a non-empty lowercase family, e.g. `core`");
+            vortex_bail!(InvalidArgument: "edition {self} must have a non-empty lowercase family, e.g. `core`");
         }
         if !(1000..=9999).contains(&self.year) {
-            vortex_bail!("edition {self} must have a four-digit year");
+            vortex_bail!(InvalidArgument: "edition {self} must have a four-digit year");
         }
         if !(1..=12).contains(&self.month) {
-            vortex_bail!("edition {self} must have a month in 01-12");
+            vortex_bail!(InvalidArgument: "edition {self} must have a month in 01-12");
         }
         Ok(())
     }
@@ -141,18 +141,18 @@ impl EditionFamily {
     pub fn validate(&self) -> VortexResult<()> {
         if self.name.is_empty() || !self.name.chars().all(|c| c.is_ascii_lowercase()) {
             vortex_bail!(
-                "edition family {:?} must have a non-empty lowercase name, e.g. `core`",
+                InvalidArgument: "edition family {:?} must have a non-empty lowercase name, e.g. `core`",
                 self.name
             );
         }
         if self.origin.trim().is_empty() {
             vortex_bail!(
-                "edition family {} must name its origin library or project",
+                InvalidArgument: "edition family {} must name its origin library or project",
                 self.name
             );
         }
         if self.doc.trim().is_empty() {
-            vortex_bail!("edition family {} must document what it is for", self.name);
+            vortex_bail!(InvalidArgument: "edition family {} must document what it is for", self.name);
         }
         Ok(())
     }

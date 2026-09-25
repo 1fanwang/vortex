@@ -164,7 +164,7 @@ impl Stream for ReadRangeResults {
                         return Poll::Ready(None);
                     };
                     let error = vortex_err!(
-                        "FileSegmentSource: read_ranges ended before resolving request. {:?}",
+                        Io: "FileSegmentSource: read_ranges ended before resolving request. {:?}",
                         req
                     );
                     return Poll::Ready(Some((req, Err(error))));
@@ -391,7 +391,8 @@ impl SegmentSource for FileSegmentSource {
 
         // If we fail to submit the event, we create a future that has failed.
         if let Err(e) = self.events.unbounded_send(event) {
-            return future::ready(Err(vortex_err!("Failed to submit read request: {e}"))).boxed();
+            return future::ready(Err(vortex_err!(Io: "Failed to submit read request: {e}")))
+                .boxed();
         }
 
         let fut = ReadFuture {
@@ -446,7 +447,7 @@ impl Future for ReadFuture {
                     if let Some(panic) = self.driver_panic.lock().take() {
                         std::panic::resume_unwind(panic);
                     }
-                    Poll::Ready(Err(vortex_err!("ReadRequest dropped by runtime: {e}")))
+                    Poll::Ready(Err(vortex_err!(Io: "ReadRequest dropped by runtime: {e}")))
                 }
                 Poll::Pending => Poll::Pending,
             },
@@ -455,7 +456,9 @@ impl Future for ReadFuture {
                 // Notify the I/O stream that this request has been polled.
                 match self.events.unbounded_send(ReadEvent::Polled(self.id)) {
                     Ok(()) => Poll::Pending,
-                    Err(e) => Poll::Ready(Err(vortex_err!("ReadRequest dropped by runtime: {e}"))),
+                    Err(e) => {
+                        Poll::Ready(Err(vortex_err!(Io: "ReadRequest dropped by runtime: {e}")))
+                    }
                 }
             }
             _ => Poll::Pending,
@@ -1008,7 +1011,7 @@ mod tests {
                 for _ in 0..(offset as usize % 5 + 1) {
                     tokio::task::yield_now().await;
                 }
-                vortex_bail!("slow read done")
+                vortex_bail!(Io: "slow read done")
             }
             .boxed()
         }

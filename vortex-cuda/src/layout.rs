@@ -167,7 +167,7 @@ impl VTable for CudaFlat {
         metadata: &CudaFlatLayoutMetadata,
     ) -> VortexResult<Self::LayoutData> {
         if args.segment_ids.len() != 1 {
-            vortex_bail!("CudaFlatLayout must have exactly one segment ID");
+            vortex_bail!(InvalidArgument: "CudaFlatLayout must have exactly one segment ID");
         }
         if args.children.nchildren() != 0 {
             vortex_bail!(InvalidArgument: "CudaFlatLayout must not have children");
@@ -435,7 +435,7 @@ impl LayoutStrategy for CudaFlatLayoutStrategy {
     ) -> VortexResult<LayoutRef> {
         let options = self.clone();
         let Some(chunk) = stream.next().await else {
-            vortex_bail!("CudaFlatLayoutStrategy needs a single chunk");
+            vortex_bail!(InvalidArgument: "CudaFlatLayoutStrategy needs a single chunk");
         };
         let (sequence_id, chunk) = chunk?;
         let row_count = chunk.len() as u64;
@@ -499,7 +499,7 @@ impl LayoutStrategy for CudaFlatLayoutStrategy {
         let segment_id = segment_sink.write(sequence_id, buffers).await?;
 
         let None = stream.next().await else {
-            vortex_bail!("CudaFlatLayoutStrategy received stream with more than a single chunk");
+            vortex_bail!(InvalidArgument: "CudaFlatLayoutStrategy received stream with more than a single chunk");
         };
 
         let host_buffer_map: HashMap<u32, ByteBuffer> = host_buffers

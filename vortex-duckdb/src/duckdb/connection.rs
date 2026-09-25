@@ -52,7 +52,7 @@ impl ConnectionRef {
             };
 
             unsafe { cpp::duckdb_destroy_result(&raw mut result) };
-            return Err(vortex_err!("Failed to execute query: {}", error_msg));
+            return Err(vortex_err!(InvalidArgument: "Failed to execute query: {}", error_msg));
         }
 
         Ok(unsafe { QueryResult::new(result) })

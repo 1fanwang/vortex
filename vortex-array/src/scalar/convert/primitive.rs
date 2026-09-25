@@ -70,7 +70,7 @@ macro_rules! primitive_scalar {
                         MismatchedTypes: "Expected primitive scalar, found {}",
                         value.dtype()
                     )),
-                    None => Err(vortex_err!("Can't extract present value from null scalar")),
+                    None => Err(vortex_err!(InvalidArgument: "Can't extract present value from null scalar")),
                 }
             }
         }

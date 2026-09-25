@@ -117,7 +117,7 @@ fn test_standard_binary_numeric<T: NativePType + Num + Copy>(
     let original_values = to_vec_of_scalar(&canonicalized_array, ctx);
 
     let one = T::from(1)
-        .ok_or_else(|| vortex_err!("could not convert 1 into array native type"))
+        .ok_or_else(|| vortex_err!(AssertionFailed: "could not convert 1 into array native type"))
         .vortex_expect("operation should succeed in conformance test");
     let scalar_one = Scalar::from(one)
         .cast(array.dtype())

@@ -56,16 +56,16 @@ impl<D: NativeDecimalType> PrecisionScale<D> {
 
         if precision.get() > D::MAX_PRECISION {
             vortex_bail!(
-                "Precision {} is greater than max {}",
+                InvalidArgument: "Precision {} is greater than max {}",
                 precision,
                 D::MAX_PRECISION
             );
         }
         if scale > D::MAX_SCALE {
-            vortex_bail!("Scale {} is greater than max {}", scale, D::MAX_SCALE);
+            vortex_bail!(InvalidArgument: "Scale {} is greater than max {}", scale, D::MAX_SCALE);
         }
         if scale > 0 && scale as u8 > precision.get() {
-            vortex_bail!("Scale {} is greater than precision {}", scale, precision);
+            vortex_bail!(InvalidArgument: "Scale {} is greater than precision {}", scale, precision);
         }
         Ok(Self {
             precision,

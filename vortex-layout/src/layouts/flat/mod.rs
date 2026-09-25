@@ -83,7 +83,7 @@ impl VTable for Flat {
         metadata: &FlatLayoutMetadata,
     ) -> VortexResult<Self::LayoutData> {
         if args.segment_ids.len() != 1 {
-            vortex_bail!("Flat layout must have exactly one segment ID");
+            vortex_bail!(InvalidArgument: "Flat layout must have exactly one segment ID");
         }
         if args.children.nchildren() != 0 {
             vortex_bail!(InvalidArgument: "Flat layout must not have children");

@@ -172,7 +172,7 @@ impl ExtVTable for Timestamp {
         );
         let tz_bytes = &data[3..3 + tz_len];
         let tz: Arc<str> = str::from_utf8(tz_bytes)
-            .map_err(|e| vortex_err!("timezone is not valid utf8 string: {e}"))?
+            .map_err(|e| vortex_err!(Serde: "timezone is not valid utf8 string: {e}"))?
             .to_string()
             .into();
         Ok(TimestampOptions {

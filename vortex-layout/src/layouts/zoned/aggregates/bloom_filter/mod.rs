@@ -321,7 +321,7 @@ impl AggregateFnVTable for BloomFilter {
         let bytes = scalar
             .as_binary()
             .value()
-            .ok_or_else(|| vortex_err!("non-null bloom partial has no bytes"))?;
+            .ok_or_else(|| vortex_err!(AssertionFailed: "non-null bloom partial has no bytes"))?;
         let partial = BloomPartial::deserialize(bytes.clone())?;
 
         // `deserialize` validates the byte length, but it cannot know the options the filter was

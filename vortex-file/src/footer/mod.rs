@@ -143,7 +143,7 @@ impl Footer {
 
         // Note this assertion is `<=` since we allow zero-length segments
         if !segments.is_sorted_by_key(|segment| segment.offset) {
-            vortex_bail!("Segment offsets are not ordered");
+            vortex_bail!(Serde: "Segment offsets are not ordered");
         }
 
         Ok(Self {

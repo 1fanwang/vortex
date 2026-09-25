@@ -332,7 +332,7 @@ impl ArrayRef {
         }
 
         vortex_bail!(
-            "Exceeded maximum execution iterations ({}) while executing array",
+            AssertionFailed: "Exceeded maximum execution iterations ({}) while executing array",
             max_iterations,
         )
     }

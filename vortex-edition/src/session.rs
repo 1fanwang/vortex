@@ -106,7 +106,7 @@ impl EditionSession {
     pub fn declare_family(&self, family: &EditionFamily) -> VortexResult<()> {
         let mut inner = self.inner.write();
         if inner.families.contains_key(family.name) {
-            vortex_bail!("duplicate edition family {}", family.name);
+            vortex_bail!(InvalidArgument: "duplicate edition family {}", family.name);
         }
         inner.families.insert(family.name.to_string(), *family);
         Ok(())
@@ -127,7 +127,7 @@ impl EditionSession {
         let mut inner = self.inner.write();
         let key = edition.id.to_string();
         if inner.editions.contains_key(&key) {
-            vortex_bail!("duplicate edition {key}");
+            vortex_bail!(InvalidArgument: "duplicate edition {key}");
         }
         inner.editions.insert(key, edition);
         Ok(())
@@ -153,7 +153,7 @@ impl EditionSession {
 
         if let Some(previous) = previous {
             vortex_bail!(
-                "{} {} already joined family {} in edition {}",
+                InvalidArgument: "{} {} already joined family {} in edition {}",
                 inclusion.kind,
                 inclusion.component_id,
                 inclusion.since.family,
@@ -234,7 +234,7 @@ impl EditionSession {
             edition.id.validate()?;
             if self.find_family(edition.id.family).is_none() {
                 vortex_bail!(
-                    "edition {} belongs to undeclared family {}; declare the family before \
+                    NotFound: "edition {} belongs to undeclared family {}; declare the family before \
                      its editions",
                     edition.id,
                     edition.id.family,
@@ -274,7 +274,7 @@ impl EditionSession {
 
             let Some(edition) = inner.editions.get(&inclusion.since.to_string()) else {
                 vortex_bail!(
-                    "{} {} is included in undeclared edition {}",
+                    NotFound: "{} {} is included in undeclared edition {}",
                     inclusion.kind,
                     inclusion.component_id,
                     inclusion.since
@@ -347,7 +347,7 @@ pub trait EditionSessionExt: SessionExt {
     /// silently produce an empty writable set.
     fn enable_edition(&self, edition: EditionId) -> VortexResult<()> {
         if self.editions().find(&edition).is_none() {
-            vortex_bail!("cannot enable unregistered edition {edition}");
+            vortex_bail!(NotFound: "cannot enable unregistered edition {edition}");
         }
         self.enabled_editions().enable(edition);
         Ok(())

@@ -88,7 +88,7 @@ impl LogicalType {
         };
 
         if struct_type_ptr.is_null() {
-            vortex_bail!("Failed to create struct logical type");
+            vortex_bail!(InvalidArgument: "Failed to create struct logical type");
         }
 
         Ok(unsafe { Self::own(struct_type_ptr) })
@@ -104,7 +104,7 @@ impl LogicalType {
 
         let ptr = unsafe { duckdb_create_decimal_type(precision, scale) };
         if ptr.is_null() {
-            vortex_bail!("Failed to create decimal type");
+            vortex_bail!(InvalidArgument: "Failed to create decimal type");
         }
         Ok(unsafe { Self::own(ptr) })
     }
@@ -114,7 +114,7 @@ impl LogicalType {
         let ptr = unsafe { duckdb_create_list_type(element_type.as_ptr()) };
 
         if ptr.is_null() {
-            vortex_bail!("Failed to create list type");
+            vortex_bail!(InvalidArgument: "Failed to create list type");
         }
         Ok(unsafe { Self::own(ptr) })
     }
@@ -127,7 +127,7 @@ impl LogicalType {
         let ptr = unsafe { duckdb_create_array_type(element_type.as_ptr(), list_size as idx_t) };
 
         if ptr.is_null() {
-            vortex_bail!("Failed to create fixed-size list (array) type");
+            vortex_bail!(InvalidArgument: "Failed to create fixed-size list (array) type");
         }
 
         // SAFETY: This pointer came directly from DuckDB, and we checked that it was not `NULL`.
@@ -231,7 +231,7 @@ impl LogicalType {
         };
         let ptr = unsafe { duckdb_vx_create_geometry(crs.as_ptr()) };
         if ptr.is_null() {
-            vortex_bail!("Failed to create GEOMETRY logical type");
+            vortex_bail!(InvalidArgument: "Failed to create GEOMETRY logical type");
         }
         Ok(unsafe { Self::own(ptr) })
     }

@@ -68,7 +68,7 @@ pub fn list_to_vector_ext(input: ArrayRef) -> VortexResult<ArrayRef> {
             .collect::<VortexResult<_>>()?;
 
         let Some(first) = converted.first() else {
-            vortex_bail!("list_to_vector_ext: chunked input has no chunks");
+            vortex_bail!(InvalidArgument: "list_to_vector_ext: chunked input has no chunks");
         };
 
         let dtype = first.dtype().clone();
@@ -118,7 +118,7 @@ pub fn list_to_vector_ext(input: ArrayRef) -> VortexResult<ArrayRef> {
 
     let num_rows = input.len();
     if num_rows == 0 {
-        vortex_bail!("list_to_vector_ext: cannot infer vector dimension from empty input");
+        vortex_bail!(InvalidArgument: "list_to_vector_ext: cannot infer vector dimension from empty input");
     }
 
     // Walk the offsets array once, reusing the previous iteration's `end` as the
@@ -131,10 +131,10 @@ pub fn list_to_vector_ext(input: ArrayRef) -> VortexResult<ArrayRef> {
     let first_end = list.offset_at(1)?;
 
     let dim = first_end.checked_sub(prev_end).ok_or_else(|| {
-        vortex_err!("list_to_vector_ext: offsets are not monotonically increasing")
+        vortex_err!(InvalidArgument: "list_to_vector_ext: offsets are not monotonically increasing")
     })?;
     if dim == 0 {
-        vortex_bail!("list_to_vector_ext: first row has zero elements");
+        vortex_bail!(InvalidArgument: "list_to_vector_ext: first row has zero elements");
     }
 
     prev_end = first_end;

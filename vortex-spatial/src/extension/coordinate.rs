@@ -59,7 +59,9 @@ impl Dimension {
             ["x", "y", "z"] => Dimension::Xyz,
             ["x", "y", "m"] => Dimension::Xym,
             ["x", "y", "z", "m"] => Dimension::Xyzm,
-            _ => vortex_bail!("not a valid GeoArrow coordinate dimension: {names:?}"),
+            _ => {
+                vortex_bail!(InvalidArgument: "not a valid GeoArrow coordinate dimension: {names:?}")
+            }
         })
     }
 
@@ -191,7 +193,7 @@ pub(crate) fn coordinate_from_struct(scalar: &Scalar) -> VortexResult<Coordinate
         f64::try_from(
             &fields
                 .field(name)
-                .ok_or_else(|| vortex_err!("coordinate missing {name}"))?,
+                .ok_or_else(|| vortex_err!(NotFound: "coordinate missing {name}"))?,
         )
     };
     let optional = |name: &str| -> VortexResult<Option<f64>> {

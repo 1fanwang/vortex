@@ -213,7 +213,7 @@ impl AggregateFnVTable for BoundedMax {
                 );
             };
             let Some(bound) = fields.field_by_idx(0) else {
-                vortex_bail!("BoundedMax partial is missing its bound field");
+                vortex_bail!(NotFound: "BoundedMax partial is missing its bound field");
             };
             let Some(unknown) = fields
                 .field_by_idx(1)

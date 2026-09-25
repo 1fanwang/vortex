@@ -306,7 +306,10 @@ pub(crate) fn vortex_err_from_pco(err: PcoError) -> VortexError {
     match err.kind {
         Io(io_kind) => VortexError::from(std::io::Error::new(io_kind, err.message)),
         InvalidArgument => vortex_err!(InvalidArgument: "{}", err.message),
-        other => vortex_err!("Pco {:?} error: {}", other, err.message),
+        kind @ (Corruption | InsufficientData) => {
+            vortex_err!(Serde: "Pco {:?} error: {}", kind, err.message)
+        }
+        other => vortex_err!(Other: "Pco {:?} error: {}", other, err.message),
     }
 }
 
@@ -616,7 +619,7 @@ impl PcoData {
     ) -> VortexResult<Self> {
         let parray = array.try_downcast::<Primitive>().map_err(|a| {
             vortex_err!(
-                "Pco can only encode primitive arrays, got {}",
+                MismatchedTypes: "Pco can only encode primitive arrays, got {}",
                 a.encoding_id()
             )
         })?;
@@ -694,7 +697,7 @@ impl PcoData {
                     let page: &[u8] = self
                         .pages
                         .get(page_idx)
-                        .ok_or_else(|| vortex_err!("Missing Pco page {page_idx}"))?
+                        .ok_or_else(|| vortex_err!(NotFound: "Missing Pco page {page_idx}"))?
                         .as_ref();
 
                     let mut cd = match chunk_decompressor.take() {

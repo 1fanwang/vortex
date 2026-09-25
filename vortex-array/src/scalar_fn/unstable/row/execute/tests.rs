@@ -104,7 +104,7 @@ fn collect_owned<Out: OutputElement, Fail: FailureEvidence>(
             |_| (),
             |_, (value,)| apply(value),
         )?
-        .ok_or_else(|| vortex_err!("canonical input must support selected rows")),
+        .ok_or_else(|| vortex_err!(AssertionFailed: "canonical input must support selected rows")),
         Traversal::Filtered => execute_owned_infallible_filtered::<(i64,), Out, ()>(
             args,
             valid,
@@ -268,7 +268,7 @@ where
             |_| (),
             |_, _, row| apply(row),
         )?
-        .ok_or_else(|| vortex_err!("canonical input must support selected rows")),
+        .ok_or_else(|| vortex_err!(AssertionFailed: "canonical input must support selected rows")),
         Traversal::Filtered => execute_sink_filtered::<(i64,), (), Sink, ApplyResult>(
             args,
             valid,

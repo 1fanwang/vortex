@@ -66,7 +66,7 @@ impl SegmentSink for BufferedSegmentSink {
                 .map(|buffer| buffer.alignment())
                 .unwrap_or_else(Alignment::none);
             let length = u32::try_from(buffers.iter().map(|buffer| buffer.len()).sum::<usize>())
-                .map_err(|_| vortex_err!("segment buffer length exceeds maximum u32"))?;
+                .map_err(|_| vortex_err!(Overflow: "segment buffer length exceeds maximum u32"))?;
 
             // Add any padding required to align the segment.
             let byte_offset = self.byte_offset.load(Ordering::Relaxed);

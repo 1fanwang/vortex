@@ -146,7 +146,7 @@ fn nonnegative_number_from_value(value: &ValueRef) -> VortexResult<u64> {
         }
         ExtractedValue::UBigInt(u) => Ok(u),
         ExtractedValue::UInteger(u) => Ok(u64::from(u)),
-        _ => vortex_bail!("unexpected value type"),
+        _ => vortex_bail!(MismatchedTypes: "unexpected value type"),
     }
 }
 

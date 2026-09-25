@@ -32,7 +32,7 @@ impl CudaExecute for DecimalBytePartsExecutor {
         ctx: &mut CudaExecutionCtx,
     ) -> VortexResult<Canonical> {
         let Ok(array) = array.try_downcast::<DecimalByteParts>() else {
-            vortex_bail!("cannot downcast to DecimalBytePartsArray")
+            vortex_bail!(MismatchedTypes: "cannot downcast to DecimalBytePartsArray")
         };
 
         let decimal_dtype = *array

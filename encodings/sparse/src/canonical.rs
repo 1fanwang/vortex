@@ -103,7 +103,9 @@ impl SparseStringParts {
                 .cloned()
                 .map(BufferString::into_inner),
             DType::Binary(_) => fill_scalar.as_binary().value().cloned(),
-            dtype => vortex_bail!("Sparse string decode of non-string dtype {dtype}"),
+            dtype => {
+                vortex_bail!(MismatchedTypes: "Sparse string decode of non-string dtype {dtype}")
+            }
         };
         Ok(Self {
             len: array.len(),

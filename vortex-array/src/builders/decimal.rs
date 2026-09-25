@@ -268,7 +268,7 @@ impl DecimalBuffer {
                 <T as BigCast>::from(value)
                     .ok_or_else(|| {
                         vortex_err!(
-                            "decimal conversion failure {:?}, type: {:?} to {:?}",
+                            Overflow: "decimal conversion failure {:?}, type: {:?} to {:?}",
                             value,
                             V::DECIMAL_TYPE,
                             T::DECIMAL_TYPE,

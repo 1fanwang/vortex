@@ -79,7 +79,7 @@ fn constant_bytes(scalar: &Scalar) -> VortexResult<Vec<u8>> {
             vortex_bail!(MismatchedTypes: "expected utf8 or binary scalar, got {}", scalar.dtype())
         }
     };
-    value.ok_or_else(|| vortex_err!("null constant handled by execute_compare"))
+    value.ok_or_else(|| vortex_err!(AssertionFailed: "null constant handled by execute_compare"))
 }
 
 /// A resolved view over a canonical [`VarBinViewArray`]: the view structs plus borrowed slices of

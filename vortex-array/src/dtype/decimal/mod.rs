@@ -55,19 +55,19 @@ impl DecimalDType {
 
         if precision.get() > MAX_PRECISION {
             vortex_bail!(
-                "decimal precision {} exceeds MAX_PRECISION {}",
+                InvalidArgument: "decimal precision {} exceeds MAX_PRECISION {}",
                 precision,
                 MAX_PRECISION
             );
         }
 
         if scale > MAX_SCALE {
-            vortex_bail!("decimal scale {} exceeds MAX_SCALE {}", scale, MAX_SCALE);
+            vortex_bail!(InvalidArgument: "decimal scale {} exceeds MAX_SCALE {}", scale, MAX_SCALE);
         }
 
         if scale > 0 && scale as u8 > precision.get() {
             vortex_bail!(
-                "decimal scale {} is greater than precision {}",
+                InvalidArgument: "decimal scale {} is greater than precision {}",
                 scale,
                 precision
             );

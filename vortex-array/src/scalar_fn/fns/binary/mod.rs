@@ -138,7 +138,7 @@ impl ScalarFnVTable for Binary {
                 ));
             }
             vortex_bail!(
-                "incompatible types for arithmetic operation: {} {}",
+                MismatchedTypes: "incompatible types for arithmetic operation: {} {}",
                 lhs,
                 rhs
             );

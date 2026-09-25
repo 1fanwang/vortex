@@ -852,7 +852,7 @@ impl ArrayBuilder for VarBinViewBuilder {
                 None => self.append_null(),
             },
             _ => vortex_bail!(
-                "VarBinViewBuilder can only handle Utf8 or Binary scalars, got {:?}",
+                MismatchedTypes: "VarBinViewBuilder can only handle Utf8 or Binary scalars, got {:?}",
                 scalar.dtype()
             ),
         }

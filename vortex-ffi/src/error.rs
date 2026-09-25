@@ -34,7 +34,7 @@ pub enum vx_error_code {
     VX_ERROR_CODE_MISMATCHED_TYPES = 6,
     /// Assertion failed
     VX_ERROR_CODE_ASSERTION_FAILED = 7,
-    /// IO error
+    /// An IO operation, or a call into the operating system or a device driver, failed
     VX_ERROR_CODE_IO = 8,
     /// Panic inside FFI
     VX_ERROR_CODE_PANIC = 9,

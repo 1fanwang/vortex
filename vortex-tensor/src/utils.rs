@@ -172,15 +172,15 @@ impl BinaryTensorOpMetadata {
         session: &VortexSession,
     ) -> VortexResult<Vec<ArrayRef>> {
         let metadata = Self::decode(metadata)
-            .map_err(|e| vortex_err!("Failed to decode BinaryTensorOpMetadata: {e}"))?;
+            .map_err(|e| vortex_err!(Serde: "Failed to decode BinaryTensorOpMetadata: {e}"))?;
         let lhs_pb = metadata
             .lhs_dtype
             .as_ref()
-            .ok_or_else(|| vortex_err!("metadata missing lhs_dtype"))?;
+            .ok_or_else(|| vortex_err!(Serde: "metadata missing lhs_dtype"))?;
         let rhs_pb = metadata
             .rhs_dtype
             .as_ref()
-            .ok_or_else(|| vortex_err!("metadata missing rhs_dtype"))?;
+            .ok_or_else(|| vortex_err!(Serde: "metadata missing rhs_dtype"))?;
 
         let lhs_dtype = DType::from_proto(lhs_pb, session)?;
         let rhs_dtype = DType::from_proto(rhs_pb, session)?;

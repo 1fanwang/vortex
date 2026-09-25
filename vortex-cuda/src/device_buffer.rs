@@ -191,7 +191,7 @@ pub(crate) fn cuda_aligned_bitmap_view(
 ) -> VortexResult<(CudaView<'_, u8>, usize)> {
     let device_buffer = handle
         .as_device_opt()
-        .ok_or_else(|| vortex_err!("Buffer is not on device"))?;
+        .ok_or_else(|| vortex_err!(InvalidArgument: "Buffer is not on device"))?;
     let cuda_buf = device_buffer
         .as_any()
         .downcast_ref::<CudaDeviceBuffer>()
@@ -210,7 +210,7 @@ pub(crate) fn cuda_aligned_bitmap_view(
 pub(crate) fn cuda_backing_allocation(handle: &BufferHandle) -> VortexResult<BufferHandle> {
     let device_buffer = handle
         .as_device_opt()
-        .ok_or_else(|| vortex_err!("Buffer is not on device"))?;
+        .ok_or_else(|| vortex_err!(InvalidArgument: "Buffer is not on device"))?;
 
     let cuda_buf = device_buffer
         .as_any()
@@ -235,7 +235,7 @@ pub(crate) fn with_cuda_view_mut<T: DeviceRepr + Send + Sync + 'static, R>(
     function: impl FnOnce(&mut CudaViewMut<'_, T>) -> R,
 ) -> VortexResult<(BufferHandle, Option<R>)> {
     if !handle.is_on_device() {
-        return Err(vortex_err!("Buffer is not on device"));
+        return Err(vortex_err!(InvalidArgument: "Buffer is not on device"));
     }
 
     let device_buffer = handle.unwrap_device();
@@ -246,8 +246,9 @@ pub(crate) fn with_cuda_view_mut<T: DeviceRepr + Send + Sync + 'static, R>(
     }
 
     let device_buffer: Arc<dyn Any + Send + Sync> = device_buffer;
-    let mut cuda_buf = Arc::downcast::<CudaDeviceBuffer>(device_buffer)
-        .map_err(|_| vortex_err!("CudaDeviceBuffer downcast failed after type check"))?;
+    let mut cuda_buf = Arc::downcast::<CudaDeviceBuffer>(device_buffer).map_err(
+        |_| vortex_err!(AssertionFailed: "CudaDeviceBuffer downcast failed after type check"),
+    )?;
     let result = Arc::get_mut(&mut cuda_buf).and_then(|buffer| buffer.with_view_mut(function));
 
     Ok((BufferHandle::new_device(cuda_buf), result))
@@ -281,7 +282,7 @@ impl CudaBufferExt for BufferHandle {
     fn cuda_view<T: DeviceRepr + Send + Sync + 'static>(&self) -> VortexResult<CudaView<'_, T>> {
         let device_buffer = self
             .as_device_opt()
-            .ok_or_else(|| vortex_err!("Buffer is not on device"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "Buffer is not on device"))?;
 
         let cuda_buf = device_buffer
             .as_any()
@@ -296,7 +297,7 @@ impl CudaBufferExt for BufferHandle {
     fn cuda_device_ptr(&self) -> VortexResult<sys::CUdeviceptr> {
         let ptr = self
             .as_device_opt()
-            .ok_or_else(|| vortex_err!("Buffer is not on device"))?
+            .ok_or_else(|| vortex_err!(InvalidArgument: "Buffer is not on device"))?
             .as_any()
             .downcast_ref::<CudaDeviceBuffer>()
             .ok_or_else(|| vortex_err!(InvalidArgument: "expected CudaDeviceBuffer"))?
@@ -308,7 +309,7 @@ impl CudaBufferExt for BufferHandle {
     fn has_zeroed_tail_padding(&self, logical_len: usize, padded_len: usize) -> VortexResult<bool> {
         let device_buffer = self
             .as_device_opt()
-            .ok_or_else(|| vortex_err!("Buffer is not on device"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "Buffer is not on device"))?;
 
         let cuda_buf = device_buffer
             .as_any()
@@ -426,7 +427,7 @@ impl DeviceBuffer for CudaDeviceBuffer {
         stream
             .context()
             .bind_to_thread()
-            .map_err(|e| vortex_err!("Failed to bind CUDA context: {}", e))?;
+            .map_err(|e| vortex_err!(Io: "Failed to bind CUDA context: {}", e))?;
 
         // SAFETY: We pass a valid pointer to a buffer with sufficient capacity.
         // `cuMemcpyDtoHAsync_v2` fully initializes the memory.
@@ -438,7 +439,7 @@ impl DeviceBuffer for CudaDeviceBuffer {
                 stream.cu_stream(),
             )
             .result()
-            .map_err(|e| vortex_err!("Failed to schedule async copy to host: {}", e))?;
+            .map_err(|e| vortex_err!(Io: "Failed to schedule async copy to host: {}", e))?;
         }
         drop(record_read);
 
@@ -554,7 +555,7 @@ mod tests {
     #[crate::test]
     async fn copy_to_host_waits_for_write_on_another_stream() -> VortexResult<()> {
         let context = CudaContext::new(0)
-            .map_err(|err| vortex_err!("failed to create CUDA context: {err}"))?;
+            .map_err(|err| vortex_err!(Io: "failed to create CUDA context: {err}"))?;
         let cuda_session = CudaSession::with_stream_pool_capacity(context, 2);
         let session = vortex::array::array_session().with_some(cuda_session);
         let allocation_ctx = CudaSession::create_execution_ctx(&session)?;
@@ -574,7 +575,7 @@ mod tests {
             })
         })?;
         let Some(launch) = launch else {
-            vortex_bail!("fresh CUDA allocation was unexpectedly shared");
+            vortex_bail!(AssertionFailed: "fresh CUDA allocation was unexpectedly shared");
         };
         launch?;
 

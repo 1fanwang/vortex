@@ -121,7 +121,7 @@ impl FilterExpr {
                 histogram
                     .read()
                     .quantile(self.selectivity_quantile)
-                    .map_err(|e| vortex_err!("{e}")) // Only errors when the quantile is out of range
+                    .map_err(|e| vortex_err!(InvalidArgument: "{e}")) // Only errors when the quantile is out of range
                     .vortex_expect("quantile out of range")
             })
             .collect::<Option<Vec<_>>>()

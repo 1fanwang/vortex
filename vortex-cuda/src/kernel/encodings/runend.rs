@@ -59,7 +59,7 @@ impl CudaExecute for RunEndExecutor {
             .ok_or_else(|| vortex_err!(InvalidArgument: "Expected RunEndArray"))?;
 
         if !array.dtype().is_primitive() {
-            vortex_bail!("RunEndExecutor only supports primitive types")
+            vortex_bail!(NotImplemented: "RunEndExecutor only supports primitive types")
         }
 
         let offset = array.offset();

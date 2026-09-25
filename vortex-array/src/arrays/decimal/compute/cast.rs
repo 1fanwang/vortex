@@ -450,7 +450,7 @@ pub fn upcast_decimal_values(
     // Only allow upcasting (widening)
     if to_values_type < from_values_type {
         vortex_bail!(
-            "Cannot downcast decimal values from {:?} to {:?}. Only upcasting is supported.",
+            InvalidArgument: "Cannot downcast decimal values from {:?} to {:?}. Only upcasting is supported.",
             from_values_type,
             to_values_type
         );

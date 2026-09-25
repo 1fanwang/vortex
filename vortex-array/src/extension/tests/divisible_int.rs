@@ -68,7 +68,7 @@ impl ExtVTable for DivisibleInt {
         let value = storage_value.as_primitive().cast::<u64>()?;
         let metadata = ext_dtype.metadata();
         if value % metadata.0 != 0 {
-            vortex_bail!("{} is not divisible by {}", value, metadata.0);
+            vortex_bail!(InvalidArgument: "{} is not divisible by {}", value, metadata.0);
         }
         Ok(value)
     }

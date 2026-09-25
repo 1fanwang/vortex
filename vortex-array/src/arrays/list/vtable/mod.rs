@@ -210,7 +210,7 @@ impl VTable for List {
         match match_each_list_builder!(&mut *builder, |b| b.append_list_array(array, ctx)) {
             Some(result) => result,
             None => vortex_bail!(
-                "cannot append a List array of dtype {} to a {} builder",
+                MismatchedTypes: "cannot append a List array of dtype {} to a {} builder",
                 array.dtype(),
                 builder.dtype()
             ),

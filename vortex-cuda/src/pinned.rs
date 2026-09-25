@@ -60,11 +60,11 @@ impl PinnedByteBuffer {
         );
         let event = ctx
             .new_event(Some(CUevent_flags::CU_EVENT_BLOCKING_SYNC))
-            .map_err(|e| vortex_err!("failed to create pinned host buffer event: {e}"))?;
+            .map_err(|e| vortex_err!(Io: "failed to create pinned host buffer event: {e}"))?;
         // Keep file-I/O staging cacheable: cudarc's allocator uses write-combined memory,
         // which makes CPU reads expensive.
         let ptr = unsafe { result::malloc_host(capacity, 0) }
-            .map_err(|e| vortex_err!("failed to allocate pinned host buffer: {e}"))?
+            .map_err(|e| vortex_err!(Io: "failed to allocate pinned host buffer: {e}"))?
             .cast::<u8>();
         vortex_ensure!(!ptr.is_null(), "CUDA returned a null pinned host buffer");
         Ok(Self {
@@ -79,7 +79,7 @@ impl PinnedByteBuffer {
     pub(crate) fn as_mut_slice(&mut self) -> VortexResult<&mut [u8]> {
         self.event
             .synchronize()
-            .map_err(|e| vortex_err!("failed to access pinned host buffer: {e}"))?;
+            .map_err(|e| vortex_err!(Io: "failed to access pinned host buffer: {e}"))?;
         Ok(unsafe { std::slice::from_raw_parts_mut(self.ptr, self.logical_len) })
     }
 
@@ -242,7 +242,7 @@ impl PinnedByteBufferPool {
         }
         self.ctx
             .bind_to_thread()
-            .map_err(|e| vortex_err!("Failed to bind CUDA context: {e}"))?;
+            .map_err(|e| vortex_err!(Io: "Failed to bind CUDA context: {e}"))?;
         let mut idx = 0usize;
         while idx < inflight.len() {
             if !inflight[idx].event.is_complete() {
@@ -371,11 +371,11 @@ impl PooledPinnedBuffer {
         // The page-locked source and its completion event keep this asynchronous.
         stream
             .memcpy_htod(&source, destination)
-            .map_err(|e| vortex_err!("Failed to schedule H2D copy: {}", e))?;
+            .map_err(|e| vortex_err!(Io: "Failed to schedule H2D copy: {}", e))?;
 
         let event = stream
             .record_event(None)
-            .map_err(|e| vortex_err!("Failed to record CUDA event: {}", e))?;
+            .map_err(|e| vortex_err!(Io: "Failed to record CUDA event: {}", e))?;
 
         // On earlier errors, Drop returns the buffer to the pool, but the HostSlice event still
         // gates access and freeing. On success, the inflight queue retains it until completion.
@@ -409,11 +409,12 @@ mod tests {
     use super::*;
 
     fn setup() -> VortexResult<(Arc<PinnedByteBufferPool>, VortexCudaStream)> {
-        let ctx = CudaContext::new(0).map_err(|e| vortex_err!("Failed to initialize CUDA: {e}"))?;
+        let ctx =
+            CudaContext::new(0).map_err(|e| vortex_err!(Io: "Failed to initialize CUDA: {e}"))?;
         let pool = Arc::new(PinnedByteBufferPool::new(Arc::clone(&ctx)));
         let stream = VortexCudaStream(
             ctx.new_stream()
-                .map_err(|e| vortex_err!("Failed to create stream: {e}"))?,
+                .map_err(|e| vortex_err!(Io: "Failed to create stream: {e}"))?,
         );
         Ok((pool, stream))
     }
@@ -470,7 +471,7 @@ mod tests {
         let mut expected = vec![0xA5u8; 12];
         let mut destination = stream
             .clone_htod(&expected)
-            .map_err(|e| vortex_err!("Failed to initialize destination: {e}"))?;
+            .map_err(|e| vortex_err!(Io: "Failed to initialize destination: {e}"))?;
         let result = pinned.copy_to_device(
             &stream,
             start..end,
@@ -514,7 +515,7 @@ mod tests {
         }
         stream
             .synchronize()
-            .map_err(|e| vortex_err!("Failed to sync stream: {e}"))?;
+            .map_err(|e| vortex_err!(Io: "Failed to sync stream: {e}"))?;
 
         let mut reused = pool.get(1024)?;
         assert_eq!(reused.as_mut_slice().as_ptr(), allocation);

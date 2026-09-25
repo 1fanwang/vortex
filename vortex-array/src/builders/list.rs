@@ -159,7 +159,7 @@ impl<O: OffsetBuilderPType> ListBuilder<O> {
         match value.elements() {
             None => {
                 if self.dtype.nullability() == NonNullable {
-                    vortex_bail!("Cannot append null value to non-nullable list");
+                    vortex_bail!(InvalidArgument: "Cannot append null value to non-nullable list");
                 }
                 self.append_null();
             }

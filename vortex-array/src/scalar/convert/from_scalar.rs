@@ -130,7 +130,9 @@ impl TryFrom<&Scalar> for bool {
                 || vortex_err!(MismatchedTypes: "Expected bool scalar, found {}", value.dtype()),
             )?
             .value()
-            .ok_or_else(|| vortex_err!("Can't extract present value from null scalar"))
+            .ok_or_else(
+                || vortex_err!(InvalidArgument: "Can't extract present value from null scalar"),
+            )
     }
 }
 
@@ -171,14 +173,13 @@ impl<'a> TryFrom<&'a Scalar> for ByteBuffer {
     type Error = VortexError;
 
     fn try_from(scalar: &'a Scalar) -> VortexResult<Self> {
-        let binary = scalar
-            .as_binary_opt()
-            .ok_or_else(|| vortex_err!("Cannot extract buffer from non-buffer scalar"))?;
+        let binary = scalar.as_binary_opt().ok_or_else(
+            || vortex_err!(MismatchedTypes: "Cannot extract buffer from non-buffer scalar"),
+        )?;
 
-        binary
-            .value()
-            .cloned()
-            .ok_or_else(|| vortex_err!("Cannot extract present value from null scalar"))
+        binary.value().cloned().ok_or_else(
+            || vortex_err!(InvalidArgument: "Cannot extract present value from null scalar"),
+        )
     }
 }
 
@@ -188,7 +189,9 @@ impl<'a> TryFrom<&'a Scalar> for Option<ByteBuffer> {
     fn try_from(scalar: &'a Scalar) -> VortexResult<Self> {
         Ok(scalar
             .as_binary_opt()
-            .ok_or_else(|| vortex_err!("Cannot extract buffer from non-buffer scalar"))?
+            .ok_or_else(
+                || vortex_err!(MismatchedTypes: "Cannot extract buffer from non-buffer scalar"),
+            )?
             .value()
             .cloned())
     }
@@ -234,8 +237,9 @@ impl<'a> TryFrom<&'a Scalar> for BufferString {
     type Error = VortexError;
 
     fn try_from(scalar: &'a Scalar) -> VortexResult<Self> {
-        <Option<BufferString>>::try_from(scalar)?
-            .ok_or_else(|| vortex_err!("Can't extract present value from null scalar"))
+        <Option<BufferString>>::try_from(scalar)?.ok_or_else(
+            || vortex_err!(InvalidArgument: "Can't extract present value from null scalar"),
+        )
     }
 }
 

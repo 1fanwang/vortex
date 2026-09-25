@@ -376,7 +376,7 @@ impl ArrayRef {
                 array_sum
                     .as_primitive()
                     .as_::<usize>()
-                    .ok_or_else(|| vortex_err!("sum of validity array is null"))?
+                    .ok_or_else(|| vortex_err!(AssertionFailed: "sum of validity array is null"))?
             }
         };
         vortex_ensure!(count <= len, "Valid count exceeds array length");

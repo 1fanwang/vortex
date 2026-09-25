@@ -302,7 +302,7 @@ impl<A: 'static + Send> ScanBuilder<A> {
         let dtype = self.dtype()?;
 
         if self.filter.is_some() && self.limit.is_some() {
-            vortex_bail!("Vortex doesn't support scans with both a filter and a limit")
+            vortex_bail!(NotImplemented: "Vortex doesn't support scans with both a filter and a limit")
         }
 
         // Spin up the root layout reader, and wrap it in a FilterLayoutReader to perform

@@ -53,10 +53,9 @@ impl PlanChildren {
             return Ok(Some(child.clone()));
         }
 
-        let initializer = self
-            .initializer
-            .as_ref()
-            .ok_or_else(|| vortex_err!("Plan child {index} was not initialized"))?;
+        let initializer = self.initializer.as_ref().ok_or_else(
+            || vortex_err!(AssertionFailed: "Plan child {index} was not initialized"),
+        )?;
         Ok(Some(cell.get_or_try_init(|| initializer(index))?.clone()))
     }
 

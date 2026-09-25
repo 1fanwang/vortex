@@ -498,7 +498,7 @@ impl<V: VTable> DynArrayData for ArrayData<V> {
         ctx: &mut ExecutionCtx,
     ) -> VortexResult<ExecutionResult> {
         let typed = Array::<V>::try_from_array_ref(this)
-            .map_err(|_| vortex_err!("Failed to downcast array for execute"))
+            .map_err(|_| vortex_err!(AssertionFailed: "Failed to downcast array for execute"))
             .vortex_expect("Failed to downcast array for execute");
         V::execute(typed, ctx)
     }

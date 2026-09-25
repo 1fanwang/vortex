@@ -234,7 +234,7 @@ impl VTable for ListView {
         match match_each_list_builder!(&mut *builder, |b| b.append_listview_array(array, ctx)) {
             Some(result) => result,
             None => vortex_bail!(
-                "cannot append a ListView array of dtype {} to a {} builder",
+                MismatchedTypes: "cannot append a ListView array of dtype {} to a {} builder",
                 array.dtype(),
                 builder.dtype()
             ),

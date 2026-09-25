@@ -492,7 +492,7 @@ impl Array<Struct> {
     {
         let mut it = chunks.into_iter();
         let Some(first) = it.next() else {
-            vortex_bail!("cannot concat empty iterator of arrays");
+            vortex_bail!(InvalidArgument: "cannot concat empty iterator of arrays");
         };
         let first_dtype = first.borrow().dtype().clone();
         let struct_fields = first_dtype.as_struct_fields().clone();
@@ -504,7 +504,7 @@ impl Array<Struct> {
                 let chunk = chunk.borrow();
                 if &first_dtype != chunk.dtype() {
                     vortex_bail!(
-                        "cannot concatenate struct arrays with differing dtypes: {}, {}",
+                        MismatchedTypes: "cannot concatenate struct arrays with differing dtypes: {}, {}",
                         first_dtype,
                         chunk.dtype(),
                     );

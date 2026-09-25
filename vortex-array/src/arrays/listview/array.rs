@@ -740,7 +740,7 @@ fn validate_zctl(
     if let Some(is_sorted) = offsets_primitive.statistics().compute_is_sorted(&mut ctx) {
         vortex_ensure!(is_sorted, "offsets must be sorted");
     } else {
-        vortex_bail!("offsets must report is_sorted statistic");
+        vortex_bail!(InvalidArgument: "offsets must report is_sorted statistic");
     }
 
     // Validate that offset[i] + size[i] <= offset[i+1] for all items

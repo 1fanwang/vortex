@@ -135,14 +135,13 @@ pub(crate) fn build_polygon_storage(
         for ring in exterior.into_iter().chain(polygon.interiors()) {
             xs.extend(ring.0.iter().map(|coord| coord.x));
             ys.extend(ring.0.iter().map(|coord| coord.y));
-            ring_offsets.push(
-                u64::try_from(xs.len())
-                    .map_err(|_| vortex_err!("spatial: polygon coordinate count exceeds u64"))?,
-            );
+            ring_offsets.push(u64::try_from(xs.len()).map_err(
+                |_| vortex_err!(Overflow: "spatial: polygon coordinate count exceeds u64"),
+            )?);
         }
         polygon_offsets.push(
             u64::try_from(ring_offsets.len() - 1)
-                .map_err(|_| vortex_err!("spatial: polygon ring count exceeds u64"))?,
+                .map_err(|_| vortex_err!(Overflow: "spatial: polygon ring count exceeds u64"))?,
         );
     }
 
@@ -185,7 +184,7 @@ pub(crate) fn polygon_geometries(
                 .ok_or_else(
                     || vortex_err!(InvalidArgument: "spatial: null geometry is not supported"),
                 )?
-                .map_err(|e| vortex_err!("spatial: geometry access failed: {e}"))?
+                .map_err(|e| vortex_err!(Serde: "spatial: geometry access failed: {e}"))?
                 .to_geometry())
         })
         .collect()
@@ -200,7 +199,7 @@ fn polygon_array(storage: &ArrayRef, ctx: &mut ExecutionCtx) -> VortexResult<Pol
     let session = ctx.session().clone();
     let arrow = session.arrow().execute_arrow(storage.clone(), None, ctx)?;
     PolygonArray::try_from((arrow.as_ref(), polygon_type))
-        .map_err(|e| vortex_err!("failed to construct PolygonArray: {e}"))
+        .map_err(|e| vortex_err!(InvalidArgument: "failed to construct PolygonArray: {e}"))
 }
 
 /// A validated `Polygon` array (`try_from` checks the extension type).
@@ -290,7 +289,7 @@ impl ArrowExportVTable for Polygon {
 
         // Round-trip through GeoArrow's polygon array; `into_arrow` is concrete, so wrap in `Arc`.
         let polygons = PolygonArray::try_from((arrow_storage.as_ref(), polygon_meta))
-            .map_err(|e| vortex_err!("failed to construct PolygonArray: {e}"))?;
+            .map_err(|e| vortex_err!(InvalidArgument: "failed to construct PolygonArray: {e}"))?;
 
         Ok(ArrowExport::Exported(Arc::new(polygons.into_arrow())))
     }

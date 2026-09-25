@@ -156,7 +156,7 @@ impl NativeWriter {
         let mut sender = self.sender.clone();
         RUNTIME
             .block_on(async move { sender.send(Ok(vortex_batch)).await })
-            .map_err(|e| vortex_err!("failed to send batch: {e}"))
+            .map_err(|e| vortex_err!(Io: "failed to send batch: {e}"))
     }
 
     fn bytes_written(&self) -> u64 {
@@ -172,7 +172,7 @@ impl NativeWriter {
         let handle = self
             .handle
             .take()
-            .ok_or_else(|| vortex_err!("writer already closed"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "writer already closed"))?;
         RUNTIME.block_on(handle)
     }
 }
@@ -255,7 +255,7 @@ fn scalar_to_java<'local>(
         ScalarValue::Decimal(value) => {
             let DType::Decimal(decimal_dtype, _) = scalar.dtype() else {
                 return Err(JNIError::Vortex(vortex_err!(
-                    "decimal statistic has non-decimal dtype {}",
+                    MismatchedTypes: "decimal statistic has non-decimal dtype {}",
                     scalar.dtype()
                 )));
             };
@@ -273,7 +273,7 @@ fn scalar_to_java<'local>(
         ScalarValue::Binary(value) => Ok(env.byte_array_from_slice(value.as_slice())?.into()),
         ScalarValue::Tuple(_) | ScalarValue::Union(_) | ScalarValue::Variant(_) => {
             Err(JNIError::Vortex(vortex_err!(
-                "cannot return nested scalar write statistic with dtype {} to Java",
+                NotImplemented: "cannot return nested scalar write statistic with dtype {} to Java",
                 scalar.dtype()
             )))
         }
@@ -511,8 +511,12 @@ pub extern "system" fn Java_dev_vortex_jni_NativeWriter_writeBatch(
             unsafe { FFI_ArrowArray::from_raw(arrow_array_addr as *mut FFI_ArrowArray) };
         let ffi_schema = unsafe { &*(arrow_schema_addr as *const FFI_ArrowSchema) };
 
-        let array_data = unsafe { arrow_array::ffi::from_ffi(ffi_array, ffi_schema) }
-            .map_err(|e| JNIError::Vortex(vortex_err!("failed to import Arrow FFI data: {e}")))?;
+        let array_data =
+            unsafe { arrow_array::ffi::from_ffi(ffi_array, ffi_schema) }.map_err(|e| {
+                JNIError::Vortex(
+                    vortex_err!(InvalidArgument: "failed to import Arrow FFI data: {e}"),
+                )
+            })?;
 
         let batch = RecordBatch::from(StructArray::from(array_data));
         writer.write_record_batch(batch)?;

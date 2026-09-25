@@ -84,7 +84,7 @@ pub(crate) fn compute_sizes(
 ) -> VortexResult<SizePassResult> {
     let n_inputs = args.num_inputs();
     if n_inputs == 0 {
-        vortex_bail!("at least one input column is required");
+        vortex_bail!(InvalidArgument: "at least one input column is required");
     }
     if options.len() != n_inputs {
         vortex_bail!(

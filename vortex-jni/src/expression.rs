@@ -194,7 +194,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_pack(
             let name: FieldName = s.try_to_string(env)?.into();
 
             let expr_ptr = *expressions.get(idx).ok_or_else(|| -> JNIError {
-                vortex_err!("missing pack expression child").into()
+                vortex_err!(NotFound: "missing pack expression child").into()
             })?;
             let expr = unsafe { expr_ref(expr_ptr) }.clone();
 
@@ -233,7 +233,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_and(
         let exprs = collect_operands(env, &operands)?;
         and_collect(exprs)
             .map(into_raw)
-            .ok_or_else(|| vortex_err!("empty AND expression").into())
+            .ok_or_else(|| vortex_err!(InvalidArgument: "empty AND expression").into())
     })
 }
 
@@ -247,7 +247,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_or(
         let exprs = collect_operands(env, &operands)?;
         or_collect(exprs)
             .map(into_raw)
-            .ok_or_else(|| vortex_err!("empty OR expression").into())
+            .ok_or_else(|| vortex_err!(InvalidArgument: "empty OR expression").into())
     })
 }
 

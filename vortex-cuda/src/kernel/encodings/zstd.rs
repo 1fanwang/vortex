@@ -109,7 +109,7 @@ pub async fn zstd_kernel_prepare(
     // Temporary internal buffer size for nvCOMP ZSTD decompression.
     let nvcomp_temp_buffer_size =
         nvcomp_zstd::get_decompress_temp_size(num_frames, output_size_max, output_size_total)
-            .map_err(|e| vortex_err!("nvcomp get_decompress_temp_size failed: {}", e))?;
+            .map_err(|e| vortex_err!(Io: "nvcomp get_decompress_temp_size failed: {}", e))?;
 
     // Async copy frames to the device.
     let frame_futs = frames
@@ -295,7 +295,7 @@ async fn decode_zstd(array: ZstdArray, ctx: &mut CudaExecutionCtx) -> VortexResu
                 device_statuses_ptr as _,
                 stream.cu_stream().cast(),
             )
-            .map_err(|e| vortex_err!("nvcomp decompress_async failed: {}", e))
+            .map_err(|e| vortex_err!(Io: "nvcomp decompress_async failed: {}", e))
         }
     })?;
     drop(frame_ptr_records);
@@ -345,7 +345,7 @@ async fn decode_zstd(array: ZstdArray, ctx: &mut CudaExecutionCtx) -> VortexResu
             }))
         }
         _ => {
-            vortex_bail!("CUDA ZSTD decompression does not yet support arrays with nulls")
+            vortex_bail!(NotImplemented: "CUDA ZSTD decompression does not yet support arrays with nulls")
         }
     }
 }

@@ -1038,7 +1038,7 @@ fn test_decimal_scalar_div_reports_unrepresentable_intermediate() -> VortexResul
     let pow10 = |exp: u32| {
         i256::from_i128(10)
             .checked_pow(exp)
-            .ok_or_else(|| vortex_err!("10^{exp} is representable as i256"))
+            .ok_or_else(|| vortex_err!(AssertionFailed: "10^{exp} is representable as i256"))
     };
     let lhs = DecimalValue::I256(pow10(75)?);
     let rhs = DecimalValue::I256(pow10(70)?);

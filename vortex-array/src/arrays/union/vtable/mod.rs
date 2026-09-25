@@ -65,7 +65,7 @@ impl VTable for Union {
         let type_ids = slots
             .get(UnionSlots::TYPE_IDS)
             .and_then(Option::as_ref)
-            .ok_or_else(|| vortex_err!("UnionArray is missing its type_ids slot"))?;
+            .ok_or_else(|| vortex_err!(NotFound: "UnionArray is missing its type_ids slot"))?;
         let variant_arrays = slots
             .get(UnionSlots::CHILDREN_OFFSET..)
             .unwrap_or_default()

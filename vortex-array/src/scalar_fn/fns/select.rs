@@ -79,7 +79,7 @@ impl ScalarFnVTable for Select {
 
         let select_opts = prost_metadata
             .opts
-            .ok_or_else(|| vortex_err!("SelectOpts missing opts field"))?;
+            .ok_or_else(|| vortex_err!(Serde: "SelectOpts missing opts field"))?;
 
         let field_selection = match select_opts {
             Opts::Include(field_names) => FieldSelection::Include(FieldNames::from_iter(
@@ -193,7 +193,7 @@ impl ScalarFnVTable for Select {
 
         let struct_fields = struct_dtype.as_struct_fields_opt().ok_or_else(|| {
             vortex_err!(
-                "Select child must return a struct dtype, however it was a {}",
+                MismatchedTypes: "Select child must return a struct dtype, however it was a {}",
                 struct_dtype
             )
         })?;

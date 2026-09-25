@@ -163,7 +163,7 @@ impl VTable for Map {
         match match_each_map_builder!(&mut *builder, |b| b.append_map_array(array, ctx)) {
             Some(result) => result,
             None => vortex_bail!(
-                "cannot append a Map array of dtype {} to a {} builder",
+                MismatchedTypes: "cannot append a Map array of dtype {} to a {} builder",
                 array.dtype(),
                 builder.dtype()
             ),

@@ -413,13 +413,13 @@ impl Patches {
     #[inline]
     pub fn indices_ptype(&self) -> VortexResult<PType> {
         PType::try_from(self.indices.dtype())
-            .map_err(|_| vortex_err!("indices dtype is not primitive"))
+            .map_err(|_| vortex_err!(MismatchedTypes: "indices dtype is not primitive"))
     }
 
     pub fn to_metadata(&self, len: usize, dtype: &DType) -> VortexResult<PatchesMetadata> {
         if self.indices.len() > len {
             vortex_bail!(
-                "Patch indices {} are longer than the array length {}",
+                InvalidArgument: "Patch indices {} are longer than the array length {}",
                 self.indices.len(),
                 len
             );
@@ -492,11 +492,11 @@ impl Patches {
     /// Returns an error if `chunk_offsets` or `offset_within_chunk` are not set.
     fn search_index_chunked(&self, index: usize) -> VortexResult<SearchResult> {
         let Some(chunk_offsets) = &self.chunk_offsets else {
-            vortex_bail!("chunk_offsets is required to be set")
+            vortex_bail!(InvalidArgument: "chunk_offsets is required to be set")
         };
 
         let Some(offset_within_chunk) = self.offset_within_chunk else {
-            vortex_bail!("offset_within_chunk is required to be set")
+            vortex_bail!(InvalidArgument: "offset_within_chunk is required to be set")
         };
 
         if index >= self.array_len() {
@@ -552,7 +552,7 @@ impl Patches {
         usize: TryFrom<O>,
     {
         let Some(offset_within_chunk) = self.offset_within_chunk else {
-            vortex_bail!("offset_within_chunk is required to be set")
+            vortex_bail!(InvalidArgument: "offset_within_chunk is required to be set")
         };
 
         let chunk_idx = {

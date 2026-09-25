@@ -212,7 +212,9 @@ impl<O: OffsetBuilderPType> VarBinBuilder<O> {
                 Some(value) => self.append_n_values(value, n)?,
                 None => self.push_nulls(n),
             },
-            dtype => vortex_bail!("VarBinBuilder cannot append scalar of dtype {dtype}"),
+            dtype => {
+                vortex_bail!(MismatchedTypes: "VarBinBuilder cannot append scalar of dtype {dtype}")
+            }
         }
         Ok(())
     }
@@ -500,7 +502,7 @@ impl<O: OffsetBuilderPType> VarBinBuilder<O> {
         let mut previous = 0usize;
         for slot in spare.iter_mut() {
             let Some(end) = end_offsets.next() else {
-                vortex_bail!("End offset count is less than the validity length {count}");
+                vortex_bail!(InvalidArgument: "End offset count is less than the validity length {count}");
             };
             let end = end.as_();
             vortex_ensure!(

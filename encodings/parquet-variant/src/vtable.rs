@@ -108,7 +108,7 @@ impl VTable for ParquetVariant {
         );
         let metadata = slots[ParquetVariantSlots::METADATA]
             .as_ref()
-            .ok_or_else(|| vortex_err!("ParquetVariantArray metadata slot"))?;
+            .ok_or_else(|| vortex_err!(NotFound: "ParquetVariantArray metadata slot"))?;
         let value = slots[ParquetVariantSlots::VALUE].as_ref();
         let typed_value = slots[ParquetVariantSlots::TYPED_VALUE].as_ref();
 
@@ -255,8 +255,9 @@ impl VTable for ParquetVariant {
 
         let typed_value = if has_typed_value {
             // typed_value can be any type — primitive, list, struct, etc.
-            let dtype = typed_value_dtype
-                .ok_or_else(|| vortex_err!("typed_value_dtype missing for typed_value child"))?;
+            let dtype = typed_value_dtype.ok_or_else(
+                || vortex_err!(NotFound: "typed_value_dtype missing for typed_value child"),
+            )?;
             let tv = children.get(child_idx, &dtype, len)?;
             Some(tv)
         } else {
@@ -407,12 +408,10 @@ mod tests {
         vortex_file::register_default_encodings(&session);
         session.arrays().register(ParquetVariant);
         let editions = session.editions();
-        editions
-            .declare_edition(Edition {
-                id: TEST_EDITION,
-                min_library_version: None,
-            })
-            .map_err(|error| vortex_err!("{error}"))?;
+        editions.declare_edition(Edition {
+            id: TEST_EDITION,
+            min_library_version: None,
+        })?;
         let component_ids = [
             (
                 ComponentKind::Array,
@@ -438,9 +437,7 @@ mod tests {
         ];
         for (kind, ids) in component_ids {
             for id in ids {
-                editions
-                    .declare_inclusion(EditionInclusion::new(kind, &id, TEST_EDITION))
-                    .map_err(|error| vortex_err!("{error}"))?;
+                editions.declare_inclusion(EditionInclusion::new(kind, &id, TEST_EDITION))?;
             }
         }
         for id in [
@@ -451,17 +448,13 @@ mod tests {
             "vortex.nan_count",
             "vortex.null_count",
         ] {
-            editions
-                .declare_inclusion(EditionInclusion::new(
-                    ComponentKind::Aggregate,
-                    id,
-                    TEST_EDITION,
-                ))
-                .map_err(|error| vortex_err!("{error}"))?;
+            editions.declare_inclusion(EditionInclusion::new(
+                ComponentKind::Aggregate,
+                id,
+                TEST_EDITION,
+            ))?;
         }
-        session
-            .enable_edition(TEST_EDITION)
-            .map_err(|error| vortex_err!("{error}"))?;
+        session.enable_edition(TEST_EDITION)?;
         Ok(session)
     }
 

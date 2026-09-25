@@ -31,7 +31,7 @@ use vortex_error::vortex_err;
 use vortex_session::VortexSession;
 
 fn runtime() -> VortexResult<Runtime> {
-    Runtime::new().map_err(|e| vortex_err!("failed to create tokio runtime: {e}"))
+    Runtime::new().map_err(|e| vortex_err!(Io: "failed to create tokio runtime: {e}"))
 }
 
 /// Compute all statistics on every node in the array tree.
@@ -74,7 +74,7 @@ pub fn write_compressed(
         let session = VortexSession::default().with_tokio();
         let mut file = tokio::fs::File::create(path)
             .await
-            .map_err(|e| vortex_err!("failed to create {}: {e}", path.display()))?;
+            .map_err(|e| vortex_err!(Io: "failed to create {}: {e}", path.display()))?;
         let _summary = session
             .write_options()
             .disable_editions()

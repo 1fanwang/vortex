@@ -143,7 +143,7 @@ fn validate_children(dtype: &DType, row_count: u64, children: &PlanChildren) -> 
         .ok_or_else(|| vortex_err!(AssertionFailed: "ListPack elements child is absent"))?;
     if elements.dtype() != elements_dtype.as_ref() {
         vortex_bail!(
-            "ListPack elements child has dtype {} but the list element dtype is {}",
+            MismatchedTypes: "ListPack elements child has dtype {} but the list element dtype is {}",
             elements.dtype(),
             elements_dtype
         );
@@ -154,7 +154,7 @@ fn validate_children(dtype: &DType, row_count: u64, children: &PlanChildren) -> 
         .ok_or_else(|| vortex_err!(AssertionFailed: "ListPack offsets child is absent"))?;
     if !offsets.dtype().is_int() || offsets.dtype().is_nullable() {
         vortex_bail!(
-            "ListPack offsets child must have a non-nullable integer dtype, got {}",
+            MismatchedTypes: "ListPack offsets child must have a non-nullable integer dtype, got {}",
             offsets.dtype()
         );
     }
@@ -163,7 +163,7 @@ fn validate_children(dtype: &DType, row_count: u64, children: &PlanChildren) -> 
         .ok_or_else(|| vortex_err!(Overflow: "ListPack offsets row count overflow"))?;
     if offsets.row_count() != offsets_row_count {
         vortex_bail!(
-            "ListPack offsets child has {} rows but must have {offsets_row_count}",
+            InvalidArgument: "ListPack offsets child has {} rows but must have {offsets_row_count}",
             offsets.row_count()
         );
     }
@@ -175,13 +175,13 @@ fn validate_children(dtype: &DType, row_count: u64, children: &PlanChildren) -> 
         let validity_dtype = DType::Bool(Nullability::NonNullable);
         if validity.dtype() != &validity_dtype {
             vortex_bail!(
-                "ListPack validity child has dtype {} but must have dtype {validity_dtype}",
+                MismatchedTypes: "ListPack validity child has dtype {} but must have dtype {validity_dtype}",
                 validity.dtype()
             );
         }
         if validity.row_count() != row_count {
             vortex_bail!(
-                "ListPack validity child has {} rows but the plan has {row_count}",
+                InvalidArgument: "ListPack validity child has {} rows but the plan has {row_count}",
                 validity.row_count()
             );
         }

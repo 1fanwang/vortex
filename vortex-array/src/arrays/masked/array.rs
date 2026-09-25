@@ -56,7 +56,7 @@ impl MaskedData {
         validity: Validity,
     ) -> VortexResult<Self> {
         if matches!(validity, Validity::NonNullable) {
-            vortex_bail!("MaskedArray must have nullable validity, got {validity:?}")
+            vortex_bail!(InvalidArgument: "MaskedArray must have nullable validity, got {validity:?}")
         }
 
         if !child_all_valid {

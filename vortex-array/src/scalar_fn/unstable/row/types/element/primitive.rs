@@ -55,14 +55,14 @@ unsafe impl<T: NativePType> InputElement for T {
     fn decode_constant(array: ArrayRef, _ctx: &mut ExecutionCtx) -> VortexResult<Self::Constant> {
         let Some(constant) = array.as_opt::<Constant>() else {
             vortex_bail!(
-                "a primitive batch constant must use the Constant encoding, got {}",
+                MismatchedTypes: "a primitive batch constant must use the Constant encoding, got {}",
                 array.encoding_id()
             );
         };
         let scalar = constant.scalar();
         let Some(ScalarValue::Primitive(value)) = scalar.value() else {
             vortex_bail!(
-                "a primitive batch constant must contain a non-null {} value, got {scalar}",
+                InvalidArgument: "a primitive batch constant must contain a non-null {} value, got {scalar}",
                 T::PTYPE
             );
         };

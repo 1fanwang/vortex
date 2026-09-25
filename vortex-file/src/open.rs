@@ -841,7 +841,7 @@ mod tests {
         let initial_read = ByteBuffer::zeroed(16);
         let Err(err) = VortexOpenOptions::collect_initial_segments(0, &initial_read, &bad_footer)
         else {
-            vortex_bail!("collecting an out-of-bounds segment must return an error");
+            vortex_bail!(AssertionFailed: "collecting an out-of-bounds segment must return an error");
         };
         assert!(
             err.to_string().contains("out of bounds"),

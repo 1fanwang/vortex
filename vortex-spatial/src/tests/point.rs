@@ -92,7 +92,7 @@ fn exports_to_struct() -> VortexResult<()> {
     let ordinates = |name: &str| -> VortexResult<Vec<f64>> {
         Ok(points
             .column_by_name(name)
-            .ok_or_else(|| vortex_err!("missing {name} column"))?
+            .ok_or_else(|| vortex_err!(NotFound: "missing {name} column"))?
             .as_primitive::<Float64Type>()
             .values()
             .to_vec())

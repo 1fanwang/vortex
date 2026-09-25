@@ -578,7 +578,7 @@ impl SparseData {
             && !array.dtype().eq_ignore_nullability(fill_value.dtype())
         {
             vortex_bail!(
-                "Array and fill value types must have the same base type. got {} and {}",
+                MismatchedTypes: "Array and fill value types must have the same base type. got {} and {}",
                 array.dtype(),
                 fill_value.dtype()
             )

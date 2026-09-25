@@ -129,7 +129,7 @@ pub(crate) fn multilinestring_geometries(
                 .ok_or_else(
                     || vortex_err!(InvalidArgument: "spatial: null geometry is not supported"),
                 )?
-                .map_err(|e| vortex_err!("spatial: geometry access failed: {e}"))?
+                .map_err(|e| vortex_err!(Serde: "spatial: geometry access failed: {e}"))?
                 .to_geometry())
         })
         .collect()
@@ -147,7 +147,7 @@ fn multilinestring_array(
     let session = ctx.session().clone();
     let arrow = session.arrow().execute_arrow(storage.clone(), None, ctx)?;
     MultiLineStringArray::try_from((arrow.as_ref(), multilinestring_type))
-        .map_err(|e| vortex_err!("failed to construct MultiLineStringArray: {e}"))
+        .map_err(|e| vortex_err!(InvalidArgument: "failed to construct MultiLineStringArray: {e}"))
 }
 
 /// A validated `MultiLineString` array (`try_from` checks the extension type).
@@ -235,9 +235,13 @@ impl ArrowExportVTable for MultiLineString {
             .arrow()
             .execute_arrow(storage, Some(&storage_field), ctx)?;
 
-        let multilinestrings =
-            MultiLineStringArray::try_from((arrow_storage.as_ref(), multilinestring_meta))
-                .map_err(|e| vortex_err!("failed to construct MultiLineStringArray: {e}"))?;
+        let multilinestrings = MultiLineStringArray::try_from((
+            arrow_storage.as_ref(),
+            multilinestring_meta,
+        ))
+        .map_err(
+            |e| vortex_err!(InvalidArgument: "failed to construct MultiLineStringArray: {e}"),
+        )?;
 
         Ok(ArrowExport::Exported(Arc::new(
             multilinestrings.into_arrow(),

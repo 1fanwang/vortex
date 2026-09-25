@@ -394,7 +394,7 @@ macro_rules! int_pvalue {
                 ) {
                     PValue::cast(&value)
                 } else {
-                    vortex_bail!("Cannot read primitive value {:?} as {}", value, PType::$PT)
+                    vortex_bail!(MismatchedTypes: "Cannot read primitive value {:?} as {}", value, PType::$PT)
                 }
             }
         }
@@ -418,10 +418,9 @@ impl TryFrom<PValue> for usize {
     type Error = VortexError;
 
     fn try_from(value: PValue) -> Result<Self, Self::Error> {
-        value
-            .cast::<u64>()?
-            .to_usize()
-            .ok_or_else(|| vortex_err!("Cannot read primitive value {:?} as usize", value))
+        value.cast::<u64>()?.to_usize().ok_or_else(
+            || vortex_err!(Overflow: "Cannot read primitive value {:?} as usize", value),
+        )
     }
 }
 

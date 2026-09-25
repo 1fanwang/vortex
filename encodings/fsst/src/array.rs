@@ -1078,7 +1078,7 @@ mod test {
         let sliced = fsst_array
             .slice(1..3)?
             .try_downcast::<FSST>()
-            .map_err(|_| vortex_err!("slice must return an FSST array"))?;
+            .map_err(|_| vortex_err!(AssertionFailed: "slice must return an FSST array"))?;
         let sliced_compressor_ptr = sliced.compressor() as *const Compressor;
 
         assert_eq!(compressor_ptr, sliced_compressor_ptr);

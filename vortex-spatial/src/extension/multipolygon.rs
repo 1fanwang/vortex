@@ -127,7 +127,7 @@ pub(crate) fn multipolygon_geometries(
                 .ok_or_else(
                     || vortex_err!(InvalidArgument: "spatial: null geometry is not supported"),
                 )?
-                .map_err(|e| vortex_err!("spatial: geometry access failed: {e}"))?
+                .map_err(|e| vortex_err!(Serde: "spatial: geometry access failed: {e}"))?
                 .to_geometry())
         })
         .collect()
@@ -145,7 +145,7 @@ fn multipolygon_array(
     let session = ctx.session().clone();
     let arrow = session.arrow().execute_arrow(storage.clone(), None, ctx)?;
     MultiPolygonArray::try_from((arrow.as_ref(), multipolygon_type))
-        .map_err(|e| vortex_err!("failed to construct MultiPolygonArray: {e}"))
+        .map_err(|e| vortex_err!(InvalidArgument: "failed to construct MultiPolygonArray: {e}"))
 }
 
 /// A validated `MultiPolygon` array (`try_from` checks the extension type).
@@ -234,8 +234,9 @@ impl ArrowExportVTable for MultiPolygon {
             .execute_arrow(storage, Some(&storage_field), ctx)?;
 
         let multipolygons =
-            MultiPolygonArray::try_from((arrow_storage.as_ref(), multipolygon_meta))
-                .map_err(|e| vortex_err!("failed to construct MultiPolygonArray: {e}"))?;
+            MultiPolygonArray::try_from((arrow_storage.as_ref(), multipolygon_meta)).map_err(
+                |e| vortex_err!(InvalidArgument: "failed to construct MultiPolygonArray: {e}"),
+            )?;
 
         Ok(ArrowExport::Exported(Arc::new(multipolygons.into_arrow())))
     }

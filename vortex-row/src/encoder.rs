@@ -92,13 +92,13 @@ impl RowEncoder {
     /// [`encode`](Self::encode) and [`row_sizes`](Self::row_sizes).
     fn prepare(&self, cols: &[ArrayRef]) -> VortexResult<(RowEncodingOptions, VecExecutionArgs)> {
         if cols.is_empty() {
-            vortex_bail!("RowEncoder: at least one column is required");
+            vortex_bail!(InvalidArgument: "RowEncoder: at least one column is required");
         }
         let options = match &self.options {
             Some(options) => {
                 if options.len() != cols.len() {
                     vortex_bail!(
-                        "RowEncoder: options describe {} columns but {} were provided",
+                        InvalidArgument: "RowEncoder: options describe {} columns but {} were provided",
                         options.len(),
                         cols.len()
                     );

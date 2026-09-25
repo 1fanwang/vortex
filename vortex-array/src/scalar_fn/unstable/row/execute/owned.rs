@@ -54,7 +54,7 @@ where
     let row_count = args.row_count();
 
     let Some(source) = decoded_source::<Args>(&columns, row_count) else {
-        vortex_bail!("a decoded row input does not address exactly {row_count} rows");
+        vortex_bail!(InvalidArgument: "a decoded row input does not address exactly {row_count} rows");
     };
 
     Ok(Out::build_from(
@@ -292,7 +292,7 @@ where
     let output = &mut values.slots()[..row_count];
 
     let Some(source) = decoded_source::<Args>(&columns, row_count) else {
-        vortex_bail!("a decoded row input does not address exactly {row_count} rows");
+        vortex_bail!(InvalidArgument: "a decoded row input does not address exactly {row_count} rows");
     };
     let failure = source.map_checked_into(output, |elements| apply(&prepared, elements));
 

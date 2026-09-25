@@ -453,7 +453,7 @@ fn validate_dtype_editions(session: &VortexSession, dtype: &DType) -> VortexResu
             DType::Extension(extension) => {
                 if !allowed.contains(&extension.id()) {
                     vortex_bail!(
-                        "Extension DType {} not permitted by enabled editions",
+                        InvalidArgument: "Extension DType {} not permitted by enabled editions",
                         extension.id()
                     );
                 }

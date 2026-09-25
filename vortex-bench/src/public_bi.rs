@@ -150,7 +150,7 @@ impl PBIDatasets {
                 let name = path
                     .file_name()
                     .into_string()
-                    .map_err(|e| vortex_err!("Not a unicode name: {e:?}"))?;
+                    .map_err(|e| vortex_err!(InvalidArgument: "Not a unicode name: {e:?}"))?;
                 Ok((
                     <PBIDataset as ValueEnum>::from_str(name.trim(), true).map_err(
                         |_e| vortex_err!(InvalidArgument: "unsupported dataset: {} {_e}", &name),
@@ -194,14 +194,14 @@ impl PBIBenchmark {
                 let file_name = sql_file
                     .file_name()
                     .into_string()
-                    .map_err(|e| vortex_err!("Not a unicode name: {e:?}"))?;
+                    .map_err(|e| vortex_err!(InvalidArgument: "Not a unicode name: {e:?}"))?;
                 let query_idx = file_name
                     .strip_suffix(".sql")
                     .ok_or_else(|| {
-                        vortex_err!("found non-sql file under queries folder {file_name}")
+                        vortex_err!(InvalidArgument: "found non-sql file under queries folder {file_name}")
                     })?
                     .parse()
-                    .map_err(|_| vortex_err!("non numeric filename {file_name}"))?;
+                    .map_err(|_| vortex_err!(InvalidArgument: "non numeric filename {file_name}"))?;
                 let query = fs::read_to_string(sql_file.path())?;
                 Ok((query_idx, query))
             })

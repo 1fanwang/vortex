@@ -172,7 +172,7 @@ impl<'a> DecimalScalar<'a> {
         // We could have ops between different types but need to add rules for type inference.
         if self.decimal_type != other.decimal_type {
             vortex_bail!(
-                "decimal types must match: {} vs {}",
+                MismatchedTypes: "decimal types must match: {} vs {}",
                 self.decimal_type,
                 other.decimal_type
             );

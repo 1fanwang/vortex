@@ -27,7 +27,7 @@ impl Scalar {
         // From here onwards, we know that the value is not null.
         match dtype {
             DType::Null => {
-                vortex_bail!("null dtype cannot hold a non-null value {value}");
+                vortex_bail!(InvalidArgument: "null dtype cannot hold a non-null value {value}");
             }
             DType::Bool(_) => {
                 vortex_ensure!(
@@ -81,7 +81,7 @@ impl Scalar {
 
                 for (i, element) in elements.iter().enumerate() {
                     Self::validate(elem_dtype.as_ref(), element.as_ref())
-                        .map_err(|e| vortex_error::vortex_err!("list element at index {i}: {e}"))?;
+                        .map_err(|e| e.with_context(format!("list element at index {i}")))?;
                 }
             }
             DType::FixedSizeList(elem_dtype, size, _) => {
@@ -98,7 +98,7 @@ impl Scalar {
 
                 for (i, element) in elements.iter().enumerate() {
                     Self::validate(elem_dtype.as_ref(), element.as_ref()).map_err(|e| {
-                        vortex_error::vortex_err!("fixed-size list element at index {i}: {e}",)
+                        e.with_context(format!("fixed-size list element at index {i}"))
                     })?;
                 }
             }
@@ -125,11 +125,10 @@ impl Scalar {
                         values.len(),
                     );
 
-                    Self::validate(&key_dtype, values[0].as_ref()).map_err(|error| {
-                        vortex_error::vortex_err!("map key at entry {index}: {error}")
-                    })?;
+                    Self::validate(&key_dtype, values[0].as_ref())
+                        .map_err(|error| error.with_context(format!("map key at entry {index}")))?;
                     Self::validate(&value_dtype, values[1].as_ref()).map_err(|error| {
-                        vortex_error::vortex_err!("map value at entry {index}: {error}")
+                        error.with_context(format!("map value at entry {index}"))
                     })?;
                 }
             }

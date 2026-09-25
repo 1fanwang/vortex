@@ -99,8 +99,12 @@ impl FromLogicalType for DType {
             DUCKDB_TYPE::DUCKDB_TYPE_USMALLINT => DType::Primitive(U16, nullability),
             DUCKDB_TYPE::DUCKDB_TYPE_UINTEGER => DType::Primitive(U32, nullability),
             DUCKDB_TYPE::DUCKDB_TYPE_UBIGINT => DType::Primitive(U64, nullability),
-            DUCKDB_TYPE::DUCKDB_TYPE_HUGEINT => vortex_bail!("I128 is not in Vortex type system"),
-            DUCKDB_TYPE::DUCKDB_TYPE_UHUGEINT => vortex_bail!("U128 is not in Vortex type system"),
+            DUCKDB_TYPE::DUCKDB_TYPE_HUGEINT => {
+                vortex_bail!(NotImplemented: "I128 is not in Vortex type system")
+            }
+            DUCKDB_TYPE::DUCKDB_TYPE_UHUGEINT => {
+                vortex_bail!(NotImplemented: "U128 is not in Vortex type system")
+            }
             DUCKDB_TYPE::DUCKDB_TYPE_FLOAT => DType::Primitive(F32, nullability),
             DUCKDB_TYPE::DUCKDB_TYPE_DOUBLE => DType::Primitive(F64, nullability),
             DUCKDB_TYPE::DUCKDB_TYPE_VARCHAR => DType::Utf8(nullability),
@@ -255,10 +259,12 @@ impl TryFrom<&DType> for LogicalType {
             DType::Struct(struct_type, _) => {
                 return LogicalType::try_from(struct_type);
             }
-            DType::Map(..) => vortex_bail!("Vortex Map isn't supported"),
+            DType::Map(..) => vortex_bail!(NotImplemented: "Vortex Map isn't supported"),
             // TODO(connor): Union
-            DType::Union(..) => vortex_bail!("Vortex Union isn't supported"),
-            DType::Variant(_) => vortex_bail!("Vortex Variant array aren't supported"),
+            DType::Union(..) => vortex_bail!(NotImplemented: "Vortex Union isn't supported"),
+            DType::Variant(_) => {
+                vortex_bail!(NotImplemented: "Vortex Variant array aren't supported")
+            }
             DType::Extension(ext_dtype) => {
                 // Handle first-party extension types that have DuckDB equivalents.
                 if let Some(temporal) = ext_dtype.metadata_opt::<AnyTemporal>() {
@@ -355,7 +361,7 @@ impl TryFrom<&StructFields> for LogicalType {
             .iter()
             .map(|field_name| {
                 if name_set.replace(field_name.as_ref()).is_some() {
-                    vortex_bail!("Duplicate field '{field_name}'");
+                    vortex_bail!(InvalidArgument: "Duplicate field '{field_name}'");
                 }
                 CString::new(field_name.as_ref()).map_err(
                     |e| vortex_err!(InvalidArgument: "Invalid field name '{field_name}': {e}"),

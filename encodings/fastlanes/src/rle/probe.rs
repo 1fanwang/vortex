@@ -31,7 +31,7 @@ pub(crate) fn scalar_at(
     let (mut retained, mut children) = state.split();
     let code = children
         .slot(RLESlots::INDICES)?
-        .ok_or_else(|| vortex_err!("RLE indices slot is missing"))?
+        .ok_or_else(|| vortex_err!(NotFound: "RLE indices slot is missing"))?
         .execute_scalar(logical_index, ctx)?;
     let Some(code) = code.as_primitive().as_::<usize>() else {
         return Ok(Scalar::null(array.dtype().clone()));
@@ -47,7 +47,7 @@ pub(crate) fn scalar_at(
                 let value = read_offset(
                     children
                         .slot(RLESlots::VALUES_IDX_OFFSETS)?
-                        .ok_or_else(|| vortex_err!("RLE offsets slot is missing"))?
+                        .ok_or_else(|| vortex_err!(NotFound: "RLE offsets slot is missing"))?
                         .execute_scalar(0, ctx)?,
                 )?;
                 if let Some(state) = retained.as_mut() {
@@ -59,18 +59,18 @@ pub(crate) fn scalar_at(
         read_offset(
             children
                 .slot(RLESlots::VALUES_IDX_OFFSETS)?
-                .ok_or_else(|| vortex_err!("RLE offsets slot is missing"))?
+                .ok_or_else(|| vortex_err!(NotFound: "RLE offsets slot is missing"))?
                 .execute_scalar(chunk, ctx)?,
         )?
         .checked_sub(base)
-        .ok_or_else(|| vortex_err!("RLE offsets precede the slice base"))?
+        .ok_or_else(|| vortex_err!(InvalidArgument: "RLE offsets precede the slice base"))?
     };
     let value_index = offset
         .checked_add(code)
         .ok_or_else(|| vortex_err!(Overflow: "RLE value index overflow"))?;
     let scalar = children
         .slot(RLESlots::VALUES)?
-        .ok_or_else(|| vortex_err!("RLE values slot is missing"))?
+        .ok_or_else(|| vortex_err!(NotFound: "RLE values slot is missing"))?
         .execute_scalar(value_index, ctx)?;
     Scalar::try_new(array.dtype().clone(), scalar.into_value())
 }

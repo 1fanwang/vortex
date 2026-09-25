@@ -158,7 +158,7 @@ impl ScalarFnVTable for CaseWhen {
 
     fn return_dtype(&self, options: &Self::Options, arg_dtypes: &[DType]) -> VortexResult<DType> {
         if options.num_when_then_pairs == 0 {
-            vortex_bail!("CaseWhen must have at least one WHEN/THEN pair");
+            vortex_bail!(InvalidArgument: "CaseWhen must have at least one WHEN/THEN pair");
         }
 
         let expected_len = options.num_children();
@@ -179,7 +179,7 @@ impl ScalarFnVTable for CaseWhen {
             let then_i = &arg_dtypes[i * 2 + 1];
             if !first_then.eq_ignore_nullability(then_i) {
                 vortex_bail!(
-                    "CaseWhen THEN dtypes must match (ignoring nullability), got {} and {}",
+                    MismatchedTypes: "CaseWhen THEN dtypes must match (ignoring nullability), got {} and {}",
                     first_then,
                     then_i
                 );
@@ -191,7 +191,7 @@ impl ScalarFnVTable for CaseWhen {
             let else_dtype = &arg_dtypes[options.num_when_then_pairs as usize * 2];
             if !result_dtype.eq_ignore_nullability(else_dtype) {
                 vortex_bail!(
-                    "CaseWhen THEN and ELSE dtypes must match (ignoring nullability), got {} and {}",
+                    MismatchedTypes: "CaseWhen THEN and ELSE dtypes must match (ignoring nullability), got {} and {}",
                     first_then,
                     else_dtype
                 );

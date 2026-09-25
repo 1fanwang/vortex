@@ -125,7 +125,7 @@ impl ExecuteParentKernel<ParquetVariant> for VariantGetKernel {
             // Import through the same `as_type` field the cast targeted, so an extension target
             // dtype comes back as that extension rather than as its bare storage type.
             let as_type = as_type.ok_or_else(|| {
-                vortex_err!("a non-variant target dtype must produce an as_type field")
+                vortex_err!(AssertionFailed: "a non-variant target dtype must produce an as_type field")
             })?;
             session.arrow().from_arrow_array(arrow_output, &as_type)?
         };

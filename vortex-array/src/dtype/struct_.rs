@@ -475,7 +475,7 @@ impl StructFields {
             .collect::<FieldNames>();
 
         if !names.iter().all_unique() {
-            vortex_bail!("Can't merge struct fields with duplicate names");
+            vortex_bail!(InvalidArgument: "Can't merge struct fields with duplicate names");
         }
 
         let dtypes = self

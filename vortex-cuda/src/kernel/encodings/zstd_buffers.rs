@@ -65,7 +65,7 @@ async fn decode_zstd_buffers(
         plan.output_size_max(),
         plan.output_size_total(),
     )
-    .map_err(|e| vortex_err!("nvcomp get_decompress_temp_size failed: {}", e))?;
+    .map_err(|e| vortex_err!(Io: "nvcomp get_decompress_temp_size failed: {}", e))?;
 
     let device_frame_handles = move_frames_to_device(compressed_buffers, ctx).await?;
     let mut device_output = ctx.device_alloc::<u8>(plan.output_size_total())?;
@@ -138,7 +138,7 @@ async fn decode_zstd_buffers(
                 device_statuses_ptr as _,
                 stream.cu_stream().cast(),
             )
-            .map_err(|e| vortex_err!("nvcomp decompress_async failed: {}", e))
+            .map_err(|e| vortex_err!(Io: "nvcomp decompress_async failed: {}", e))
         }
     })?;
     drop(frame_ptr_records);
@@ -200,7 +200,7 @@ async fn validate_decompress_results(
     {
         if status != sys::nvcompStatus_t_nvcompSuccess {
             return Err(vortex_err!(
-                "nvcomp chunk {} failed with status {}",
+                Io: "nvcomp chunk {} failed with status {}",
                 idx,
                 status
             ));

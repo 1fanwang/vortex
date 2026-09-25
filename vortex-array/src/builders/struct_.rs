@@ -92,12 +92,12 @@ impl StructBuilder {
     /// Appends a struct `value` to the builder.
     pub fn append_value(&mut self, struct_scalar: StructScalar) -> VortexResult<()> {
         if !self.dtype.is_nullable() && struct_scalar.is_null() {
-            vortex_bail!("Tried to append a null `StructScalar` to a non-nullable struct builder",);
+            vortex_bail!(InvalidArgument: "Tried to append a null `StructScalar` to a non-nullable struct builder",);
         }
 
         if struct_scalar.struct_fields() != self.struct_fields() {
             vortex_bail!(
-                "Tried to append a `StructScalar` with fields {} to a \
+                MismatchedTypes: "Tried to append a `StructScalar` with fields {} to a \
                     struct builder with fields {}",
                 struct_scalar.struct_fields(),
                 self.struct_fields()

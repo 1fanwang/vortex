@@ -220,7 +220,7 @@ impl FixedSizeListBuilder {
 
         if value.len() != self.list_size() as usize {
             vortex_bail!(
-                "Tried to append a `ListScalar` with length {} to a `FixedSizeListScalar` \
+                InvalidArgument: "Tried to append a `ListScalar` with length {} to a `FixedSizeListScalar` \
                     with fixed size of {}",
                 value.len(),
                 self.list_size()

@@ -78,7 +78,7 @@ fn validate_glob(pattern: &str) -> VortexResult<()> {
     for escape_pattern in ["\\*", "\\?", "\\["] {
         if pattern.contains(escape_pattern) {
             vortex_bail!(
-                "Escaped glob characters are not allowed in patterns. Found '{}' in: {}",
+                InvalidArgument: "Escaped glob characters are not allowed in patterns. Found '{}' in: {}",
                 escape_pattern,
                 pattern
             );

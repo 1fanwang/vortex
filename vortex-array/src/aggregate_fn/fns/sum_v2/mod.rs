@@ -406,17 +406,15 @@ fn decode_partial_scalar(scalar: Scalar) -> VortexResult<(Scalar, bool, bool)> {
     };
     let sum = fields
         .field(SUM_FIELD)
-        .ok_or_else(|| vortex_err!("SumV2 partial is missing the sum field"))?;
-    let is_overflow = bool::try_from(
-        &fields
-            .field(IS_OVERFLOW_FIELD)
-            .ok_or_else(|| vortex_err!("SumV2 partial is missing the is_overflow field"))?,
-    )?;
-    let is_empty = bool::try_from(
-        &fields
-            .field(IS_EMPTY_FIELD)
-            .ok_or_else(|| vortex_err!("SumV2 partial is missing the is_empty field"))?,
-    )?;
+        .ok_or_else(|| vortex_err!(NotFound: "SumV2 partial is missing the sum field"))?;
+    let is_overflow =
+        bool::try_from(&fields.field(IS_OVERFLOW_FIELD).ok_or_else(
+            || vortex_err!(NotFound: "SumV2 partial is missing the is_overflow field"),
+        )?)?;
+    let is_empty =
+        bool::try_from(&fields.field(IS_EMPTY_FIELD).ok_or_else(
+            || vortex_err!(NotFound: "SumV2 partial is missing the is_empty field"),
+        )?)?;
 
     Ok((sum, is_overflow, is_empty))
 }

@@ -121,7 +121,7 @@ impl ScalarFnVTable for JsonToVariant {
                 let dtype = field
                     .dtype
                     .as_ref()
-                    .ok_or_else(|| vortex_err!("ShreddingSpecField missing dtype"))
+                    .ok_or_else(|| vortex_err!(NotFound: "ShreddingSpecField missing dtype"))
                     .and_then(|dtype| DType::from_proto(dtype, session))?;
                 Ok((path, dtype))
             })

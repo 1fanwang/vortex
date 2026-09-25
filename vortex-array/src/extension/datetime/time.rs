@@ -120,13 +120,15 @@ impl ExtVTable for Time {
 
         let (span, value) = match *ext_dtype.metadata() {
             TimeUnit::Seconds => {
-                let v = i32::try_from(length_of_time)
-                    .map_err(|e| vortex_err!("Time seconds value out of i32 range: {e}"))?;
+                let v = i32::try_from(length_of_time).map_err(
+                    |e| vortex_err!(Overflow: "Time seconds value out of i32 range: {e}"),
+                )?;
                 (Span::new().seconds(v), TimeValue::Seconds(v))
             }
             TimeUnit::Milliseconds => {
-                let v = i32::try_from(length_of_time)
-                    .map_err(|e| vortex_err!("Time milliseconds value out of i32 range: {e}"))?;
+                let v = i32::try_from(length_of_time).map_err(
+                    |e| vortex_err!(Overflow: "Time milliseconds value out of i32 range: {e}"),
+                )?;
                 (Span::new().milliseconds(v), TimeValue::Milliseconds(v))
             }
             TimeUnit::Microseconds => (

@@ -241,7 +241,7 @@ fn test_decode_stream_schema_does_not_poll(
     let dtype = array.dtype().clone();
     let mut batch = has_batch.then(|| {
         if fails {
-            Err(vortex_err!("deferred scan error"))
+            Err(vortex_err!(Io: "deferred scan error"))
         } else {
             Ok(array)
         }

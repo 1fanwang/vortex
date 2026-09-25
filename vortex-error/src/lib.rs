@@ -105,7 +105,8 @@ pub enum VortexErrorKind {
     MismatchedTypes,
     /// An internal invariant was violated. The analogue of Python's `AssertionError`.
     AssertionFailed,
-    /// An IO operation failed. The analogue of Python's `OSError`.
+    /// An IO operation, or a call into the operating system or a device driver, failed. The
+    /// analogue of Python's `OSError`, which covers any system function that reports an error.
     Io,
 }
 

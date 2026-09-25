@@ -58,7 +58,7 @@ pub(crate) fn multiply_constant(
                     Scalar::primitive(val * len as f64, Nullability::Nullable)
                 }
                 _ => vortex_bail!(
-                    "Unexpected return dtype for primitive sum: {}",
+                    AssertionFailed: "Unexpected return dtype for primitive sum: {}",
                     return_dtype
                 ),
             }

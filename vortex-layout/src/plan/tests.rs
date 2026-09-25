@@ -572,13 +572,13 @@ fn empty_projection_prunes_row_idx_child_fields() -> VortexResult<()> {
     let plan = make_row_idx_plan(projection, make_plan(layout)?)?;
 
     let optimized = optimize(plan)?;
-    let projection = optimized
-        .as_opt::<Eval>()
-        .ok_or_else(|| vortex_err!("optimized plan has no projection expression"))?;
+    let projection = optimized.as_opt::<Eval>().ok_or_else(
+        || vortex_err!(AssertionFailed: "optimized plan has no projection expression"),
+    )?;
     let child = projection.child_plan()?;
-    let empty_struct = child
-        .as_opt::<Pack>()
-        .ok_or_else(|| vortex_err!("empty projection did not prune the RowIdx child"))?;
+    let empty_struct = child.as_opt::<Pack>().ok_or_else(
+        || vortex_err!(AssertionFailed: "empty projection did not prune the RowIdx child"),
+    )?;
 
     assert_eq!(empty_struct.nfields(), 0);
     assert_eq!(empty_struct.children().len(), 0);
@@ -1048,7 +1048,7 @@ fn dictionary_pushdown_rejects_unsafe_expressions() -> VortexResult<()> {
         let plan = make_eval(expression.clone(), make_plan(Arc::clone(&dictionary))?)?.into_plan();
         let optimized = optimize(plan)?;
         let eval = optimized.as_opt::<Eval>().ok_or_else(|| {
-            vortex_err!("Expression unexpectedly pushed into dictionary: {expression}")
+            vortex_err!(AssertionFailed: "Expression unexpectedly pushed into dictionary: {expression}")
         })?;
         assert!(eval.child_plan()?.is::<Take>());
     }
@@ -1073,9 +1073,9 @@ fn nullable_struct_keeps_expression_above_parent_validity() -> VortexResult<()> 
     let plan = make_eval(gt(get_item("a", root()), lit(5_i32)), make_plan(layout)?)?.into_plan();
 
     let optimized = optimize(plan)?;
-    let eval = optimized
-        .as_opt::<Eval>()
-        .ok_or_else(|| vortex_err!("Nullable struct expression unexpectedly pushed down"))?;
+    let eval = optimized.as_opt::<Eval>().ok_or_else(
+        || vortex_err!(AssertionFailed: "Nullable struct expression unexpectedly pushed down"),
+    )?;
     assert!(eval.child_plan()?.is::<Pack>());
     Ok(())
 }

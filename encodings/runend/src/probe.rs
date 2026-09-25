@@ -28,7 +28,7 @@ pub(crate) fn scalar_at(
     // between searches.
     let mut ends = state
         .slot(RunEndSlots::ENDS)?
-        .ok_or_else(|| vortex_err!("RunEnd ends slot is missing"))?;
+        .ok_or_else(|| vortex_err!(NotFound: "RunEnd ends slot is missing"))?;
     let mut left = 0;
     let mut right = ends.array().len();
     while left < right {
@@ -42,7 +42,7 @@ pub(crate) fn scalar_at(
     }
     state
         .slot(RunEndSlots::VALUES)?
-        .ok_or_else(|| vortex_err!("RunEnd values slot is missing"))?
+        .ok_or_else(|| vortex_err!(NotFound: "RunEnd values slot is missing"))?
         .execute_scalar(left, ctx)
 }
 

@@ -76,9 +76,9 @@ impl ScalarFnVTable for ListSum {
                 vortex_bail!(InvalidArgument: "list_sum() requires List or FixedSizeList, got {other}")
             }
         };
-        SumV2
-            .return_dtype(options, elem_dtype)
-            .ok_or_else(|| vortex_err!("list_sum() cannot sum elements of type {elem_dtype}"))
+        SumV2.return_dtype(options, elem_dtype).ok_or_else(
+            || vortex_err!(MismatchedTypes: "list_sum() cannot sum elements of type {elem_dtype}"),
+        )
     }
 
     fn execute(

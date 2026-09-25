@@ -138,7 +138,7 @@ pub(crate) fn execute_boolean(
     let rhs = rhs.execute::<BoolArray>(ctx)?;
     let Some(result) = <Bool as BooleanKernel>::boolean(rhs.as_view(), &lhs.into_array(), op, ctx)?
     else {
-        vortex_bail!("No boolean kernel for two BoolArrays");
+        vortex_bail!(AssertionFailed: "No boolean kernel for two BoolArrays");
     };
     Ok(result)
 }

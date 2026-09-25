@@ -163,7 +163,7 @@ impl MultiFileDataSource {
         let all_files: Vec<(FileListing, FileSystemRef)> = resolved.into_iter().flatten().collect();
 
         if all_files.is_empty() {
-            vortex_bail!("No files matched the glob pattern(s): {:?}", globs);
+            vortex_bail!(NotFound: "No files matched the glob pattern(s): {:?}", globs);
         }
 
         let file_count = all_files.len();
@@ -219,7 +219,7 @@ fn create_local_filesystem(session: &VortexSession) -> VortexResult<FileSystemRe
 #[cfg(not(feature = "object_store"))]
 fn create_local_filesystem(_session: &VortexSession) -> VortexResult<FileSystemRef> {
     vortex_bail!(
-        "The 'object_store' feature is required for automatic local filesystem creation. \
+        NotImplemented: "The 'object_store' feature is required for automatic local filesystem creation. \
              Either enable the feature or provide a filesystem via .with_filesystem()."
     );
 }
@@ -255,7 +255,7 @@ pub async fn open_cached(
         key = uri.as_deref();
     }
     let Some(key) = key else {
-        vortex_bail!("Missing cache key");
+        vortex_bail!(NotFound: "Missing cache key");
     };
 
     let mut options = open_options_fn(session.open_options());

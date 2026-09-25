@@ -348,7 +348,7 @@ impl<'a> VortexInspector<'a> {
 
         let file_size = file
             .seek(SeekFrom::End(0))
-            .map_err(|e| vortex_err!("Failed to get file size: {}", e))?;
+            .map_err(|e| vortex_err!(Io: "Failed to get file size: {}", e))?;
 
         Ok(Self {
             session,

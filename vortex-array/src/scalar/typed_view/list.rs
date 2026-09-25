@@ -200,7 +200,7 @@ impl<'a> ListScalar<'a> {
             && *size as usize != self.len()
         {
             vortex_bail!(
-                "tried to cast to a `FixedSizeList[{size}]` but had {} elements",
+                InvalidArgument: "tried to cast to a `FixedSizeList[{size}]` but had {} elements",
                 self.len()
             )
         }

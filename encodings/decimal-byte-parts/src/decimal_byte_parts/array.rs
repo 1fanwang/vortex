@@ -381,7 +381,7 @@ impl OperationsVTable<DecimalByteParts> for DecimalByteParts {
                 DecimalValue::I256(assemble_wide_decimal_value(msp, [*first, *second, *third]))
             }
             _ => vortex_bail!(
-                "at most {MAX_LOWER_PARTS} lower parts are supported, got {}",
+                InvalidArgument: "at most {MAX_LOWER_PARTS} lower parts are supported, got {}",
                 lower_parts.len()
             ),
         };

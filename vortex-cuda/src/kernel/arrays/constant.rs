@@ -76,7 +76,7 @@ impl CudaExecute for ConstantNumericExecutor {
                 })
             }
             dt => vortex_bail!(
-                "CUDA constant array only supports numeric types, got {:?}",
+                NotImplemented: "CUDA constant array only supports numeric types, got {:?}",
                 dt
             ),
         }
@@ -159,7 +159,7 @@ where
     // Cast the decimal value to the native type
     let value: D = decimal_value
         .cast::<D>()
-        .ok_or_else(|| vortex_err!("Failed to cast decimal value to native type"))?;
+        .ok_or_else(|| vortex_err!(Overflow: "Failed to cast decimal value to native type"))?;
 
     // Allocate output buffer on device
     let mut output_buffer = ctx.device_alloc::<D>(array_len)?;

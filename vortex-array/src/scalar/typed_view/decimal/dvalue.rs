@@ -143,7 +143,7 @@ impl DecimalValue {
             let remainder = value % factor;
             if remainder != i256::ZERO {
                 vortex_bail!(
-                    "Rescaling decimal value {} from scale {} to {} would lose precision",
+                    InvalidArgument: "Rescaling decimal value {} from scale {} to {} would lose precision",
                     value,
                     from_scale,
                     to_scale

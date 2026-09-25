@@ -562,7 +562,7 @@ impl FusedPlan {
             let (packed, bitpacked_offset, patch_range) = bitpacked_slice_view(bp, offset, len)?;
 
             let source_ptype = ptype_to_tag(PType::try_from(bp.dtype()).map_err(|_| {
-                vortex_err!("BitPacked must have primitive dtype, got {:?}", bp.dtype())
+                vortex_err!(MismatchedTypes: "BitPacked must have primitive dtype, got {:?}", bp.dtype())
             })?);
             let buf_index = self.source_buffers.len();
             self.source_buffers.push(Some(packed));
@@ -597,7 +597,7 @@ impl FusedPlan {
         }
 
         vortex_bail!(
-            "Cannot resolve SliceArray wrapping {:?} in dynamic dispatch plan builder",
+            NotImplemented: "Cannot resolve SliceArray wrapping {:?} in dynamic dispatch plan builder",
             child.encoding_id()
         )
     }
@@ -617,7 +617,7 @@ impl FusedPlan {
         let bp = array.as_::<BitPacked>();
 
         let source_ptype = ptype_to_tag(PType::try_from(bp.dtype()).map_err(|_| {
-            vortex_err!("BitPacked must have primitive dtype, got {:?}", bp.dtype())
+            vortex_err!(MismatchedTypes: "BitPacked must have primitive dtype, got {:?}", bp.dtype())
         })?);
         let buf_index = self.source_buffers.len();
         self.source_buffers.push(Some(bp.packed().clone()));
@@ -642,11 +642,11 @@ impl FusedPlan {
             .reference_scalar()
             .as_primitive()
             .pvalue()
-            .ok_or_else(|| vortex_err!("FoR reference scalar is null"))?;
+            .ok_or_else(|| vortex_err!(AssertionFailed: "FoR reference scalar is null"))?;
         let encoded = for_arr.encoded().clone();
         let output_ptype =
             ptype_to_tag(PType::try_from(array.dtype()).map_err(|_| {
-                vortex_err!("FoR must have primitive dtype, got {:?}", array.dtype())
+                vortex_err!(MismatchedTypes: "FoR must have primitive dtype, got {:?}", array.dtype())
             })?);
 
         let mut pipeline = self.walk(encoded, pending_subtrees)?;
@@ -667,7 +667,7 @@ impl FusedPlan {
         let zz = array.as_::<ZigZag>();
         let encoded = zz.encoded().clone();
         let output_ptype = ptype_to_tag(PType::try_from(array.dtype()).map_err(|_| {
-            vortex_err!("ZigZag must have primitive dtype, got {:?}", array.dtype())
+            vortex_err!(MismatchedTypes: "ZigZag must have primitive dtype, got {:?}", array.dtype())
         })?);
 
         let mut pipeline = self.walk(encoded, pending_subtrees)?;
@@ -704,7 +704,7 @@ impl FusedPlan {
     ) -> VortexResult<Stage> {
         let encoded_ptype = PType::try_from(encoded.dtype()).map_err(|_| {
             vortex_err!(
-                "ALP encoded child must have primitive dtype, got {:?}",
+                MismatchedTypes: "ALP encoded child must have primitive dtype, got {:?}",
                 encoded.dtype()
             )
         })?;
@@ -773,7 +773,7 @@ impl FusedPlan {
     ) -> VortexResult<Stage> {
         let ptype = PType::try_from(array.dtype()).map_err(|_| {
             vortex_err!(
-                "unfusable subtree has non-primitive dtype {:?}, cannot partially fuse",
+                NotImplemented: "unfusable subtree has non-primitive dtype {:?}, cannot partially fuse",
                 array.dtype()
             )
         })?;

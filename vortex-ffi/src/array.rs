@@ -652,7 +652,7 @@ pub unsafe extern "C-unwind" fn vx_array_data_ptr_primitive(
         let bytes = primitive
             .buffer_handle()
             .as_host_opt()
-            .ok_or_else(|| vortex_err!("array buffer is not in host memory"))?;
+            .ok_or_else(|| vortex_err!(InvalidArgument: "array buffer is not in host memory"))?;
         Ok(bytes.as_ptr().cast())
     })
 }

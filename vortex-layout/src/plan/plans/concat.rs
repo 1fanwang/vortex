@@ -131,7 +131,7 @@ impl PlanVTable for Concat {
         }
         if row_count != plan.row_count() {
             vortex_bail!(
-                "Concat children have {row_count} rows but the plan has {}",
+                InvalidArgument: "Concat children have {row_count} rows but the plan has {}",
                 plan.row_count()
             );
         }

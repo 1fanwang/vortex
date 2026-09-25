@@ -267,7 +267,7 @@ impl Scalar {
     ) -> VortexResult<Self> {
         let child_index = variants.tag_to_child_index(type_id).ok_or_else(|| {
             vortex_err!(
-                "union type ID {type_id} is not present in {:?}",
+                NotFound: "union type ID {type_id} is not present in {:?}",
                 variants.type_ids()
             )
         })?;

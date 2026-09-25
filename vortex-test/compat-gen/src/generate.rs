@@ -47,7 +47,7 @@ pub fn write_fixtures(
     }
 
     std::fs::create_dir_all(output_dir)
-        .map_err(|e| vortex_err!("failed to create output dir: {e}"))?;
+        .map_err(|e| vortex_err!(Io: "failed to create output dir: {e}"))?;
 
     eprintln!("generating {} fixtures...", fixtures.len());
 

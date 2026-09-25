@@ -306,7 +306,7 @@ fn export_canonical(
             Canonical::Decimal(decimal) => export_decimal(decimal, ctx).await,
             Canonical::Extension(extension) => {
                 if !extension.ext_dtype().is::<AnyTemporal>() {
-                    vortex_bail!("only support temporal extension types currently");
+                    vortex_bail!(NotImplemented: "only support temporal extension types currently");
                 }
 
                 let values = extension
@@ -498,7 +498,7 @@ where
         DecimalType::I128 => decimal_cast::<S, i128>(values, len, ctx).await,
         DecimalType::I256 => decimal_cast::<S, i256>(values, len, ctx).await,
         target_type => {
-            vortex_bail!("cannot export DecimalArray as Arrow decimal value type {target_type}")
+            vortex_bail!(NotImplemented: "cannot export DecimalArray as Arrow decimal value type {target_type}")
         }
     }
 }
@@ -696,7 +696,7 @@ async fn export_binary_buffers(
     let mut status = ctx.device_alloc::<u32>(1)?;
     ctx.stream()
         .memset_zeros(&mut status)
-        .map_err(|err| vortex_err!("Failed to zero Arrow Binary status buffer: {err}"))?;
+        .map_err(|err| vortex_err!(Io: "Failed to zero Arrow Binary status buffer: {err}"))?;
 
     let scan_input = init_binary_scan(
         views,
@@ -757,9 +757,9 @@ fn check_binary_status(status: u32) -> VortexResult<()> {
             InvalidArgument: "cannot export BinaryView as Arrow Binary: a view references an invalid data buffer"
         ),
         2 => vortex_bail!(
-            "cannot export BinaryView as Arrow Binary: offsets exceed i32 range required by Arrow Binary"
+            Overflow: "cannot export BinaryView as Arrow Binary: offsets exceed i32 range required by Arrow Binary"
         ),
-        status => vortex_bail!("unexpected Arrow Binary export status {status}"),
+        status => vortex_bail!(AssertionFailed: "unexpected Arrow Binary export status {status}"),
     }
 }
 
@@ -921,7 +921,7 @@ fn device_zeroed_byte_buffer(
     let buffer = ctx
         .stream()
         .alloc_zeros::<u8>(allocation_len)
-        .map_err(|err| vortex_err!("Failed to allocate zeroed Arrow validity buffer: {err}"))?;
+        .map_err(|err| vortex_err!(Io: "Failed to allocate zeroed Arrow validity buffer: {err}"))?;
     // The whole allocation is zeroed, including cuDF tail padding.
     Ok(BufferHandle::new_device(
         CudaDeviceBuffer::new_with_zeroed_tail(buffer, 0)?.slice(0..byte_len),
@@ -976,7 +976,7 @@ fn copy_arrow_bitmap(
     let input_view = input_buffer.cuda_view::<u8>()?.slice(0..output_bytes);
     ctx.stream()
         .memcpy_dtod(&input_view, &mut output)
-        .map_err(|err| vortex_err!("Failed to copy Arrow validity buffer: {err}"))?;
+        .map_err(|err| vortex_err!(Io: "Failed to copy Arrow validity buffer: {err}"))?;
     // The copy initializes the logical bytes; only the tail needs zeroing.
     zero_padding(ctx.stream(), &mut output, output_bytes)?;
 
@@ -1005,7 +1005,7 @@ pub fn count_arrow_validity_nulls(
     let mut count = ctx.device_alloc::<u64>(1)?;
     ctx.stream()
         .memset_zeros(&mut count)
-        .map_err(|err| vortex_err!("Failed to zero Arrow validity count buffer: {err}"))?;
+        .map_err(|err| vortex_err!(Io: "Failed to zero Arrow validity count buffer: {err}"))?;
 
     let input_view = bitmap.cuda_view::<u8>()?;
     let len = u64::try_from(len)?;
@@ -1034,10 +1034,12 @@ pub fn count_arrow_validity_nulls(
     let valid_count = ctx
         .stream()
         .clone_dtoh(&count)
-        .map_err(|err| vortex_err!("Failed to copy Arrow validity count to host: {err}"))?
+        .map_err(|err| vortex_err!(Io: "Failed to copy Arrow validity count to host: {err}"))?
         .into_iter()
         .next()
-        .ok_or_else(|| vortex_err!("Arrow validity count kernel returned no output"))?;
+        .ok_or_else(
+            || vortex_err!(AssertionFailed: "Arrow validity count kernel returned no output"),
+        )?;
 
     Ok(i64::try_from(len - valid_count)?)
 }
@@ -1266,13 +1268,13 @@ fn fixed_size_list_offsets(
 ) -> VortexResult<BufferHandle> {
     let list_size = i32::try_from(list_size).map_err(|_| {
         vortex_err!(
-            "cannot export FixedSizeList with list size {list_size}: Arrow List offsets require i32"
+            Overflow: "cannot export FixedSizeList with list size {list_size}: Arrow List offsets require i32"
         )
     })?;
     let len_i32 = i32::try_from(len)?;
-    len_i32
-        .checked_mul(list_size)
-        .ok_or_else(|| vortex_err!("FixedSizeList Arrow List offsets exceed i32 range"))?;
+    len_i32.checked_mul(list_size).ok_or_else(
+        || vortex_err!(Overflow: "FixedSizeList Arrow List offsets exceed i32 range"),
+    )?;
 
     let output_len = len.checked_add(1).ok_or_else(
         || vortex_err!(Overflow: "FixedSizeList Arrow List offsets length overflows usize"),
@@ -1757,7 +1759,9 @@ mod tests {
             PType::I16 => primitive_on_device(values.iter().map(|&value| value as i16), ctx).await,
             PType::I32 => primitive_on_device(values.iter().map(|&value| value as i32), ctx).await,
             PType::I64 => primitive_on_device(values.iter().copied(), ctx).await,
-            ptype => vortex_bail!("test helper only supports integer PTypes, got {ptype}"),
+            ptype => {
+                vortex_bail!(NotImplemented: "test helper only supports integer PTypes, got {ptype}")
+            }
         }
     }
 
@@ -1795,7 +1799,7 @@ mod tests {
         let mut allocation = ctx.device_alloc::<u8>(bytes.len())?;
         ctx.stream()
             .memcpy_htod(bytes.as_ref(), &mut allocation)
-            .map_err(|err| vortex_err!("Failed to upload unpadded test buffer: {err}"))?;
+            .map_err(|err| vortex_err!(Io: "Failed to upload unpadded test buffer: {err}"))?;
         Ok(BufferHandle::new_device(Arc::new(CudaDeviceBuffer::new(
             allocation,
         ))))

@@ -183,7 +183,9 @@ impl Stream for ArrayStreamIPCBytes {
                 .encoder
                 .encode(EncoderMessage::DType(this.stream.dtype()))
             else {
-                return Poll::Ready(Some(Err(vortex_err!("Failed to encode DType message"))));
+                return Poll::Ready(Some(Err(
+                    vortex_err!(Serde: "Failed to encode DType message"),
+                )));
             };
             this.buffers.extend(buffers);
             this.written_dtype = true;

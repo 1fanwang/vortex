@@ -126,7 +126,7 @@ impl<'a> OnPairDecodePlan<'a> {
         let written = match onpair::try_decode_into(self.codes.as_slice(), self.dict, out) {
             Ok(written) => written,
             Err(_) => {
-                vortex_bail!("OnPair codes decode to more bytes than uncompressed_lengths records")
+                vortex_bail!(Serde: "OnPair codes decode to more bytes than uncompressed_lengths records")
             }
         };
 

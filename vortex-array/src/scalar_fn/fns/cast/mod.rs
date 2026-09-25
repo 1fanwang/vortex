@@ -87,7 +87,7 @@ impl ScalarFnVTable for Cast {
         DType::from_proto(
             proto
                 .as_ref()
-                .ok_or_else(|| vortex_err!("Missing target dtype in Cast expression"))?,
+                .ok_or_else(|| vortex_err!(Serde: "Missing target dtype in Cast expression"))?,
             session,
         )
     }
@@ -136,7 +136,7 @@ impl ScalarFnVTable for Cast {
                 match cast_canonical(canonical, target_dtype, ctx)? {
                     Some(result) => Ok(result),
                     None => vortex_bail!(
-                        "No CastKernel to cast canonical array {} from {} to {}",
+                        NotImplemented: "No CastKernel to cast canonical array {} from {} to {}",
                         canonical.to_array_ref().encoding_id(),
                         canonical.to_array_ref().dtype(),
                         target_dtype,
@@ -146,7 +146,7 @@ impl ScalarFnVTable for Cast {
             ColumnarView::Constant(constant) => match cast_constant(constant, target_dtype)? {
                 Some(result) => Ok(result),
                 None => vortex_bail!(
-                    "No CastReduce to cast constant array from {} to {}",
+                    NotImplemented: "No CastReduce to cast constant array from {} to {}",
                     constant.dtype(),
                     target_dtype,
                 ),
@@ -221,7 +221,7 @@ fn cast_canonical(
         }
         CanonicalView::Extension(a) => <Extension as CastReduce>::cast(a, dtype),
         CanonicalView::Variant(_) => {
-            vortex_bail!("Variant arrays don't support casting")
+            vortex_bail!(NotImplemented: "Variant arrays don't support casting")
         }
     }
 }

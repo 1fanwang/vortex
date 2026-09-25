@@ -134,7 +134,9 @@ impl TryToDataFusion<ScalarValue> for Scalar {
             dtype @ DType::Union(..) => vortex_bail!(
                 MismatchedTypes: "cannot convert Vortex scalar dtype {dtype} to DataFusion ScalarValue: unsupported scalar type"
             ),
-            DType::Variant(_) => vortex_bail!("Variant scalars aren't supported with DF"),
+            DType::Variant(_) => {
+                vortex_bail!(NotImplemented: "Variant scalars aren't supported with DF")
+            }
             DType::Extension(ext) => {
                 let storage_scalar = self.as_extension().to_storage_scalar();
 
@@ -335,12 +337,11 @@ fn struct_to_df(scalar: &Scalar) -> VortexResult<ScalarValue> {
             } else {
                 scalar
                     .field_by_idx(idx)
-                    .ok_or_else(|| vortex_err!("missing struct field {name}"))?
+                    .ok_or_else(|| vortex_err!(NotFound: "missing struct field {name}"))?
             };
-            let array = child
-                .try_to_df()?
-                .to_array()
-                .map_err(|e| vortex_err!("failed to build struct field array: {e}"))?;
+            let array = child.try_to_df()?.to_array().map_err(
+                |e| vortex_err!(InvalidArgument: "failed to build struct field array: {e}"),
+            )?;
             Ok((
                 Field::new(name.as_ref(), array.data_type().clone(), nullable),
                 array,
@@ -355,7 +356,7 @@ fn struct_to_df(scalar: &Scalar) -> VortexResult<ScalarValue> {
         StructArray::new_null(fields, 1)
     } else {
         StructArray::try_new(fields, arrays, None)
-            .map_err(|e| vortex_err!("failed to build struct scalar array: {e}"))?
+            .map_err(|e| vortex_err!(InvalidArgument: "failed to build struct scalar array: {e}"))?
     };
     Ok(ScalarValue::Struct(Arc::new(struct_array)))
 }

@@ -159,7 +159,7 @@ impl Alignment {
         let alignment = Self::try_from_exponent(exponent)?;
         if alignment > Self::MAX_UNTRUSTED {
             vortex_bail!(
-                "Untrusted alignment {alignment} exceeds the {}-byte maximum",
+                InvalidArgument: "Untrusted alignment {alignment} exceeds the {}-byte maximum",
                 Self::MAX_UNTRUSTED
             );
         }

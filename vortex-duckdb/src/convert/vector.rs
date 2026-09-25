@@ -1041,14 +1041,14 @@ mod tests {
             &point!(x: 1.0_f64, y: 2.0_f64),
             &WriteOptions::default(),
         )
-        .map_err(|e| vortex::error::vortex_err!("writing WKB point: {e}"))?;
+        .map_err(|e| vortex::error::vortex_err!(Serde: "writing WKB point: {e}"))?;
         let mut wkb_b: Vec<u8> = Vec::new();
         write_point(
             &mut wkb_b,
             &point!(x: 3.5_f64, y: -4.25_f64),
             &WriteOptions::default(),
         )
-        .map_err(|e| vortex::error::vortex_err!("writing WKB point: {e}"))?;
+        .map_err(|e| vortex::error::vortex_err!(Serde: "writing WKB point: {e}"))?;
 
         let len = 3;
         let logical_type = LogicalType::geometry_type(Some("EPSG:4326"))?;

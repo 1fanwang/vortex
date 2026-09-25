@@ -357,7 +357,7 @@ pub fn find_best_bit_width(ptype: PType, bit_width_freq: &[usize]) -> VortexResu
 )]
 fn best_bit_width(bit_width_freq: &[usize], bytes_per_exception: usize) -> VortexResult<u8> {
     if bit_width_freq.len() > u8::MAX as usize {
-        vortex_bail!("Too many bit widths");
+        vortex_bail!(Overflow: "Too many bit widths");
     }
 
     let len: usize = bit_width_freq.iter().sum();

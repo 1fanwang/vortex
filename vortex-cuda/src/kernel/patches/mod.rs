@@ -175,7 +175,7 @@ pub(crate) async fn execute_patches<
     let mut output = ctx.device_alloc::<ValuesT>(target_view.len())?;
     ctx.stream()
         .memcpy_dtod(&target_view, &mut output)
-        .map_err(|err| vortex_err!("Failed to copy CUDA patch target: {err}"))?;
+        .map_err(|err| vortex_err!(Io: "Failed to copy CUDA patch target: {err}"))?;
     ctx.launch_kernel(&kernel_func, patches_len, |args| {
         args.arg(&mut output)
             .arg(&d_patch_indices_view)

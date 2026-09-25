@@ -6,7 +6,7 @@ macro_rules! duckdb_try {
     // Pattern: duckdb_try!(function_call)
     ($call:expr) => {
         if $call != $crate::cpp::duckdb_state::DuckDBSuccess {
-            vortex::error::vortex_bail!("DuckDB operation failed");
+            vortex::error::vortex_bail!(Other: "DuckDB operation failed");
         }
     };
 

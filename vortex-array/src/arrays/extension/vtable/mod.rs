@@ -112,7 +112,7 @@ impl VTable for Extension {
 
         let ext_dtype = dtype
             .as_extension_opt()
-            .ok_or_else(|| vortex_err!("not an extension dtype"))?;
+            .ok_or_else(|| vortex_err!(MismatchedTypes: "not an extension dtype"))?;
 
         let actual_dtype = DType::Extension(ext_dtype.clone());
         vortex_ensure_eq!(
@@ -168,7 +168,7 @@ impl VTable for Extension {
             );
         }
         let DType::Extension(ext_dtype) = dtype else {
-            vortex_bail!("Not an extension DType");
+            vortex_bail!(MismatchedTypes: "Not an extension DType");
         };
         if children.len() != 1 {
             vortex_bail!(MismatchedTypes: "Expected 1 child, got {}", children.len());

@@ -281,7 +281,7 @@ where
 #[cold]
 #[inline(never)]
 fn decoded_length_error(row_count: usize) -> VortexResult<()> {
-    vortex_bail!("a decoded row input does not address exactly {row_count} rows")
+    vortex_bail!(InvalidArgument: "a decoded row input does not address exactly {row_count} rows")
 }
 
 /// State resolved before preparing the skip-invalid row loop.
@@ -416,7 +416,9 @@ mod tests {
 
         let error = match result {
             Err(error) => error,
-            Ok(_) => vortex_bail!("the sink must reject rows changed by its initializer"),
+            Ok(_) => {
+                vortex_bail!(AssertionFailed: "the sink must reject rows changed by its initializer")
+            }
         };
         assert!(
             error

@@ -151,7 +151,7 @@ fn validate_live_values_utf8<T: ByteArrayType>(
         let start = first.as_usize();
         let bytes = value_at(0, start, last.as_usize())?;
         let validated = utf8_from_bytes(bytes)
-            .map_err(|err| vortex_err!("Encountered non UTF-8 data: {err}"))?;
+            .map_err(|err| vortex_err!(InvalidArgument: "Encountered non UTF-8 data: {err}"))?;
         for (index, offset) in offsets.iter().enumerate() {
             let boundary = offset
                 .as_usize()
@@ -172,7 +172,7 @@ fn validate_live_values_utf8<T: ByteArrayType>(
         }
         let bytes = value_at(index, window[0].as_usize(), window[1].as_usize())?;
         utf8_from_bytes(bytes)
-            .map_err(|err| vortex_err!("Encountered non UTF-8 data at index {index}: {err}"))?;
+            .map_err(|err| vortex_err!(InvalidArgument: "Encountered non UTF-8 data at index {index}: {err}"))?;
     }
     Ok(())
 }

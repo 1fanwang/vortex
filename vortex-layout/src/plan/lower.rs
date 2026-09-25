@@ -53,7 +53,7 @@ pub fn lower(layout: &LayoutRef) -> VortexResult<PlanRef> {
         return Ok(lower_list(layout)?.into_plan());
     }
     vortex_bail!(
-        "No physical plan implementation for layout '{}'",
+        NotImplemented: "No physical plan implementation for layout '{}'",
         layout.encoding_id()
     )
 }
@@ -144,7 +144,7 @@ fn lazy_children(layout: LayoutRef, slots: Vec<usize>) -> PlanChildren {
         let slot = slots
             .get(index)
             .copied()
-            .ok_or_else(|| vortex_err!("Missing plan child slot {index}"))?;
+            .ok_or_else(|| vortex_err!(NotFound: "Missing plan child slot {index}"))?;
         let child = layout
             .slot(slot)?
             .ok_or_else(|| vortex_err!(AssertionFailed: "Layout child slot {slot} is absent"))?;

@@ -319,7 +319,7 @@ fn row_count_array(zone_len: u64, row_count: u64, num_zones: usize) -> VortexRes
     let leading_rows = zone_len.saturating_mul((num_zones as u64) - 1);
     let Some(last_zone_len) = row_count.checked_sub(leading_rows) else {
         vortex_bail!(
-            "Zone map declares {num_zones} zones of {zone_len} rows, which is more than the \
+            Serde: "Zone map declares {num_zones} zones of {zone_len} rows, which is more than the \
              {row_count} rows of the layout"
         );
     };
