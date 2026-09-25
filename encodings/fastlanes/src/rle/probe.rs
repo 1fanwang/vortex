@@ -67,7 +67,7 @@ pub(crate) fn scalar_at(
     };
     let value_index = offset
         .checked_add(code)
-        .ok_or_else(|| vortex_err!("RLE value index overflow"))?;
+        .ok_or_else(|| vortex_err!(Overflow: "RLE value index overflow"))?;
     let scalar = children
         .slot(RLESlots::VALUES)?
         .ok_or_else(|| vortex_err!("RLE values slot is missing"))?
@@ -79,7 +79,7 @@ fn read_offset(scalar: Scalar) -> VortexResult<usize> {
     scalar
         .as_primitive()
         .as_::<usize>()
-        .ok_or_else(|| vortex_err!("RLE offset must be a non-null usize"))
+        .ok_or_else(|| vortex_err!(InvalidArgument: "RLE offset must be a non-null usize"))
 }
 
 #[cfg(test)]

@@ -326,8 +326,9 @@ unsafe fn scan_columns(columns: *const vx_view, ncolumns: usize) -> VortexResult
             "CUDA scan column {index} name is too long"
         );
         // SAFETY: The caller guarantees readable name bytes. as_str checks null and UTF-8.
-        let name = unsafe { column.as_str() }
-            .map_err(|error| vortex_err!("invalid CUDA scan column {index}: {error}"))?;
+        let name = unsafe { column.as_str() }.map_err(
+            |error| vortex_err!(InvalidArgument: "invalid CUDA scan column {index}: {error}"),
+        )?;
         vortex_ensure!(seen.insert(name), "duplicate CUDA scan column: {name:?}");
         names.push(FieldName::from(name));
     }

@@ -491,7 +491,7 @@ impl CudaArrayExt for ArrayRef {
 
         if !self.is_host() {
             vortex_bail!(
-                "GPU execution for encoding {} failed ({gpu_error}); CPU fallback with device-resident buffers is not supported",
+                InvalidArgument: "GPU execution for encoding {} failed ({gpu_error}); CPU fallback with device-resident buffers is not supported",
                 self.encoding_id()
             );
         }

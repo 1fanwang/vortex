@@ -118,7 +118,7 @@ pub trait BinaryCombined: 'static + Send + Sync + Clone {
     ) -> VortexResult<CombinedOptions<Self>> {
         let _ = (metadata, session);
         vortex_bail!(
-            "Combined aggregate function {} is not deserializable",
+            Serde: "Combined aggregate function {} is not deserializable",
             BinaryCombined::id(self)
         );
     }
@@ -146,7 +146,7 @@ fn child_return_dtype<V: AggregateFnVTable>(
 ) -> VortexResult<DType> {
     vtable.return_dtype(options, input_dtype).ok_or_else(|| {
         vortex_err!(
-            "Aggregate function {} cannot be applied to dtype {}",
+            InvalidArgument: "Aggregate function {} cannot be applied to dtype {}",
             vtable.id(),
             input_dtype
         )
@@ -174,7 +174,7 @@ impl<T: BinaryCombined> Combined<T> {
     ) -> VortexResult<(AggregateDTypes, AggregateDTypes)> {
         let partials = args.partial_dtype.as_struct_fields_opt().ok_or_else(|| {
             vortex_err!(
-                "Combined partial dtype must be a struct, got {}",
+                MismatchedTypes: "Combined partial dtype must be a struct, got {}",
                 args.partial_dtype
             )
         })?;

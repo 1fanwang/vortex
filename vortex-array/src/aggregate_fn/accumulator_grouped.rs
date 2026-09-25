@@ -229,7 +229,7 @@ impl<V: AggregateFnVTable> DynGroupedAccumulator for GroupedAccumulator<V> {
             DType::List(elem, _) => elem,
             DType::FixedSizeList(elem, ..) => elem,
             _ => vortex_bail!(
-                "Input DType mismatch: expected List or FixedSizeList, got {}",
+                MismatchedTypes: "Input DType mismatch: expected List or FixedSizeList, got {}",
                 groups.dtype()
             ),
         };

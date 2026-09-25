@@ -292,7 +292,9 @@ impl AggregateFnVTable for SumV2 {
                 Canonical::Decimal(array) => {
                     accumulate_decimal(&mut partial.sum, args.return_dtype, array, ctx)
                 }
-                _ => vortex_bail!("Unsupported canonical type for sum_v2: {}", batch.dtype()),
+                _ => {
+                    vortex_bail!(InvalidArgument: "Unsupported canonical type for sum_v2: {}", batch.dtype())
+                }
             },
             Columnar::Constant(_) => unreachable!(),
         };
@@ -400,7 +402,7 @@ fn decode_partial_scalar(scalar: Scalar) -> VortexResult<(Scalar, bool, bool)> {
     vortex_ensure!(!scalar.is_null(), "SumV2 partial must not be null");
 
     let Some(fields) = scalar.as_struct_opt() else {
-        vortex_bail!("SumV2 partial must be a struct, got {}", scalar.dtype());
+        vortex_bail!(MismatchedTypes: "SumV2 partial must be a struct, got {}", scalar.dtype());
     };
     let sum = fields
         .field(SUM_FIELD)

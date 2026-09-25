@@ -244,7 +244,7 @@ impl EditionSession {
                 && parse_release(version).is_none()
             {
                 vortex_bail!(
-                    "edition {} declares malformed min_library_version {version:?}",
+                    Serde: "edition {} declares malformed min_library_version {version:?}",
                     edition.id
                 );
             }
@@ -256,7 +256,7 @@ impl EditionSession {
             let (prev, next) = (&pair[0], &pair[1]);
             if prev.id.family == next.id.family && prev.is_draft() && !next.is_draft() {
                 vortex_bail!(
-                    "frozen edition {} follows draft {}; drafts must be newest in a family",
+                    InvalidArgument: "frozen edition {} follows draft {}; drafts must be newest in a family",
                     next.id,
                     prev.id,
                 );
@@ -286,7 +286,7 @@ impl EditionSession {
                 && required > declared
             {
                 vortex_bail!(
-                    "{} {} requires release {}, newer than edition {}'s declared \
+                    InvalidArgument: "{} {} requires release {}, newer than edition {}'s declared \
                      min_library_version",
                     inclusion.kind,
                     inclusion.component_id,

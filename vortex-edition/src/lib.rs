@@ -369,7 +369,7 @@ impl EditionInclusion {
                 .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._-".contains(c));
         if !well_formed {
             vortex_bail!(
-                "invalid {} id {id:?}: expected lowercase `namespace.name`, e.g. `vortex.alp`",
+                InvalidArgument: "invalid {} id {id:?}: expected lowercase `namespace.name`, e.g. `vortex.alp`",
                 self.kind
             );
         }
@@ -377,7 +377,7 @@ impl EditionInclusion {
             && parse_release(release).is_none()
         {
             vortex_bail!(
-                "{} {id} declares malformed required_vortex_release {release:?}",
+                Serde: "{} {id} declares malformed required_vortex_release {release:?}",
                 self.kind
             );
         }

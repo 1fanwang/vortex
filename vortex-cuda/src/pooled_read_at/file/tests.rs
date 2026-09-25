@@ -70,7 +70,7 @@ impl FileReadBackend for FakeFileReadBackend {
         self.requests.lock().push((offset, length));
         let end = offset
             .checked_add(u64::try_from(length)?)
-            .ok_or_else(|| vortex_err!("overflow reached fake backend"))?;
+            .ok_or_else(|| vortex_err!(Overflow: "overflow reached fake backend"))?;
         let alignment = if self.padded { 4096 } else { 1 };
         let prefix = usize::try_from(offset % alignment as u64)?;
         let source_len = (prefix + length).next_multiple_of(alignment);

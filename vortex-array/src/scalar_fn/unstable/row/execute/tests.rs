@@ -233,7 +233,7 @@ fn packed_boolean_payload_uses_allocator(
                 DenseAttempt::DeferredError(error) => return Err(error),
             }
         }
-        _ => vortex_bail!("this test traversal requires packed Boolean output"),
+        _ => vortex_bail!(InvalidArgument: "this test traversal requires packed Boolean output"),
     };
     tracker.assert_owns(output.as_::<Bool>().to_bit_buffer().inner().as_slice());
     assert_eq!(tracker.live_allocations(), 1);
@@ -277,7 +277,7 @@ where
             |_| (),
             |_, _, row| apply(row),
         ),
-        _ => vortex_bail!("this test traversal requires an owned output"),
+        _ => vortex_bail!(InvalidArgument: "this test traversal requires an owned output"),
     }
 }
 

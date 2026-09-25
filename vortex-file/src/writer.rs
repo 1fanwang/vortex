@@ -485,7 +485,7 @@ fn new_layout_context(session: &VortexSession, enforce_editions: bool) -> Layout
 fn validate_metadata_segments(metadata: &HashMap<String, ByteBuffer>) -> VortexResult<()> {
     if metadata.len() > MAX_METADATA_SEGMENTS {
         vortex_bail!(
-            "Vortex files may contain at most {} metadata segments; got {} metadata segments. Metadata keys must be non-empty and at most {} bytes",
+            InvalidArgument: "Vortex files may contain at most {} metadata segments; got {} metadata segments. Metadata keys must be non-empty and at most {} bytes",
             MAX_METADATA_SEGMENTS,
             metadata.len(),
             MAX_METADATA_KEY_BYTES
@@ -495,7 +495,7 @@ fn validate_metadata_segments(metadata: &HashMap<String, ByteBuffer>) -> VortexR
     for key in metadata.keys() {
         if key.is_empty() {
             vortex_bail!(
-                "Vortex metadata keys must be non-empty and at most {} bytes; files may contain at most {} metadata segments",
+                InvalidArgument: "Vortex metadata keys must be non-empty and at most {} bytes; files may contain at most {} metadata segments",
                 MAX_METADATA_KEY_BYTES,
                 MAX_METADATA_SEGMENTS
             );
@@ -504,7 +504,7 @@ fn validate_metadata_segments(metadata: &HashMap<String, ByteBuffer>) -> VortexR
         let key_bytes = key.len();
         if key_bytes > MAX_METADATA_KEY_BYTES {
             vortex_bail!(
-                "Vortex metadata key {key:?} is {key_bytes} bytes, but keys must be at most {} bytes; files may contain at most {} metadata segments",
+                InvalidArgument: "Vortex metadata key {key:?} is {key_bytes} bytes, but keys must be at most {} bytes; files may contain at most {} metadata segments",
                 MAX_METADATA_KEY_BYTES,
                 MAX_METADATA_SEGMENTS
             );
@@ -547,7 +547,7 @@ impl Writer<'_> {
                 // finish() is called. Therefore, we can assume the writer has failed.
                 // The writer future has failed, we need to propagate the error.
                 match result {
-                    Ok(_) => vortex_bail!("Internal error: writer future completed early"),
+                    Ok(_) => vortex_bail!(AssertionFailed: "Internal error: writer future completed early"),
                     Err(e) => return Err(e),
                 }
             }
@@ -586,7 +586,7 @@ impl Writer<'_> {
                 // finish() is called. Therefore, we can assume the writer has failed.
                 // The writer future has failed, we need to propagate the error.
                 match result {
-                    Ok(_) => vortex_bail!("Internal error: writer future completed early"),
+                    Ok(_) => vortex_bail!(AssertionFailed: "Internal error: writer future completed early"),
                     Err(e) => return Err(e),
                 }
             }
@@ -619,7 +619,7 @@ impl Writer<'_> {
     async fn handle_failed_task(&mut self) -> VortexError {
         match (&mut self.future).await {
             Ok(_) => vortex_err!(
-                "Internal error: writer task completed successfully but write future finished early"
+                AssertionFailed: "Internal error: writer task completed successfully but write future finished early"
             ),
             Err(e) => e,
         }

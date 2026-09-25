@@ -181,7 +181,7 @@ impl PrivateData {
                         drop(record_read);
                         usize::try_from(device_ptr)
                             .map(|ptr| ptr as *const c_void)
-                            .map_err(|_| vortex_err!("CUDA device pointer does not fit in usize"))
+                            .map_err(|_| vortex_err!(Overflow: "CUDA device pointer does not fit in usize"))
                     }
                 }
             })
@@ -447,7 +447,7 @@ impl DeviceArrayStreamPrivateData {
             if stream_schema != &exported_schema {
                 release_device_array(&mut device_array);
                 return Err(vortex_err!(
-                    "stream array Arrow schema changed from {:?} to {:?}; an Arrow C device stream \
+                    InvalidArgument: "stream array Arrow schema changed from {:?} to {:?}; an Arrow C device stream \
                      requires every array to share one schema, so chunks must not vary their \
                      encoding (for example a dictionary-encoded chunk among plain chunks)",
                     stream_schema,
@@ -786,7 +786,11 @@ fn arrow_device_export_dictionary_codes_dtype(codes_dtype: &DType) -> VortexResu
         PType::U16 => PType::I32,
         PType::U32 | PType::U64 => PType::I64,
         ptype @ (PType::I8 | PType::I16 | PType::I32 | PType::I64) => ptype,
-        ptype => return Err(vortex_err!("dictionary codes must be integer, got {ptype}")),
+        ptype => {
+            return Err(
+                vortex_err!(MismatchedTypes: "dictionary codes must be integer, got {ptype}"),
+            );
+        }
     };
 
     Ok(DType::Primitive(ptype, codes_dtype.nullability()))

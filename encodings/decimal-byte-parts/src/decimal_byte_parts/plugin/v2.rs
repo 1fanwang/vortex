@@ -90,8 +90,9 @@ pub(super) fn deserialize(parts: ArrayDeserialization<'_>) -> VortexResult<Decim
     let mut slots = ArraySlots::with_capacity(parts.children.len());
     slots.push(Some(parts.children.get(0, &msp_dtype, parts.len)?));
     for (idx, raw_ptype) in metadata.lower_part_ptypes.into_iter().enumerate() {
-        let ptype = PType::try_from(raw_ptype)
-            .map_err(|_| vortex_err!("invalid PType {raw_ptype} for lower part {idx}"))?;
+        let ptype = PType::try_from(raw_ptype).map_err(
+            |_| vortex_err!(InvalidArgument: "invalid PType {raw_ptype} for lower part {idx}"),
+        )?;
         vortex_ensure!(
             ptype.is_unsigned_int(),
             "lower part {idx} must have an unsigned integer dtype, got {ptype}"

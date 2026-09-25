@@ -22,7 +22,7 @@ pub(crate) fn scalar_at(
     let logical_index = array
         .offset()
         .checked_add(index)
-        .ok_or_else(|| vortex_err!("RunEnd logical index overflow"))?;
+        .ok_or_else(|| vortex_err!(Overflow: "RunEnd logical index overflow"))?;
     // Search for the first end strictly greater than the logical index. Every comparison
     // uses the same ends probe, so a retained read keeps the child's preparation within and
     // between searches.

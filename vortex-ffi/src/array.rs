@@ -279,7 +279,7 @@ pub unsafe extern "C-unwind" fn vx_array_get_field(
         let struct_array = array.clone().execute::<StructArray>(&mut ctx)?;
         let field_array = struct_array
             .unmasked_field_opt(index)
-            .ok_or_else(|| vortex_err!("Field index out of bounds"))?
+            .ok_or_else(|| vortex_err!(OutOfBounds: "Field index out of bounds"))?
             .clone();
 
         Ok(vx_array::new(field_array))
@@ -531,7 +531,7 @@ unsafe fn varbinview_at(
             array.dtype()
         );
         let Some(views) = array.as_opt::<VarBinView>() else {
-            vortex_bail!("expected a canonical array, got {}", array.encoding_id());
+            vortex_bail!(MismatchedTypes: "expected a canonical array, got {}", array.encoding_id());
         };
         Ok(vx_view::from_bytes(views.bytes_at(index).as_slice()))
     })
@@ -645,7 +645,7 @@ pub unsafe extern "C-unwind" fn vx_array_data_ptr_primitive(
         let array = vx_array::as_ref(array);
         let primitive = array.as_opt::<Primitive>().ok_or_else(|| {
             vortex_err!(
-                "vx_array_data_ptr_primitive requires a canonical Primitive array, got {}",
+                InvalidArgument: "vx_array_data_ptr_primitive requires a canonical Primitive array, got {}",
                 array.encoding_id()
             )
         })?;
@@ -683,7 +683,7 @@ pub unsafe extern "C-unwind" fn vx_array_data_ptr_bool(
         let array = unsafe { vx_array_ref(array) }?;
         let array = array.as_opt::<Bool>().ok_or_else(|| {
             let id = array.encoding_id();
-            vortex_err!("vx_array_data_ptr_bool requires a canonical Bool array, got {id}")
+            vortex_err!(InvalidArgument: "vx_array_data_ptr_bool requires a canonical Bool array, got {id}")
         })?;
         let bits = array.to_bit_buffer();
         let ptr = bits.inner().as_ptr().cast();

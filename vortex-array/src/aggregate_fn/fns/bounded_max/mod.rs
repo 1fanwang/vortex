@@ -208,7 +208,7 @@ impl AggregateFnVTable for BoundedMax {
         } else {
             let Some(fields) = scalar.as_struct_opt() else {
                 vortex_bail!(
-                    "BoundedMax partial must be a struct, got {}",
+                    MismatchedTypes: "BoundedMax partial must be a struct, got {}",
                     scalar.dtype()
                 );
             };
@@ -219,7 +219,7 @@ impl AggregateFnVTable for BoundedMax {
                 .field_by_idx(1)
                 .and_then(|unknown| unknown.as_bool().value())
             else {
-                vortex_bail!("BoundedMax partial is missing its non-null unknown field");
+                vortex_bail!(NotFound: "BoundedMax partial is missing its non-null unknown field");
             };
 
             if unknown {

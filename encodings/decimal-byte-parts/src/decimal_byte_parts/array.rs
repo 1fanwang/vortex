@@ -92,7 +92,7 @@ impl DecimalBytePartsData {
         len: usize,
     ) -> VortexResult<()> {
         if !msp.dtype().is_signed_int() {
-            vortex_bail!("msp must be a signed integer array")
+            vortex_bail!(InvalidArgument: "msp must be a signed integer array")
         }
 
         let expected_dtype = DType::Decimal(decimal_dtype, msp.dtype().nullability());
@@ -208,7 +208,7 @@ impl VTable for DecimalByteParts {
         slots: &[Option<ArrayRef>],
     ) -> VortexResult<()> {
         let Some(decimal_dtype) = dtype.as_decimal_opt() else {
-            vortex_bail!("expected decimal dtype, got {}", dtype)
+            vortex_bail!(MismatchedTypes: "expected decimal dtype, got {}", dtype)
         };
 
         let min_slots = DecimalBytePartsSlots::FIXED_COUNT;
@@ -256,7 +256,7 @@ impl VTable for DecimalByteParts {
         _array: ArrayView<'_, Self>,
         _session: &VortexSession,
     ) -> VortexResult<Option<Vec<u8>>> {
-        vortex_bail!("DecimalByteParts serialization requires DecimalBytePartsPlugin")
+        vortex_bail!(Serde: "DecimalByteParts serialization requires DecimalBytePartsPlugin")
     }
 
     fn deserialize(
@@ -268,7 +268,7 @@ impl VTable for DecimalByteParts {
         _children: &dyn ArrayChildren,
         _session: &VortexSession,
     ) -> VortexResult<ArrayParts<Self>> {
-        vortex_bail!("DecimalByteParts deserialization requires DecimalBytePartsPlugin")
+        vortex_bail!(Serde: "DecimalByteParts deserialization requires DecimalBytePartsPlugin")
     }
 
     fn slot_name(_array: ArrayView<'_, Self>, idx: usize) -> String {

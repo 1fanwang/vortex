@@ -456,7 +456,7 @@ impl AggregateFnVTable for MinMax {
                 | Canonical::Map(_)
                 | Canonical::FixedSizeList(_)
                 | Canonical::Variant(_) => {
-                    vortex_bail!("Unsupported canonical type for min_max: {}", batch.dtype())
+                    vortex_bail!(InvalidArgument: "Unsupported canonical type for min_max: {}", batch.dtype())
                 }
             },
         }
