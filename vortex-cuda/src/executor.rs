@@ -397,10 +397,10 @@ pub(crate) async fn execute_validity_cuda(
         return Ok(validity);
     };
 
-    vortex_ensure!(array.len() == len, "validity array length mismatch");
+    vortex_ensure!(array.len() == len, InvalidArgument: "validity array length mismatch");
     vortex_ensure!(
         matches!(array.dtype(), DType::Bool(Nullability::NonNullable)),
-        "validity array must be non-nullable boolean, got {}",
+        MismatchedTypes: "validity array must be non-nullable boolean, got {}",
         array.dtype()
     );
 

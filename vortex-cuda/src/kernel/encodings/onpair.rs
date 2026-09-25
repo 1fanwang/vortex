@@ -151,7 +151,7 @@ async fn decode_onpair(
         let row_total = u64::try_from(total)?;
         vortex_ensure!(
             row_total == total_size as u64,
-            "OnPair codes decode to {total_size} bytes but uncompressed_lengths records {row_total}"
+            Serde: "OnPair codes decode to {total_size} bytes but uncompressed_lengths records {row_total}"
         );
         let row_offsets_view = row_offsets.cuda_view::<i32>()?;
         let bytes_view = bytes.cuda_view::<u8>()?;
@@ -182,7 +182,7 @@ async fn decode_onpair(
     let row_total = sum_lengths(&lengths)?;
     vortex_ensure!(
         row_total == total_size as u64,
-        "OnPair codes decode to {total_size} bytes but uncompressed_lengths records {row_total}"
+        Serde: "OnPair codes decode to {total_size} bytes but uncompressed_lengths records {row_total}"
     );
     let host_bytes = bytes.try_to_host()?.await?;
 
@@ -234,7 +234,7 @@ pub(crate) async fn decode_onpair_varbin(
     let row_total = u64::try_from(total)?;
     vortex_ensure!(
         row_total == total_size as u64,
-        "OnPair codes decode to {total_size} bytes but uncompressed_lengths records {row_total}"
+        Serde: "OnPair codes decode to {total_size} bytes but uncompressed_lengths records {row_total}"
     );
 
     Ok(DecodedVarBin {
@@ -466,11 +466,11 @@ where
     let heap_size = usize::try_from(chunk_total)?;
     vortex_ensure!(
         token_start <= token_end,
-        "OnPair codes_offsets must be nondecreasing"
+        InvalidArgument: "OnPair codes_offsets must be nondecreasing"
     );
     vortex_ensure!(
         token_end <= num_tokens_u64,
-        "OnPair codes_offsets end {token_end} exceeds codes len {num_tokens_u64}"
+        InvalidArgument: "OnPair codes_offsets end {token_end} exceeds codes len {num_tokens_u64}"
     );
     if token_start == token_end {
         // No codes in the window (e.g. a slice covering only null rows).
@@ -482,12 +482,12 @@ where
     let byte_end = usize::try_from(byte_end)?;
     vortex_ensure!(
         byte_start <= byte_end && byte_end <= heap_size,
-        "OnPair window bounds [{byte_start}, {byte_end}) exceed decoded heap size {heap_size}"
+        OutOfBounds: "OnPair window bounds [{byte_start}, {byte_end}) exceed decoded heap size {heap_size}"
     );
     let total_size = byte_end - byte_start;
     // A conformant dictionary has no zero-length tokens, so a non-empty code window decodes to at
     // least one byte.
-    vortex_ensure!(total_size > 0, "OnPair has codes but decodes to zero bytes");
+    vortex_ensure!(total_size > 0, Serde: "OnPair has codes but decodes to zero bytes");
 
     // Decode only batches intersecting the visible token window. The kernel's drain gates 16-byte
     // stores on `out_start % 16` relative to the buffer base, so the base must be 16-aligned.
@@ -638,7 +638,7 @@ async fn ensure_zero_lengths(lengths: PrimitiveArray) -> VortexResult<()> {
     let total = sum_lengths(&lengths)?;
     vortex_ensure!(
         total == 0,
-        "OnPair records {total} decoded bytes but has no codes"
+        Serde: "OnPair records {total} decoded bytes but has no codes"
     );
     Ok(())
 }
@@ -708,7 +708,7 @@ mod tests {
         let onpair = onpair_compress(&varbin, DEFAULT_CONFIG, ctx.execution_ctx())?;
         vortex_ensure!(
             onpair.as_opt::<OnPair>().is_some(),
-            "expected OnPair array, got {}",
+            MismatchedTypes: "expected OnPair array, got {}",
             onpair.encoding_id()
         );
         Ok(onpair)

@@ -62,7 +62,7 @@ use crate::scalar_fn::execute::dispatch_unary;
 fn collect_dtype(dtypes: &[DType]) -> VortexResult<ExtDTypeRef> {
     vortex_ensure!(
         dtypes.len() == 1,
-        "spatial: collect requires exactly one list operand, got {}",
+        InvalidArgument: "spatial: collect requires exactly one list operand, got {}",
         dtypes.len()
     );
     let DType::List(element_dtype, nullability) = &dtypes[0] else {

@@ -96,7 +96,7 @@ impl VTable for ALP {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("ALPArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ALPArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {
@@ -260,7 +260,7 @@ impl ALPData {
                 encoded.dtype(),
                 DType::Primitive(PType::I32 | PType::I64, _)
             ),
-            "ALP encoded ints have invalid DType {}",
+            MismatchedTypes: "ALP encoded ints have invalid DType {}",
             encoded.dtype(),
         );
 
@@ -269,15 +269,15 @@ impl ALPData {
         let Exponents { e, f } = exponents;
         match encoded.dtype().as_ptype() {
             PType::I32 => {
-                vortex_ensure!(exponents.e <= f32::MAX_EXPONENT, "e out of bounds: {e}");
-                vortex_ensure!(exponents.f <= f32::MAX_EXPONENT, "f out of bounds: {f}");
+                vortex_ensure!(exponents.e <= f32::MAX_EXPONENT, InvalidArgument: "e out of bounds: {e}");
+                vortex_ensure!(exponents.f <= f32::MAX_EXPONENT, InvalidArgument: "f out of bounds: {f}");
                 if let Some(patches) = patches {
                     Self::validate_patches::<f32>(patches, encoded)?;
                 }
             }
             PType::I64 => {
-                vortex_ensure!(e <= f64::MAX_EXPONENT, "e out of bounds: {e}");
-                vortex_ensure!(f <= f64::MAX_EXPONENT, "f out of bounds: {f}");
+                vortex_ensure!(e <= f64::MAX_EXPONENT, InvalidArgument: "e out of bounds: {e}");
+                vortex_ensure!(f <= f64::MAX_EXPONENT, InvalidArgument: "f out of bounds: {f}");
 
                 if let Some(patches) = patches {
                     Self::validate_patches::<f64>(patches, encoded)?;
@@ -290,7 +290,7 @@ impl ALPData {
         if let Some(patches) = patches {
             vortex_ensure!(
                 patches.array_len() == encoded.len(),
-                "patches array_len != encoded len: {} != {}",
+                InvalidArgument: "patches array_len != encoded len: {} != {}",
                 patches.array_len(),
                 encoded.len()
             );
@@ -322,7 +322,7 @@ impl ALPData {
     ) -> VortexResult<()> {
         vortex_ensure!(
             patches.array_len() == encoded.len(),
-            "patches array_len != encoded len: {} != {}",
+            InvalidArgument: "patches array_len != encoded len: {} != {}",
             patches.array_len(),
             encoded.len()
         );
@@ -330,7 +330,7 @@ impl ALPData {
         let expected_type = DType::Primitive(T::PTYPE, encoded.dtype().nullability());
         vortex_ensure!(
             patches.dtype() == &expected_type,
-            "Expected patches type {expected_type}, actual {}",
+            MismatchedTypes: "Expected patches type {expected_type}, actual {}",
             patches.dtype(),
         );
 
@@ -447,12 +447,12 @@ fn validate_parts(
     ALPData::validate_components(encoded, exponents, patches.as_ref())?;
     vortex_ensure!(
         encoded.len() == len,
-        "ALP encoded len {} != outer len {len}",
+        InvalidArgument: "ALP encoded len {} != outer len {len}",
         encoded.len(),
     );
     vortex_ensure!(
         &logical_dtype == dtype,
-        "ALP dtype {} does not match encoded logical dtype {}",
+        MismatchedTypes: "ALP dtype {} does not match encoded logical dtype {}",
         dtype,
         logical_dtype,
     );

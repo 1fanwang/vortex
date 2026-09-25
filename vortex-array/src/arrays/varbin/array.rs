@@ -221,7 +221,7 @@ impl VarBinData {
         if let Some(validity_len) = validity.maybe_len() {
             vortex_ensure!(
                 validity_len == offsets.len() - 1,
-                "Validity length {} doesn't match array length {}",
+                InvalidArgument: "Validity length {} doesn't match array length {}",
                 validity_len,
                 offsets.len() - 1
             );

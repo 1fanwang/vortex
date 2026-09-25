@@ -269,7 +269,7 @@ impl<R: VortexReadAt> Stream for ReadDriver<R> {
             }
             Poll::Ready(None) if this.num_active == 0 => Poll::Pending,
             Poll::Ready(None) => {
-                vortex_panic!("read result streams ended with active requests")
+                vortex_panic!(AssertionFailed: "read result streams ended with active requests")
             }
             Poll::Pending => Poll::Pending,
         }
@@ -316,7 +316,7 @@ impl FileSegmentSource {
         let concurrency = reader.concurrency();
         if concurrency == 0 {
             vortex_panic!(
-                "VortexReadAt::concurrency returned 0 (uri={:?}); this would stall I/O",
+                AssertionFailed: "VortexReadAt::concurrency returned 0 (uri={:?}); this would stall I/O",
                 reader.uri()
             );
         }
@@ -841,7 +841,7 @@ mod tests {
                     let permits = Arc::clone(&self.permits);
                     async move {
                         let Ok(permit) = permits.acquire_owned().await else {
-                            vortex_panic!("test semaphore unexpectedly closed");
+                            vortex_panic!(AssertionFailed: "test semaphore unexpectedly closed");
                         };
                         permit.forget();
                         active.fetch_sub(1, Ordering::SeqCst);

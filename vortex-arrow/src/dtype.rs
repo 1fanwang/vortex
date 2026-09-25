@@ -206,7 +206,7 @@ pub(crate) fn from_arrow_data_type(
         DataType::Map(entries, keys_sorted) => {
             vortex_ensure!(
                 !entries.is_nullable(),
-                "Arrow map entries field must be non-nullable"
+                InvalidArgument: "Arrow map entries field must be non-nullable"
             );
             let DataType::Struct(fields) = entries.data_type() else {
                 vortex_bail!(
@@ -223,7 +223,7 @@ pub(crate) fn from_arrow_data_type(
             let value = &fields[1];
             vortex_ensure!(
                 !key.is_nullable(),
-                "Arrow map key field must be non-nullable"
+                InvalidArgument: "Arrow map key field must be non-nullable"
             );
             DType::map(
                 from_arrow_field_naive(key.as_ref())?,

@@ -106,7 +106,7 @@ impl VTable for RunEnd {
         RunEndData::validate_parts(ends, values, data.offset, len, &mut ctx)?;
         vortex_ensure!(
             values.dtype() == dtype,
-            "expected dtype {}, got {}",
+            MismatchedTypes: "expected dtype {}, got {}",
             dtype,
             values.dtype()
         );
@@ -118,11 +118,11 @@ impl VTable for RunEnd {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("RunEndArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "RunEndArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("RunEndArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "RunEndArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(
@@ -328,12 +328,12 @@ impl RunEndData {
         // DType validation
         vortex_ensure!(
             ends.dtype().is_unsigned_int(),
-            "run ends must be unsigned integers, was {}",
+            MismatchedTypes: "run ends must be unsigned integers, was {}",
             ends.dtype(),
         );
         vortex_ensure!(
             ends.len() == values.len(),
-            "run ends len != run values len, {} != {}",
+            InvalidArgument: "run ends len != run values len, {} != {}",
             ends.len(),
             values.len()
         );
@@ -342,7 +342,7 @@ impl RunEndData {
         if ends.is_empty() {
             vortex_ensure!(
                 offset == 0,
-                "non-zero offset provided for empty RunEndArray"
+                InvalidArgument: "non-zero offset provided for empty RunEndArray"
             );
             return Ok(());
         }

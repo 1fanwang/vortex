@@ -255,7 +255,7 @@ impl PackPlan {
     ) -> VortexResult<Self> {
         vortex_ensure!(
             !self.dtype().is_nullable(),
-            "Cannot prune fields from a nullable Pack"
+            InvalidArgument: "Cannot prune fields from a nullable Pack"
         );
         let struct_fields = StructFields::from_iter(
             fields

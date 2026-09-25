@@ -136,7 +136,7 @@ where
     vortex_ensure_eq!(
         valid.true_count(),
         filtered_len,
-        "the filtered batch must contain one row per valid row: {} valid rows, got {filtered_len}",
+        AssertionFailed: "the filtered batch must contain one row per valid row: {} valid rows, got {filtered_len}",
         valid.true_count(),
     );
 
@@ -155,7 +155,7 @@ where
     if let Some(views) = Args::views_if_no_consts(&columns) {
         vortex_ensure!(
             Args::view_lens_match(&views, filtered_len),
-            "a decoded row input does not address exactly {filtered_len} rows",
+            AssertionFailed: "a decoded row input does not address exactly {filtered_len} rows",
         );
 
         valid_rows.for_each_set_index(|index| {
@@ -172,7 +172,7 @@ where
     } else {
         vortex_ensure!(
             Args::decoded_lens_match(&columns, filtered_len),
-            "a decoded row input does not address exactly {filtered_len} rows",
+            AssertionFailed: "a decoded row input does not address exactly {filtered_len} rows",
         );
 
         valid_rows.for_each_set_index(|index| {
@@ -216,7 +216,7 @@ where
     vortex_ensure_eq!(
         valid_rows.len(),
         row_count,
-        "the validity mask must address exactly {row_count} rows, got {}",
+        AssertionFailed: "the validity mask must address exactly {row_count} rows, got {}",
         valid_rows.len(),
     );
 
@@ -233,7 +233,7 @@ where
     if let Some(views) = Args::views_if_no_consts(&columns) {
         vortex_ensure!(
             Args::view_lens_match(&views, row_count),
-            "a decoded row input does not address exactly {row_count} rows",
+            AssertionFailed: "a decoded row input does not address exactly {row_count} rows",
         );
 
         valid_rows.for_each_set_index(|index| {
@@ -249,7 +249,7 @@ where
     } else {
         vortex_ensure!(
             Args::decoded_lens_match(&columns, row_count),
-            "a decoded row input does not address exactly {row_count} rows",
+            AssertionFailed: "a decoded row input does not address exactly {row_count} rows",
         );
 
         valid_rows.for_each_set_index(|index| {

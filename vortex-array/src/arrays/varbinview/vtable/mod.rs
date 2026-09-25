@@ -95,19 +95,19 @@ impl VTable for VarBinView {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots.len() == VarBinViewSlots::COUNT,
-            "VarBinViewArray expected {} slots, found {}",
+            InvalidArgument: "VarBinViewArray expected {} slots, found {}",
             VarBinViewSlots::COUNT,
             slots.len()
         );
         vortex_ensure!(
             data.len() == len,
-            "VarBinViewArray length {} does not match outer length {}",
+            InvalidArgument: "VarBinViewArray length {} does not match outer length {}",
             data.len(),
             len
         );
         vortex_ensure!(
             matches!(dtype, DType::Binary(_) | DType::Utf8(_)),
-            "VarBinViewArray dtype must be binary or utf8, got {dtype}"
+            MismatchedTypes: "VarBinViewArray dtype must be binary or utf8, got {dtype}"
         );
         Ok(())
     }
@@ -119,7 +119,7 @@ impl VTable for VarBinView {
         } else if idx == ndata {
             array.views_handle().clone()
         } else {
-            vortex_panic!("VarBinViewArray buffer index {idx} out of bounds")
+            vortex_panic!(OutOfBounds: "VarBinViewArray buffer index {idx} out of bounds")
         }
     }
 
@@ -130,7 +130,7 @@ impl VTable for VarBinView {
         } else if idx == ndata {
             Some("views".to_string())
         } else {
-            vortex_panic!("VarBinViewArray buffer_name index {idx} out of bounds")
+            vortex_panic!(OutOfBounds: "VarBinViewArray buffer_name index {idx} out of bounds")
         }
     }
 

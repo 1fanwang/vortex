@@ -990,7 +990,7 @@ mod tests {
                 }
                 _ => {
                     vortex_panic!(
-                        "Expected f16 primitive values, got {scalar_value:?} and {read_back:?}"
+                        AssertionFailed: "Expected f16 primitive values, got {scalar_value:?} and {read_back:?}"
                     )
                 }
             }
@@ -1093,14 +1093,18 @@ mod tests {
                         PValue::U16(v) => *v as u64,
                         PValue::U32(v) => *v as u64,
                         PValue::U64(v) => *v,
-                        _ => vortex_panic!("Unexpected primitive type for {name}: {pv:?}"),
+                        _ => {
+                            vortex_panic!(AssertionFailed: "Unexpected primitive type for {name}: {pv:?}")
+                        }
                     };
                     assert_eq!(
                         v, expected,
                         "ScalarValue {name} value not preserved: expected {expected}, got {v}"
                     );
                 }
-                _ => vortex_panic!("Unexpected type after roundtrip for {name}: {read_back:?}"),
+                _ => {
+                    vortex_panic!(AssertionFailed: "Unexpected type after roundtrip for {name}: {read_back:?}")
+                }
             }
         }
 
@@ -1137,14 +1141,18 @@ mod tests {
                         PValue::I16(v) => *v as i64,
                         PValue::I32(v) => *v as i64,
                         PValue::I64(v) => *v,
-                        _ => vortex_panic!("Unexpected primitive type for {name}: {pv:?}"),
+                        _ => {
+                            vortex_panic!(AssertionFailed: "Unexpected primitive type for {name}: {pv:?}")
+                        }
                     };
                     assert_eq!(
                         v, expected,
                         "ScalarValue {name} value not preserved: expected {expected}, got {v}"
                     );
                 }
-                _ => vortex_panic!("Unexpected type after roundtrip for {name}: {read_back:?}"),
+                _ => {
+                    vortex_panic!(AssertionFailed: "Unexpected type after roundtrip for {name}: {read_back:?}")
+                }
             }
         }
     }

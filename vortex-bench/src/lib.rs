@@ -98,7 +98,7 @@ impl FromStr for Target {
     fn from_str(target_string: &str) -> Result<Self, Self::Err> {
         let split = target_string.split(":").collect_vec();
         let [engine_str, format_str] = split.as_slice() else {
-            vortex_panic!("invalid target string {}", target_string);
+            vortex_panic!(InvalidArgument: "invalid target string {}", target_string);
         };
 
         Ok(Self {

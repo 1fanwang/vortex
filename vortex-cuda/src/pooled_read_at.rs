@@ -168,7 +168,7 @@ impl VortexReadAt for PooledObjectStoreReadAt {
                         let end = filled + bytes.len();
                         vortex_ensure!(
                             end <= length,
-                            "Object store stream returned more bytes than expected (expected {} bytes, got at least {} bytes, range: {:?})",
+                            Io: "Object store stream returned more bytes than expected (expected {} bytes, got at least {} bytes, range: {:?})",
                             length,
                             end,
                             range
@@ -179,7 +179,7 @@ impl VortexReadAt for PooledObjectStoreReadAt {
 
                     vortex_ensure!(
                         filled == length,
-                        "Object store stream returned {} bytes but expected {} bytes (range: {:?})",
+                        Io: "Object store stream returned {} bytes but expected {} bytes (range: {:?})",
                         filled,
                         length,
                         range

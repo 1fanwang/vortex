@@ -154,7 +154,7 @@ where
     )?;
     vortex_ensure!(
         computed_len == output_len,
-        "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
     );
 
     let mut values = BitBufferMut::with_capacity(output_len);
@@ -185,7 +185,7 @@ where
 
     vortex_ensure!(
         values.len() == output_len,
-        "PiecewiseSequenceArray expanded length {} does not match declared length {output_len}",
+        AssertionFailed: "PiecewiseSequenceArray expanded length {} does not match declared length {output_len}",
         values.len()
     );
     Ok(values.freeze())

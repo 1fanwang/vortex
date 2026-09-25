@@ -88,12 +88,12 @@ impl ScalarFnVTable for BloomContains {
     fn return_dtype(&self, _options: &Self::Options, args: &[DType]) -> VortexResult<DType> {
         vortex_ensure!(
             matches!(args[0], DType::Binary(_)),
-            "bloom filter must be Binary"
+            MismatchedTypes: "bloom filter must be Binary"
         );
 
         vortex_ensure!(
             is_bloom_valid_dtype(&args[1]),
-            "bloom filter needle value type is unsupported"
+            MismatchedTypes: "bloom filter needle value type is unsupported"
         );
 
         Ok(DType::Bool(args[0].nullability() | args[1].nullability()))
@@ -181,7 +181,7 @@ impl ScalarFnVTable for BloomContains {
                 // and a property of the implementation.
                 u32::try_from(partial.len()).vortex_expect("valid u32 size"),
                 options.blocks_count().get(),
-                "expected equal blocks count"
+                InvalidArgument: "expected equal blocks count"
             );
             partial.contains_scalar(&needle)
         };

@@ -145,7 +145,7 @@ pub trait ArraySessionExt: SessionExt {
             plugin
                 .serialized_ids()
                 .contains(&serialization.serialized_id),
-            "array serializer {} produced undeclared serialized ID {}",
+            Serde: "array serializer {} produced undeclared serialized ID {}",
             array.encoding_id(),
             serialization.serialized_id,
         );

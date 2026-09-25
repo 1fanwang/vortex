@@ -133,7 +133,7 @@ impl ExecuteParentKernel<ParquetVariant> for VariantGetKernel {
         vortex_ensure_eq!(
             output.dtype(),
             parent.dtype(),
-            "VariantGet output dtype must match parent dtype"
+            MismatchedTypes: "VariantGet output dtype must match parent dtype"
         );
         Ok(Some(output))
     }
@@ -497,7 +497,7 @@ mod tests {
         }
         vortex_ensure!(
             pos > start,
-            "Invalid Variant path {path:?}: expected field name"
+            InvalidArgument: "Invalid Variant path {path:?}: expected field name"
         );
         Ok((&path[start..pos], pos))
     }
@@ -513,11 +513,11 @@ mod tests {
         }
         vortex_ensure!(
             pos > start,
-            "Invalid Variant path {path:?}: expected list index"
+            InvalidArgument: "Invalid Variant path {path:?}: expected list index"
         );
         vortex_ensure!(
             path.as_bytes().get(pos) == Some(&b']'),
-            "Invalid Variant path {path:?}: expected closing ']'"
+            InvalidArgument: "Invalid Variant path {path:?}: expected closing ']'"
         );
         let index = path[start..pos].parse().map_err(
             |_| vortex_err!(Overflow: "Invalid Variant path {path:?}: list index is too large"),

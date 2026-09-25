@@ -115,11 +115,11 @@ impl VTable for DateTimeParts {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("DateTimePartsArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "DateTimePartsArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("DateTimePartsArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "DateTimePartsArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(
@@ -309,7 +309,7 @@ impl DateTimePartsData {
         subseconds: &ArrayRef,
         len: usize,
     ) -> VortexResult<()> {
-        vortex_ensure!(days.len() == len, "expected len {len}, got {}", days.len());
+        vortex_ensure!(days.len() == len, InvalidArgument: "expected len {len}, got {}", days.len());
 
         if !days.dtype().is_int() || (dtype.is_nullable() != days.dtype().is_nullable()) {
             vortex_bail!(

@@ -157,7 +157,7 @@ impl VTable for FSST {
                     .into_byte_buffer(),
             ),
             2 => array.codes_bytes_handle().clone(),
-            _ => vortex_panic!("FSSTArray buffer index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "FSSTArray buffer index {idx} out of bounds"),
         }
     }
 
@@ -166,7 +166,7 @@ impl VTable for FSST {
             0 => Some("symbols".to_string()),
             1 => Some("symbol_lengths".to_string()),
             2 => Some("compressed_codes".to_string()),
-            _ => vortex_panic!("FSSTArray buffer_name index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "FSSTArray buffer_name index {idx} out of bounds"),
         }
     }
 
@@ -177,7 +177,7 @@ impl VTable for FSST {
     ) -> VortexResult<ArrayParts<Self>> {
         vortex_ensure!(
             buffers.len() == 3,
-            "Expected 3 buffers, got {}",
+            InvalidArgument: "Expected 3 buffers, got {}",
             buffers.len()
         );
         let symbols = Buffer::<Symbol>::from_byte_buffer(buffers[0].clone().try_to_host_sync()?);
@@ -805,7 +805,7 @@ impl FSSTData {
     ) -> VortexResult<()> {
         vortex_ensure!(
             matches!(dtype, DType::Binary(_) | DType::Utf8(_)),
-            "FSST arrays must be Binary or Utf8, found {dtype}"
+            MismatchedTypes: "FSST arrays must be Binary or Utf8, found {dtype}"
         );
 
         if symbols.len() > FSST_SYMBOL_TABLE_LEN {

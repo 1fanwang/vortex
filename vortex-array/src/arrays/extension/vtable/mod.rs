@@ -106,7 +106,7 @@ impl VTable for Extension {
         vortex_ensure_eq!(
             storage.len(),
             len,
-            "ExtensionArray length {} does not match outer length {len}",
+            InvalidArgument: "ExtensionArray length {} does not match outer length {len}",
             storage.len(),
         );
 
@@ -118,7 +118,7 @@ impl VTable for Extension {
         vortex_ensure_eq!(
             &actual_dtype,
             dtype,
-            "ExtensionArray dtype {actual_dtype} does not match outer dtype {dtype}",
+            MismatchedTypes: "ExtensionArray dtype {actual_dtype} does not match outer dtype {dtype}",
         );
 
         Ok(())
@@ -129,7 +129,7 @@ impl VTable for Extension {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("ExtensionArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ExtensionArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {

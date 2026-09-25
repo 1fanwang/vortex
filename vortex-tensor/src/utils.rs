@@ -40,7 +40,7 @@ pub fn validate_tensor_float_input(input_dtype: &DType) -> VortexResult<TensorMa
     let ptype = tensor_match.element_ptype();
     vortex_ensure!(
         ptype.is_float(),
-        "expected a float element dtype, got {ptype}",
+        MismatchedTypes: "expected a float element dtype, got {ptype}",
     );
 
     Ok(tensor_match)
@@ -54,7 +54,7 @@ pub fn validate_binary_tensor_float_inputs<'a>(
 ) -> VortexResult<TensorMatch<'a>> {
     vortex_ensure!(
         lhs.eq_ignore_nullability(rhs),
-        "binary tensor expression expects inputs to have the same dtype, got {lhs} and {rhs}"
+        MismatchedTypes: "binary tensor expression expects inputs to have the same dtype, got {lhs} and {rhs}"
     );
     validate_tensor_float_input(lhs)
 }
@@ -123,7 +123,7 @@ pub fn extract_flat_elements(
     let elems: PrimitiveArray = fsl.elements().clone().execute(ctx)?;
     vortex_ensure!(
         !elems.nullability().is_nullable(),
-        "tensor storage elements must be non-nullable, got {}",
+        InvalidArgument: "tensor storage elements must be non-nullable, got {}",
         elems.dtype(),
     );
     Ok(FlatElements {

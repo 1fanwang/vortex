@@ -49,7 +49,7 @@ impl Dimension {
         let mut strs = [""; 4];
         vortex_ensure!(
             names.len() <= strs.len(),
-            "not a valid GeoArrow coordinate dimension: {names:?}"
+            InvalidArgument: "not a valid GeoArrow coordinate dimension: {names:?}"
         );
         for (slot, name) in strs.iter_mut().zip(names.iter()) {
             *slot = name.as_ref();
@@ -164,7 +164,7 @@ pub(crate) fn coordinate_dimension(dtype: &DType) -> VortexResult<Dimension> {
                 field,
                 DType::Primitive(PType::F64, Nullability::NonNullable)
             ),
-            "coordinate field {name} must be non-nullable f64, was {field}"
+            MismatchedTypes: "coordinate field {name} must be non-nullable f64, was {field}"
         );
     }
     Dimension::from_field_names(fields.names())

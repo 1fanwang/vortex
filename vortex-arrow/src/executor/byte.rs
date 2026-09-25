@@ -159,7 +159,7 @@ fn validate_live_values_utf8<T: ByteArrayType>(
                 .filter(|boundary| validated.is_char_boundary(*boundary));
             vortex_ensure!(
                 boundary.is_some(),
-                "Offset {} at index {index} does not fall on a UTF-8 character boundary",
+                InvalidArgument: "Offset {} at index {index} does not fall on a UTF-8 character boundary",
                 offset.as_usize()
             );
         }

@@ -86,7 +86,7 @@ impl FileReadBackend for DirectFileReadBackend {
         let address = buffer.as_mut_slice().as_ptr() as usize;
         vortex_ensure!(
             address.is_multiple_of(self.constraints.memory_alignment),
-            "pinned buffer address {address:#x} is not aligned to {} bytes",
+            InvalidArgument: "pinned buffer address {address:#x} is not aligned to {} bytes",
             self.constraints.memory_alignment
         );
 
@@ -106,7 +106,7 @@ impl FileReadBackend for DirectFileReadBackend {
 }
 
 fn direct_io_range(offset: u64, length: usize, alignment: usize) -> VortexResult<DirectIoRange> {
-    vortex_ensure!(alignment > 0, "direct I/O alignment must be non-zero");
+    vortex_ensure!(alignment > 0, InvalidArgument: "direct I/O alignment must be non-zero");
     if length == 0 {
         return Ok(DirectIoRange {
             read_offset: offset,
@@ -204,11 +204,11 @@ fn direct_io_constraints(file: &File) -> VortexResult<DirectIoConstraints> {
     }
     vortex_ensure!(
         memory_alignment.is_power_of_two(),
-        "direct I/O memory alignment must be a power of two, got {memory_alignment}"
+        InvalidArgument: "direct I/O memory alignment must be a power of two, got {memory_alignment}"
     );
     vortex_ensure!(
         offset_alignment.is_power_of_two(),
-        "direct I/O offset alignment must be a power of two, got {offset_alignment}"
+        InvalidArgument: "direct I/O offset alignment must be a power of two, got {offset_alignment}"
     );
 
     Ok(DirectIoConstraints {

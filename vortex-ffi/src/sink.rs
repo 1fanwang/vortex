@@ -130,7 +130,7 @@ pub unsafe extern "C-unwind" fn vx_array_sink_push(
 
         vortex_ensure!(
             *array.dtype() == sink.dtype,
-            "array dtype {} does not match sink dtype {}",
+            MismatchedTypes: "array dtype {} does not match sink dtype {}",
             array.dtype(),
             sink.dtype
         );

@@ -156,7 +156,7 @@ impl AggregateFnVTable for Sum {
     ) -> VortexResult<Self::Partial> {
         vortex_ensure!(
             scalar.dtype().eq_ignore_nullability(args.return_dtype),
-            "Sum partial has dtype {}, expected {}",
+            MismatchedTypes: "Sum partial has dtype {}, expected {}",
             scalar.dtype(),
             args.return_dtype
         );
@@ -351,7 +351,7 @@ pub(crate) fn make_zero_state(return_dtype: &DType) -> SumState {
             PType::F16 | PType::F32 | PType::F64 => SumState::Float(0.0),
         },
         DType::Decimal(decimal, _) => SumState::Decimal(DecimalValue::zero(decimal)),
-        _ => vortex_panic!("Unsupported sum type"),
+        _ => vortex_panic!(NotImplemented: "Unsupported sum type"),
     }
 }
 

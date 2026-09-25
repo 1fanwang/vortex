@@ -98,7 +98,7 @@ impl LogicalType {
     pub fn decimal_type(precision: u8, scale: u8) -> VortexResult<Self> {
         vortex_ensure!(
             precision <= DUCKDB_MAX_DECIMAL_PRECISION,
-            "DuckDB decimal type precision must be <= {DUCKDB_MAX_DECIMAL_PRECISION}. \
+            InvalidArgument: "DuckDB decimal type precision must be <= {DUCKDB_MAX_DECIMAL_PRECISION}. \
              precision: {precision}"
         );
 
@@ -445,7 +445,7 @@ macro_rules! match_each_primitive_type {
                 $body
             }
             _ => vortex::error::vortex_panic!(
-                "Unexpected type for match_each_primitive_type: {:?}",
+                MismatchedTypes: "Unexpected type for match_each_primitive_type: {:?}",
                 $self.as_type_id()
             ),
         }

@@ -56,7 +56,7 @@ where
         vortex_ensure_eq!(
             sink_row_count,
             row_count,
-            "the output sink must address exactly {row_count} rows, got {sink_row_count}",
+            AssertionFailed: "the output sink must address exactly {row_count} rows, got {sink_row_count}",
         );
 
         let views = Args::views_if_no_consts(&columns);
@@ -140,7 +140,7 @@ where
         vortex_ensure_eq!(
             initialized_row_count,
             row_count,
-            "the initialized output sink must address exactly {row_count} rows, got {initialized_row_count}",
+            AssertionFailed: "the initialized output sink must address exactly {row_count} rows, got {initialized_row_count}",
         );
 
         if let Some(views) = views {
@@ -204,7 +204,7 @@ where
     vortex_ensure_eq!(
         valid.true_count(),
         filtered_len,
-        "the filtered batch must contain one row per valid row: {} valid rows, got {filtered_len}",
+        AssertionFailed: "the filtered batch must contain one row per valid row: {} valid rows, got {filtered_len}",
         valid.true_count(),
     );
 
@@ -228,7 +228,7 @@ where
         vortex_ensure_eq!(
             initialized_row_count,
             original_len,
-            "the initialized output sink must address exactly {original_len} rows, got {initialized_row_count}",
+            AssertionFailed: "the initialized output sink must address exactly {original_len} rows, got {initialized_row_count}",
         );
 
         let mut filtered_index = 0;
@@ -324,7 +324,7 @@ where
     vortex_ensure_eq!(
         valid_rows.len(),
         row_count,
-        "the validity mask must address exactly {row_count} rows, got {}",
+        AssertionFailed: "the validity mask must address exactly {row_count} rows, got {}",
         valid_rows.len(),
     );
 

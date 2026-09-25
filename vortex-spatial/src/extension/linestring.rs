@@ -135,7 +135,7 @@ pub(crate) fn linestring_array_from_point_pairs(
     vortex_ensure_eq!(
         len,
         ends.len(),
-        "spatial: line string point columns must have equal lengths"
+        InvalidArgument: "spatial: line string point columns must have equal lengths"
     );
     let vertex_count = len
         .checked_mul(2)
@@ -229,7 +229,7 @@ impl TryFrom<ExtensionArray> for LineStringData {
     fn try_from(ext: ExtensionArray) -> Result<Self, Self::Error> {
         vortex_ensure!(
             ext.ext_dtype().is::<LineString>(),
-            "expected a LineString extension array"
+            MismatchedTypes: "expected a LineString extension array"
         );
         Ok(LineStringData(ext))
     }
@@ -329,36 +329,37 @@ impl ArrowImportVTable for LineString {
         field: &Field,
         session: &ArrowSession,
     ) -> VortexResult<Option<DType>> {
-        let (dimension, metadata) =
-            if let Ok(linestring_meta) = field.try_extension_type::<LineStringType>() {
-                vortex_ensure!(
-                    linestring_meta.coord_type() == CoordType::Separated,
-                    "geoarrow.linestring with interleaved coordinates is not supported; \
-                 re-encode with separated (struct) coordinates"
-                );
-                (
-                    linestring_meta.dimension().into(),
-                    spatial_metadata_from_arrow(linestring_meta.metadata()),
-                )
-            } else {
-                // Literal: peel the `List` layer to the coordinate struct and read its dimension from
-                // the field names (the canonical check rejects nullable coordinates).
-                if field.extension_type_name() != Some(LineStringType::NAME) {
-                    return Ok(None);
-                }
-                let Ok(DType::List(coords, _)) =
-                    session.from_arrow_datatype(field.data_type(), field.is_nullable().into())
-                else {
-                    return Ok(None);
-                };
-                let DType::Struct(fields, _) = coords.as_ref() else {
-                    return Ok(None);
-                };
-                let Ok(dimension) = Dimension::from_field_names(fields.names()) else {
-                    return Ok(None);
-                };
-                (dimension, SpatialMetadata::default())
+        let (dimension, metadata) = if let Ok(linestring_meta) =
+            field.try_extension_type::<LineStringType>()
+        {
+            vortex_ensure!(
+                linestring_meta.coord_type() == CoordType::Separated,
+                NotImplemented: "geoarrow.linestring with interleaved coordinates is not supported; \
+             re-encode with separated (struct) coordinates"
+            );
+            (
+                linestring_meta.dimension().into(),
+                spatial_metadata_from_arrow(linestring_meta.metadata()),
+            )
+        } else {
+            // Literal: peel the `List` layer to the coordinate struct and read its dimension from
+            // the field names (the canonical check rejects nullable coordinates).
+            if field.extension_type_name() != Some(LineStringType::NAME) {
+                return Ok(None);
+            }
+            let Ok(DType::List(coords, _)) =
+                session.from_arrow_datatype(field.data_type(), field.is_nullable().into())
+            else {
+                return Ok(None);
             };
+            let DType::Struct(fields, _) = coords.as_ref() else {
+                return Ok(None);
+            };
+            let Ok(dimension) = Dimension::from_field_names(fields.names()) else {
+                return Ok(None);
+            };
+            (dimension, SpatialMetadata::default())
+        };
 
         let storage_dtype = linestring_storage_dtype(dimension, field.is_nullable().into());
         Ok(Some(DType::Extension(

@@ -91,7 +91,7 @@ impl ExtVTable for Time {
     }
 
     fn deserialize_metadata(&self, data: &[u8]) -> VortexResult<Self::Metadata> {
-        vortex_ensure!(!data.is_empty(), "Time metadata must not be empty");
+        vortex_ensure!(!data.is_empty(), Serde: "Time metadata must not be empty");
         let tag = data[0];
         TimeUnit::try_from(tag)
     }
@@ -104,7 +104,7 @@ impl ExtVTable for Time {
 
         vortex_ensure!(
             ext_dtype.storage_dtype().as_ptype() == ptype,
-            "Time storage dtype for {} must be {}",
+            MismatchedTypes: "Time storage dtype for {} must be {}",
             metadata,
             ptype
         );

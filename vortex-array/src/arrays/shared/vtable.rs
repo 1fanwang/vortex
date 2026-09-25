@@ -69,8 +69,8 @@ impl VTable for Shared {
         let source = slots[SharedSlots::SOURCE]
             .as_ref()
             .vortex_expect("SharedArray source slot must be present");
-        vortex_error::vortex_ensure!(source.dtype() == dtype, "SharedArray dtype mismatch");
-        vortex_error::vortex_ensure!(source.len() == len, "SharedArray len mismatch");
+        vortex_error::vortex_ensure!(source.dtype() == dtype, MismatchedTypes: "SharedArray dtype mismatch");
+        vortex_error::vortex_ensure!(source.len() == len, InvalidArgument: "SharedArray len mismatch");
         Ok(())
     }
 
@@ -79,7 +79,7 @@ impl VTable for Shared {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, _idx: usize) -> BufferHandle {
-        vortex_panic!("SharedArray has no buffers")
+        vortex_panic!(OutOfBounds: "SharedArray has no buffers")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {

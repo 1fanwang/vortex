@@ -217,7 +217,7 @@ unsafe impl InputElement for Utf8Column {
     fn validate(dtype: &DType) -> VortexResult<()> {
         vortex_ensure!(
             matches!(dtype, DType::Utf8(_)),
-            "expected a Utf8 column, got {dtype}"
+            MismatchedTypes: "expected a Utf8 column, got {dtype}"
         );
 
         Ok(())

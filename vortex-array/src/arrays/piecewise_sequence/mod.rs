@@ -46,13 +46,13 @@ pub(crate) fn check_index_arrays(
     check_index_array("multipliers", multipliers)?;
     vortex_ensure!(
         starts.len() == lengths.len(),
-        "PiecewiseSequenceArray starts length {} does not match lengths length {}",
+        InvalidArgument: "PiecewiseSequenceArray starts length {} does not match lengths length {}",
         starts.len(),
         lengths.len()
     );
     vortex_ensure!(
         starts.len() == multipliers.len(),
-        "PiecewiseSequenceArray starts length {} does not match multipliers length {}",
+        InvalidArgument: "PiecewiseSequenceArray starts length {} does not match multipliers length {}",
         starts.len(),
         multipliers.len()
     );
@@ -111,12 +111,12 @@ pub(crate) fn constant_unsigned_usize(array: &ConstantArray) -> usize {
 fn check_index_array(name: &str, array: &ArrayRef) -> VortexResult<()> {
     vortex_ensure!(
         array.dtype().is_unsigned_int(),
-        "PiecewiseSequenceArray {name} must have unsigned integer dtype, got {}",
+        MismatchedTypes: "PiecewiseSequenceArray {name} must have unsigned integer dtype, got {}",
         array.dtype()
     );
     vortex_ensure!(
         !array.dtype().is_nullable(),
-        "PiecewiseSequenceArray {name} must be non-nullable, got {}",
+        InvalidArgument: "PiecewiseSequenceArray {name} must be non-nullable, got {}",
         array.dtype()
     );
     Ok(())

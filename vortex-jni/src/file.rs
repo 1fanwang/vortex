@@ -183,11 +183,11 @@ pub extern "system" fn Java_dev_vortex_jni_NativeFiles_readMetadataFromReadable(
     try_or_throw(&mut env, |env| {
         let session = unsafe { session_ref(session_ptr) };
         if readable.is_null() {
-            throw_runtime!("null readable");
+            throw_runtime!(InvalidArgument: "null readable");
         }
         let name: String = name.try_to_string(env)?;
         if name.is_empty() {
-            throw_runtime!("readable name must not be empty");
+            throw_runtime!(InvalidArgument: "readable name must not be empty");
         }
         let length = u64::try_from(length)
             .map_err(|_| vortex_err!(InvalidArgument: "negative readable length: {length}"))?;

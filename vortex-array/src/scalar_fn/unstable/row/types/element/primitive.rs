@@ -43,7 +43,7 @@ unsafe impl<T: NativePType> InputElement for T {
         vortex_ensure_eq!(
             *ptype,
             expected,
-            "expected a {expected} column, got {dtype}"
+            MismatchedTypes: "expected a {expected} column, got {dtype}"
         );
         Ok(())
     }

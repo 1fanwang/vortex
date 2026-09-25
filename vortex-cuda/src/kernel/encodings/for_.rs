@@ -93,7 +93,7 @@ where
     P: NativePType + DeviceRepr + Send + Sync + 'static,
 {
     let array_len = array.encoded().len();
-    vortex_ensure!(array_len > 0, "FoR encoded array must not be empty");
+    vortex_ensure!(array_len > 0, InvalidArgument: "FoR encoded array must not be empty");
 
     let reference: P = array
         .reference_scalar()

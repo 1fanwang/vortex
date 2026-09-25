@@ -67,11 +67,11 @@ impl VTable for ZigZag {
         let expected_dtype = ZigZagData::dtype_from_encoded_dtype(encoded.dtype())?;
         vortex_ensure!(
             dtype == &expected_dtype,
-            "expected dtype {expected_dtype}, got {dtype}"
+            MismatchedTypes: "expected dtype {expected_dtype}, got {dtype}"
         );
         vortex_ensure!(
             encoded.len() == len,
-            "expected len {len}, got {}",
+            InvalidArgument: "expected len {len}, got {}",
             encoded.len()
         );
         Ok(())
@@ -82,11 +82,11 @@ impl VTable for ZigZag {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("ZigZagArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ZigZagArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("ZigZagArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ZigZagArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(

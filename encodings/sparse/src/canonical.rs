@@ -249,7 +249,7 @@ where
         }
         vortex_ensure!(
             previous <= row && row < len,
-            "Sparse patch indices must be ascending within the array length {len}"
+            InvalidArgument: "Sparse patch indices must be ascending within the array length {len}"
         );
         fill_run(builder, row - previous)?;
         if patch_validity.value(patch) {

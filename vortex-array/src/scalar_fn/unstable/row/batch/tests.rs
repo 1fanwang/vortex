@@ -181,7 +181,7 @@ unsafe impl InputElement for FilterOnlyI64 {
         let values = <i64 as InputElement>::decode(array, ctx)?;
         vortex_ensure!(
             !values.as_slice().contains(&i64::MIN),
-            "test input contains an invalid payload",
+            AssertionFailed: "test input contains an invalid payload",
         );
 
         Ok(values)
@@ -189,7 +189,7 @@ unsafe impl InputElement for FilterOnlyI64 {
 
     fn decode_constant(array: ArrayRef, ctx: &mut ExecutionCtx) -> VortexResult<Self::Constant> {
         let value = <i64 as InputElement>::decode_constant(array, ctx)?;
-        vortex_ensure!(value != i64::MIN, "test input contains an invalid payload",);
+        vortex_ensure!(value != i64::MIN, AssertionFailed: "test input contains an invalid payload",);
 
         Ok(value)
     }

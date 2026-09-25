@@ -70,7 +70,7 @@ pub fn dict_encoder_in(
     } else if let Some(vb) = array.as_opt::<VarBin>() {
         bytes_dict_builder(vb.dtype().clone(), constraints, allocator)
     } else {
-        vortex_panic!("Can only encode primitive or varbin/view arrays")
+        vortex_panic!(MismatchedTypes: "Can only encode primitive or varbin/view arrays")
     };
     dict_builder
 }

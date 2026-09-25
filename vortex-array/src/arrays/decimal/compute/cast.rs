@@ -50,7 +50,7 @@ impl CastReduce for Decimal {
         };
         let DType::Decimal(from_decimal_dtype, _) = array.dtype() else {
             vortex_panic!(
-                "DecimalArray must have decimal dtype, got {:?}",
+                MismatchedTypes: "DecimalArray must have decimal dtype, got {:?}",
                 array.dtype()
             );
         };
@@ -89,7 +89,7 @@ impl CastKernel for Decimal {
     ) -> VortexResult<Option<ArrayRef>> {
         let DType::Decimal(from_decimal_dtype, _) = array.dtype() else {
             vortex_panic!(
-                "DecimalArray must have decimal dtype, got {:?}",
+                MismatchedTypes: "DecimalArray must have decimal dtype, got {:?}",
                 array.dtype()
             );
         };

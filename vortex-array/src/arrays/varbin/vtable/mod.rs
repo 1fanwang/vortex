@@ -96,7 +96,7 @@ impl VTable for VarBin {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots.len() == VarBinSlots::COUNT,
-            "VarBinArray expected {} slots, found {}",
+            InvalidArgument: "VarBinArray expected {} slots, found {}",
             VarBinSlots::COUNT,
             slots.len()
         );
@@ -105,13 +105,13 @@ impl VTable for VarBin {
             .vortex_expect("VarBinArray offsets slot");
         vortex_ensure!(
             offsets.len().saturating_sub(1) == len,
-            "VarBinArray length {} does not match outer length {}",
+            InvalidArgument: "VarBinArray length {} does not match outer length {}",
             offsets.len().saturating_sub(1),
             len
         );
         vortex_ensure!(
             matches!(dtype, DType::Binary(_) | DType::Utf8(_)),
-            "VarBinArray dtype must be binary or utf8, got {dtype}"
+            MismatchedTypes: "VarBinArray dtype must be binary or utf8, got {dtype}"
         );
         Ok(())
     }
@@ -119,14 +119,14 @@ impl VTable for VarBin {
     fn buffer(array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
         match idx {
             0 => array.bytes_handle().clone(),
-            _ => vortex_panic!("VarBinArray buffer index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "VarBinArray buffer index {idx} out of bounds"),
         }
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
         match idx {
             0 => Some("bytes".to_string()),
-            _ => vortex_panic!("VarBinArray buffer_name index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "VarBinArray buffer_name index {idx} out of bounds"),
         }
     }
 
@@ -137,7 +137,7 @@ impl VTable for VarBin {
     ) -> VortexResult<ArrayParts<Self>> {
         vortex_ensure!(
             buffers.len() == 1,
-            "Expected 1 buffer, got {}",
+            InvalidArgument: "Expected 1 buffer, got {}",
             buffers.len()
         );
         let mut data = array.data().clone();

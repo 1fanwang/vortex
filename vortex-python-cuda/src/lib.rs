@@ -222,12 +222,12 @@ impl ArrayChildren for MetadataChildren {
             .clone();
         vortex_ensure!(
             child.dtype() == dtype,
-            "array metadata child {index} has dtype {}, expected {dtype}",
+            MismatchedTypes: "array metadata child {index} has dtype {}, expected {dtype}",
             child.dtype()
         );
         vortex_ensure!(
             child.len() == len,
-            "array metadata child {index} has length {}, expected {len}",
+            InvalidArgument: "array metadata child {index} has length {}, expected {len}",
             child.len()
         );
         Ok(child)
@@ -314,21 +314,21 @@ fn deserialize_metadata_tree(
     )?;
     vortex_ensure!(
         decoded.len() == metadata.len,
-        "Array decoded from {} has incorrect length {}, expected {}",
+        InvalidArgument: "Array decoded from {} has incorrect length {}, expected {}",
         metadata.encoding_id,
         decoded.len(),
         metadata.len
     );
     vortex_ensure!(
         decoded.dtype() == &dtype,
-        "Array decoded from {} has incorrect dtype {}, expected {}",
+        MismatchedTypes: "Array decoded from {} has incorrect dtype {}, expected {}",
         metadata.encoding_id,
         decoded.dtype(),
         dtype
     );
     vortex_ensure!(
         plugin.is_supported_encoding(&decoded.encoding_id()),
-        "Array decoded from {} has incorrect encoding {}",
+        MismatchedTypes: "Array decoded from {} has incorrect encoding {}",
         metadata.encoding_id,
         decoded.encoding_id()
     );

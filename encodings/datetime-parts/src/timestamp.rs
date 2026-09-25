@@ -71,7 +71,7 @@ pub fn combine(ts_parts: TimestampParts, time_unit: TimeUnit) -> i64 {
         TimeUnit::Microseconds => 1_000_000,
         TimeUnit::Milliseconds => 1_000,
         TimeUnit::Seconds => 1,
-        TimeUnit::Days => vortex_panic!("Cannot handle day-level data"),
+        TimeUnit::Days => vortex_panic!(NotImplemented: "Cannot handle day-level data"),
     };
 
     ts_parts.days as i64 * SECONDS_PER_DAY * divisor

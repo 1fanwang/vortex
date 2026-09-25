@@ -19,7 +19,7 @@ impl Scalar {
         let Some(value) = value else {
             vortex_ensure!(
                 dtype.is_nullable(),
-                "non-nullable dtype {dtype} cannot hold a null value",
+                InvalidArgument: "non-nullable dtype {dtype} cannot hold a null value",
             );
             return Ok(());
         };
@@ -32,7 +32,7 @@ impl Scalar {
             DType::Bool(_) => {
                 vortex_ensure!(
                     matches!(value, ScalarValue::Bool(_)),
-                    "bool dtype expected Bool value, got {value}",
+                    MismatchedTypes: "bool dtype expected Bool value, got {value}",
                 );
             }
             DType::Primitive(ptype, _) => {
@@ -49,7 +49,7 @@ impl Scalar {
 
                 vortex_ensure!(
                     f16_backcompat_still_works || pvalue.ptype() == *ptype,
-                    "primitive dtype {ptype} is not compatible with value {pvalue}",
+                    MismatchedTypes: "primitive dtype {ptype} is not compatible with value {pvalue}",
                 );
             }
             DType::Decimal(dec_dtype, _) => {
@@ -59,19 +59,19 @@ impl Scalar {
 
                 vortex_ensure!(
                     dvalue.fits_in_precision(*dec_dtype),
-                    "decimal value {dvalue} does not fit in precision of {dec_dtype}",
+                    Overflow: "decimal value {dvalue} does not fit in precision of {dec_dtype}",
                 );
             }
             DType::Utf8(_) => {
                 vortex_ensure!(
                     matches!(value, ScalarValue::Utf8(_)),
-                    "utf8 dtype expected Utf8 value, got {value}",
+                    MismatchedTypes: "utf8 dtype expected Utf8 value, got {value}",
                 );
             }
             DType::Binary(_) => {
                 vortex_ensure!(
                     matches!(value, ScalarValue::Binary(_)),
-                    "binary dtype expected Binary value, got {value}",
+                    MismatchedTypes: "binary dtype expected Binary value, got {value}",
                 );
             }
             DType::List(elem_dtype, _) => {
@@ -93,7 +93,7 @@ impl Scalar {
                 vortex_ensure_eq!(
                     len,
                     *size as usize,
-                    "fixed-size list dtype expected {size} elements, got {len}",
+                    InvalidArgument: "fixed-size list dtype expected {size} elements, got {len}",
                 );
 
                 for (i, element) in elements.iter().enumerate() {
@@ -121,7 +121,7 @@ impl Scalar {
                     vortex_ensure_eq!(
                         values.len(),
                         2,
-                        "map entry at index {index} expected 2 values, got {}",
+                        InvalidArgument: "map entry at index {index} expected 2 values, got {}",
                         values.len(),
                     );
 
@@ -142,7 +142,7 @@ impl Scalar {
                 vortex_ensure_eq!(
                     nvalues,
                     nfields,
-                    "struct dtype expected {nfields} fields, got {nvalues}",
+                    InvalidArgument: "struct dtype expected {nfields} fields, got {nvalues}",
                 );
 
                 for (field, field_value) in fields.fields().zip(values.iter()) {
@@ -181,7 +181,7 @@ impl Scalar {
                 Self::validate(inner.dtype(), inner.value())?;
                 vortex_ensure!(
                     !inner.is_null() || matches!(inner.dtype(), DType::Null),
-                    "variant nulls must use a nested null scalar, got {}",
+                    InvalidArgument: "variant nulls must use a nested null scalar, got {}",
                     inner.dtype(),
                 );
             }

@@ -79,7 +79,7 @@ box_wrapper!(
 pub unsafe fn vx_partition_into_array_stream(
     partition: *mut vx_partition,
 ) -> VortexResult<SendableArrayStream> {
-    vortex_ensure!(!partition.is_null(), "null vx_partition");
+    vortex_ensure!(!partition.is_null(), InvalidArgument: "null vx_partition");
     match *vx_partition::into_box(partition) {
         VxPartitionScan::Pending(partition) => partition.execute(),
         _ => vortex_bail!(InvalidArgument: "partition already being consumed"),

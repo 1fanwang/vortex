@@ -78,26 +78,26 @@ impl VTable for Slice {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots[SliceSlots::CHILD].is_some(),
-            "SliceArray child slot must be present"
+            InvalidArgument: "SliceArray child slot must be present"
         );
         let child = slots[SliceSlots::CHILD]
             .as_ref()
             .vortex_expect("validated child slot");
         vortex_ensure!(
             child.dtype() == dtype,
-            "SliceArray dtype {} does not match outer dtype {}",
+            MismatchedTypes: "SliceArray dtype {} does not match outer dtype {}",
             child.dtype(),
             dtype
         );
         vortex_ensure!(
             data.len() == len,
-            "SliceArray length {} does not match outer length {}",
+            InvalidArgument: "SliceArray length {} does not match outer length {}",
             data.len(),
             len
         );
         vortex_ensure!(
             data.range.end <= child.len(),
-            "SliceArray range {:?} exceeds child length {}",
+            InvalidArgument: "SliceArray range {:?} exceeds child length {}",
             data.range,
             child.len()
         );
@@ -109,7 +109,7 @@ impl VTable for Slice {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, _idx: usize) -> BufferHandle {
-        vortex_panic!("SliceArray has no buffers")
+        vortex_panic!(OutOfBounds: "SliceArray has no buffers")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {

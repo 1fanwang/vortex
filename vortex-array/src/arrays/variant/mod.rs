@@ -55,7 +55,7 @@ impl Array<Variant> {
         let dtype = core_storage.dtype().clone();
         vortex_ensure!(
             matches!(dtype, DType::Variant(_)),
-            "VariantArray core_storage dtype must be Variant, found {dtype}"
+            MismatchedTypes: "VariantArray core_storage dtype must be Variant, found {dtype}"
         );
         let len = core_storage.len();
         let stats = core_storage.statistics().to_owned();

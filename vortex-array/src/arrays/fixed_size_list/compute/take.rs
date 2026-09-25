@@ -67,7 +67,7 @@ fn take_empty_fsl(
         let indices_validity = indices.validity()?.execute_mask(new_len, ctx)?;
         vortex_ensure!(
             indices_validity.all_false(),
-            "cannot take valid indices from an empty FixedSizeList"
+            InvalidArgument: "cannot take valid indices from an empty FixedSizeList"
         );
     }
 
@@ -186,7 +186,7 @@ fn take_piecewise_fsl(
     }
     vortex_ensure!(
         total_len == new_len,
-        "PiecewiseSequenceArray expanded length {total_len} does not match declared length {new_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {total_len} does not match declared length {new_len}"
     );
 
     let new_elements =
@@ -231,7 +231,7 @@ fn take_non_empty_degenerate_fsl(
     debug_assert_eq!(array.list_size(), 0);
     vortex_ensure!(
         array.elements().is_empty(),
-        "degenerate list must have empty elements"
+        InvalidArgument: "degenerate list must have empty elements"
     );
 
     let indices_array = indices.clone().execute::<PrimitiveArray>(ctx)?;

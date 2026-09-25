@@ -141,7 +141,7 @@ fuzz_target!(|fuzz: FuzzFileAction| -> Corpus {
                 .vortex_expect("all_valid"))
     {
         vortex_panic!(
-            "Failed to match original array {}with{}",
+            AssertionFailed: "Failed to match original array {}with{}",
             expected_array.display_tree(),
             output_array.display_tree()
         );

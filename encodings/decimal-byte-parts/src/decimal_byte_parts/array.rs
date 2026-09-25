@@ -98,25 +98,25 @@ impl DecimalBytePartsData {
         let expected_dtype = DType::Decimal(decimal_dtype, msp.dtype().nullability());
         vortex_ensure!(
             dtype == &expected_dtype,
-            "expected dtype {expected_dtype}, got {dtype}"
+            MismatchedTypes: "expected dtype {expected_dtype}, got {dtype}"
         );
-        vortex_ensure!(msp.len() == len, "expected len {len}, got {}", msp.len());
+        vortex_ensure!(msp.len() == len, InvalidArgument: "expected len {len}, got {}", msp.len());
 
         let lower_part_count = lower_parts.len();
 
         vortex_ensure!(
             lower_part_count <= MAX_LOWER_PARTS,
-            "at most {MAX_LOWER_PARTS} lower parts are supported, got {lower_part_count}"
+            InvalidArgument: "at most {MAX_LOWER_PARTS} lower parts are supported, got {lower_part_count}"
         );
         for (idx, part) in lower_parts.enumerate() {
             vortex_ensure!(
                 part.dtype().is_unsigned_int() && !part.dtype().is_nullable(),
-                "lower part {idx} must have a non-nullable unsigned integer dtype, got {}",
+                MismatchedTypes: "lower part {idx} must have a non-nullable unsigned integer dtype, got {}",
                 part.dtype()
             );
             vortex_ensure!(
                 part.len() == len,
-                "lower part {idx} has len {}, expected {len}",
+                InvalidArgument: "lower part {idx} has len {}, expected {len}",
                 part.len()
             );
         }
@@ -215,11 +215,11 @@ impl VTable for DecimalByteParts {
         let max_slots = min_slots + MAX_LOWER_PARTS;
         vortex_ensure!(
             (min_slots..=max_slots).contains(&slots.len()),
-            "expected {min_slots}..={max_slots} slots, got {}",
+            InvalidArgument: "expected {min_slots}..={max_slots} slots, got {}",
             slots.len()
         );
         for (idx, slot) in slots.iter().enumerate() {
-            vortex_ensure!(slot.is_some(), "missing required slot {idx}");
+            vortex_ensure!(slot.is_some(), NotFound: "missing required slot {idx}");
         }
 
         let slots = DecimalBytePartsSlotsView::from_slots(slots);
@@ -237,11 +237,11 @@ impl VTable for DecimalByteParts {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("DecimalBytePartsArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "DecimalBytePartsArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("DecimalBytePartsArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "DecimalBytePartsArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(

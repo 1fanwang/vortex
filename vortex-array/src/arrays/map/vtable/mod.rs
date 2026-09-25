@@ -68,7 +68,7 @@ impl VTable for Map {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots.len() == MapSlots::COUNT,
-            "MapArray expected {} slot, found {}",
+            InvalidArgument: "MapArray expected {} slot, found {}",
             MapSlots::COUNT,
             slots.len()
         );
@@ -85,7 +85,7 @@ impl VTable for Map {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("MapArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "MapArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {
@@ -122,14 +122,14 @@ impl VTable for Map {
                 metadata.len()
             );
         }
-        vortex_ensure!(buffers.is_empty(), "MapArray expects no buffers");
+        vortex_ensure!(buffers.is_empty(), InvalidArgument: "MapArray expects no buffers");
 
         let DType::Map(map_dtype, nullability) = dtype else {
             vortex_bail!(MismatchedTypes: "Expected map dtype, got {dtype}");
         };
         vortex_ensure!(
             children.len() == MapSlots::COUNT,
-            "MapArray expected {} child, found {}",
+            InvalidArgument: "MapArray expected {} child, found {}",
             MapSlots::COUNT,
             children.len()
         );
@@ -139,7 +139,7 @@ impl VTable for Map {
         let entries = children.get(MapSlots::ENTRIES, &expected_entries_dtype, len)?;
         vortex_ensure!(
             entries.is::<ListView>(),
-            "MapArray entries must use vortex.listview encoding, got {}",
+            MismatchedTypes: "MapArray entries must use vortex.listview encoding, got {}",
             entries.encoding_id()
         );
 

@@ -143,7 +143,7 @@ mod tests {
             _args: AggregateArgs<'_, Self::Options>,
             _partial: &Self::Partial,
         ) -> VortexResult<Scalar> {
-            vortex_panic!("TestAgg is for serde tests only");
+            vortex_panic!(NotImplemented: "TestAgg is for serde tests only");
         }
 
         fn is_saturated(
@@ -177,7 +177,7 @@ mod tests {
             _args: AggregateArgs<'_, Self::Options>,
             _partial: &Self::Partial,
         ) -> VortexResult<Scalar> {
-            vortex_panic!("TestAgg is for serde tests only");
+            vortex_panic!(NotImplemented: "TestAgg is for serde tests only");
         }
     }
 

@@ -157,7 +157,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
 
         vortex_ensure!(
             batch.dtype() == &self.dtypes.dtype,
-            "Input DType mismatch: expected {}, got {}",
+            MismatchedTypes: "Input DType mismatch: expected {}, got {}",
             self.dtypes.dtype,
             batch.dtype()
         );
@@ -174,7 +174,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
                     partial
                         .dtype()
                         .eq_ignore_nullability(&self.dtypes.partial_dtype),
-                    "Aggregate {} read legacy stat {} with dtype {}, expected {}",
+                    MismatchedTypes: "Aggregate {} read legacy stat {} with dtype {}, expected {}",
                     self.aggregate_fn,
                     stat,
                     partial.dtype(),
@@ -202,7 +202,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
             {
                 vortex_ensure!(
                     result.dtype() == &self.dtypes.partial_dtype,
-                    "Aggregate kernel returned {}, expected {}",
+                    AssertionFailed: "Aggregate kernel returned {}, expected {}",
                     result.dtype(),
                     self.dtypes.partial_dtype,
                 );
@@ -239,7 +239,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
             {
                 vortex_ensure!(
                     result.dtype() == &self.dtypes.partial_dtype,
-                    "Aggregate kernel returned {}, expected {}",
+                    AssertionFailed: "Aggregate kernel returned {}, expected {}",
                     result.dtype(),
                     self.dtypes.partial_dtype,
                 );
@@ -268,7 +268,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
         };
         vortex_ensure!(
             other.options == self.options && other.dtypes.dtype == self.dtypes.dtype,
-            "Cannot merge {} accumulators with different options or input dtypes",
+            InvalidArgument: "Cannot merge {} accumulators with different options or input dtypes",
             self.aggregate_fn,
         );
         match other.partial.take() {
@@ -280,7 +280,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
     fn combine_partials(&mut self, partial: Scalar) -> VortexResult<()> {
         vortex_ensure!(
             partial.dtype() == &self.dtypes.partial_dtype,
-            "Partial DType mismatch for {}: expected {}, got {}",
+            MismatchedTypes: "Partial DType mismatch for {}: expected {}, got {}",
             self.aggregate_fn,
             self.dtypes.partial_dtype,
             partial.dtype(),
@@ -314,7 +314,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
         {
             vortex_ensure!(
                 partial.dtype() == args.partial_dtype,
-                "Aggregate returned incorrect DType on partial_scalar: expected {}, got {}",
+                AssertionFailed: "Aggregate returned incorrect DType on partial_scalar: expected {}, got {}",
                 args.partial_dtype,
                 partial.dtype(),
             );
@@ -332,7 +332,7 @@ impl<V: AggregateFnVTable> DynAccumulator for Accumulator<V> {
 
         vortex_ensure!(
             result.dtype() == args.return_dtype,
-            "Aggregate returned incorrect DType on final_scalar: expected {}, got {}",
+            AssertionFailed: "Aggregate returned incorrect DType on final_scalar: expected {}, got {}",
             args.return_dtype,
             result.dtype(),
         );

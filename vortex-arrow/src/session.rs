@@ -456,7 +456,7 @@ impl ArrowSession {
             DataType::Map(entries, keys_sorted) => {
                 vortex_ensure!(
                     !entries.is_nullable(),
-                    "Arrow map entries field must be non-nullable"
+                    InvalidArgument: "Arrow map entries field must be non-nullable"
                 );
                 let DataType::Struct(fields) = entries.data_type() else {
                     vortex_bail!(
@@ -466,11 +466,11 @@ impl ArrowSession {
                 };
                 vortex_ensure!(
                     fields.len() == 2,
-                    "Arrow map entries struct must contain exactly two fields"
+                    InvalidArgument: "Arrow map entries struct must contain exactly two fields"
                 );
                 vortex_ensure!(
                     !fields[0].is_nullable(),
-                    "Arrow map key field must be non-nullable"
+                    InvalidArgument: "Arrow map key field must be non-nullable"
                 );
                 DType::map(
                     self.from_arrow_field(fields[0].as_ref())?,
@@ -526,7 +526,7 @@ impl ArrowSession {
     ) -> VortexResult<ArrayRef> {
         vortex_ensure!(
             batch.num_columns() == schema.fields().len(),
-            "RecordBatch has {} columns but schema has {} fields",
+            InvalidArgument: "RecordBatch has {} columns but schema has {} fields",
             batch.num_columns(),
             schema.fields().len()
         );
@@ -588,7 +588,7 @@ impl ArrowSession {
                     ArrowExport::Exported(arrow) => {
                         vortex_ensure!(
                             arrow.len() == len,
-                            "Arrow array length does not match Vortex array length after conversion to {:?}",
+                            AssertionFailed: "Arrow array length does not match Vortex array length after conversion to {:?}",
                             arrow
                         );
                         return Ok(arrow);

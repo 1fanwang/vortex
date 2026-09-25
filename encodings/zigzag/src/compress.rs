@@ -56,7 +56,7 @@ pub fn zigzag_decode(parray: PrimitiveArray) -> PrimitiveArray {
         PType::U32 => zigzag_decode_primitive::<i32>(parray.into_buffer_mut(), validity),
         PType::U64 => zigzag_decode_primitive::<i64>(parray.into_buffer_mut(), validity),
         _ => vortex_panic!(
-            "ZigZag can only decode unsigned integers, got {}",
+            MismatchedTypes: "ZigZag can only decode unsigned integers, got {}",
             parray.ptype()
         ),
     }

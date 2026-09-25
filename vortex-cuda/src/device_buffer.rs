@@ -135,7 +135,7 @@ impl CudaDeviceBuffer {
         let mut buffer = Self::new(cuda_slice);
         vortex_ensure!(
             zeroed_tail_start <= buffer.len,
-            "zeroed tail start {zeroed_tail_start} exceeds CUDA allocation length {}",
+            InvalidArgument: "zeroed tail start {zeroed_tail_start} exceeds CUDA allocation length {}",
             buffer.len
         );
         buffer.zeroed_tail_start = Some(zeroed_tail_start);
@@ -512,9 +512,9 @@ impl DeviceBuffer for CudaDeviceBuffer {
                 zeroed_tail_start: self.zeroed_tail_start,
             }))
         } else if alignment > Alignment::new(256) {
-            vortex_panic!("we do not support alignment greater than 256")
+            vortex_panic!(NotImplemented: "we do not support alignment greater than 256")
         } else {
-            vortex_panic!("some how we alloc a cuda buffer with alignment less than 256")
+            vortex_panic!(AssertionFailed: "some how we alloc a cuda buffer with alignment less than 256")
         }
     }
 }

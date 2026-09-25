@@ -162,7 +162,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeScan_create(
             let mut out: Vec<u64> = Vec::with_capacity(elements.len());
             for v in elements.iter() {
                 if *v < 0 {
-                    throw_runtime!("row selection index must be non-negative");
+                    throw_runtime!(InvalidArgument: "row selection index must be non-negative");
                 }
                 out.push(*v as u64);
             }
@@ -215,12 +215,12 @@ pub extern "system" fn Java_dev_vortex_jni_NativeScan_arrowSchema(
 ) {
     try_or_throw(&mut env, |_| {
         if schema_addr == 0 {
-            throw_runtime!("null arrow schema address");
+            throw_runtime!(InvalidArgument: "null arrow schema address");
         }
         let session = unsafe { session_ref(session_ptr) };
         let scan = unsafe { &*(pointer as *const NativeScan) };
         let NativeScan::Pending(scan) = scan else {
-            throw_runtime!("schema unavailable: scan already started");
+            throw_runtime!(InvalidArgument: "schema unavailable: scan already started");
         };
         let arrow_schema = session.arrow().to_arrow_schema(scan.dtype())?;
         let ffi_schema = FFI_ArrowSchema::try_from(&arrow_schema)?;
@@ -242,7 +242,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeScan_partitionCount(
     try_or_throw(&mut env, |env| {
         let scan = unsafe { &*(pointer as *const NativeScan) };
         let NativeScan::Pending(scan) = scan else {
-            throw_runtime!("partition count unavailable: scan already started");
+            throw_runtime!(InvalidArgument: "partition count unavailable: scan already started");
         };
         let (rows, cardinality) = match scan.partition_count() {
             Precision::Exact(v) => (v as jlong, 2),
@@ -312,7 +312,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativePartition_rowCount(
     try_or_throw(&mut env, |env| {
         let partition = unsafe { &*(pointer as *const NativePartition) };
         let NativePartition::Pending(partition) = partition else {
-            throw_runtime!("row count unavailable: partition already started");
+            throw_runtime!(InvalidArgument: "row count unavailable: partition already started");
         };
         let (rows, cardinality) = match partition.row_count() {
             Precision::Exact(v) => (v as jlong, 2),
@@ -343,12 +343,12 @@ pub extern "system" fn Java_dev_vortex_jni_NativePartition_scanArrow(
 
     try_or_throw(&mut env, |_| {
         if stream_addr == 0 {
-            throw_runtime!("null arrow stream address");
+            throw_runtime!(InvalidArgument: "null arrow stream address");
         }
 
         let partition = match partition {
             NativePartition::Pending(p) => p,
-            _ => throw_runtime!("partition already consumed"),
+            _ => throw_runtime!(InvalidArgument: "partition already consumed"),
         };
 
         let array_stream = partition.execute()?;

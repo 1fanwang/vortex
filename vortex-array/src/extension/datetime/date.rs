@@ -90,7 +90,7 @@ impl ExtVTable for Date {
     }
 
     fn deserialize_metadata(&self, metadata: &[u8]) -> VortexResult<Self::Metadata> {
-        vortex_ensure!(!metadata.is_empty(), "Date metadata must not be empty");
+        vortex_ensure!(!metadata.is_empty(), Serde: "Date metadata must not be empty");
         let tag = metadata[0];
         TimeUnit::try_from(tag)
     }
@@ -103,7 +103,7 @@ impl ExtVTable for Date {
 
         vortex_ensure!(
             ext_dtype.storage_dtype().as_ptype() == ptype,
-            "Date storage dtype for {} must be {}",
+            MismatchedTypes: "Date storage dtype for {} must be {}",
             metadata,
             ptype
         );

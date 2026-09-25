@@ -121,13 +121,13 @@ pub fn substitute_row_count(array: ArrayRef, replacement: &ArrayRef) -> VortexRe
     if array.is::<ExactScalarFn<RowCount>>() {
         vortex_ensure!(
             replacement.len() == array.len(),
-            "RowCount replacement length {} does not match scope length {}",
+            AssertionFailed: "RowCount replacement length {} does not match scope length {}",
             replacement.len(),
             array.len(),
         );
         vortex_ensure!(
             replacement.dtype() == array.dtype(),
-            "RowCount replacement dtype {} does not match scope dtype {}",
+            AssertionFailed: "RowCount replacement dtype {} does not match scope dtype {}",
             replacement.dtype(),
             array.dtype(),
         );

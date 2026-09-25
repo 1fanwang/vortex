@@ -157,7 +157,7 @@ impl TryFrom<ExtensionArray> for MultiPolygonData {
     fn try_from(ext: ExtensionArray) -> Result<Self, Self::Error> {
         vortex_ensure!(
             ext.ext_dtype().is::<MultiPolygon>(),
-            "expected a MultiPolygon extension array"
+            MismatchedTypes: "expected a MultiPolygon extension array"
         );
         Ok(MultiPolygonData(ext))
     }
@@ -254,42 +254,43 @@ impl ArrowImportVTable for MultiPolygon {
         field: &Field,
         session: &ArrowSession,
     ) -> VortexResult<Option<DType>> {
-        let (dimension, metadata) =
-            if let Ok(multipolygon_meta) = field.try_extension_type::<MultiPolygonType>() {
-                vortex_ensure!(
-                    multipolygon_meta.coord_type() == CoordType::Separated,
-                    "geoarrow.multipolygon with interleaved coordinates is not supported; \
-                 re-encode with separated (struct) coordinates"
-                );
-                (
-                    multipolygon_meta.dimension().into(),
-                    spatial_metadata_from_arrow(multipolygon_meta.metadata()),
-                )
-            } else {
-                // Literal: peel the three `List` layers to the coordinate struct and read its
-                // dimension from the field names (the canonical check rejects nullable coordinates).
-                if field.extension_type_name() != Some(MultiPolygonType::NAME) {
-                    return Ok(None);
-                }
-                let Ok(DType::List(polygon, _)) =
-                    session.from_arrow_datatype(field.data_type(), field.is_nullable().into())
-                else {
-                    return Ok(None);
-                };
-                let DType::List(ring, _) = polygon.as_ref() else {
-                    return Ok(None);
-                };
-                let DType::List(coords, _) = ring.as_ref() else {
-                    return Ok(None);
-                };
-                let DType::Struct(fields, _) = coords.as_ref() else {
-                    return Ok(None);
-                };
-                let Ok(dimension) = Dimension::from_field_names(fields.names()) else {
-                    return Ok(None);
-                };
-                (dimension, SpatialMetadata::default())
+        let (dimension, metadata) = if let Ok(multipolygon_meta) =
+            field.try_extension_type::<MultiPolygonType>()
+        {
+            vortex_ensure!(
+                multipolygon_meta.coord_type() == CoordType::Separated,
+                NotImplemented: "geoarrow.multipolygon with interleaved coordinates is not supported; \
+             re-encode with separated (struct) coordinates"
+            );
+            (
+                multipolygon_meta.dimension().into(),
+                spatial_metadata_from_arrow(multipolygon_meta.metadata()),
+            )
+        } else {
+            // Literal: peel the three `List` layers to the coordinate struct and read its
+            // dimension from the field names (the canonical check rejects nullable coordinates).
+            if field.extension_type_name() != Some(MultiPolygonType::NAME) {
+                return Ok(None);
+            }
+            let Ok(DType::List(polygon, _)) =
+                session.from_arrow_datatype(field.data_type(), field.is_nullable().into())
+            else {
+                return Ok(None);
             };
+            let DType::List(ring, _) = polygon.as_ref() else {
+                return Ok(None);
+            };
+            let DType::List(coords, _) = ring.as_ref() else {
+                return Ok(None);
+            };
+            let DType::Struct(fields, _) = coords.as_ref() else {
+                return Ok(None);
+            };
+            let Ok(dimension) = Dimension::from_field_names(fields.names()) else {
+                return Ok(None);
+            };
+            (dimension, SpatialMetadata::default())
+        };
 
         let storage_dtype = multipolygon_storage_dtype(dimension, field.is_nullable().into());
         Ok(Some(DType::Extension(

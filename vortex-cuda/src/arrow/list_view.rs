@@ -463,7 +463,7 @@ async fn rebuild_primitive_list_view_child(
 
     vortex_ensure!(
         validity.execute_no_nulls(elements_len, ctx.execution_ctx())?,
-        "cannot export non-contiguous device-resident ListViewArray with nullable {child_name}: GPU child validity rebuild is not implemented"
+        NotImplemented: "cannot export non-contiguous device-resident ListViewArray with nullable {child_name}: GPU child validity rebuild is not implemented"
     );
 
     let values_buffer = ctx.ensure_on_device(buffer).await?;
@@ -500,7 +500,7 @@ async fn primitive_device_buffer(
     };
 
     let PrimitiveDataParts { ptype, buffer, .. } = primitive.into_data_parts();
-    vortex_ensure!(ptype.is_int(), "{name} must have integer type, got {ptype}");
+    vortex_ensure!(ptype.is_int(), MismatchedTypes: "{name} must have integer type, got {ptype}");
 
     Ok((ptype, ctx.ensure_on_device(buffer).await?))
 }

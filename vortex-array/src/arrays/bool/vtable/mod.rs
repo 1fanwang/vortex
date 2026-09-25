@@ -85,7 +85,7 @@ impl VTable for Bool {
     fn buffer(array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
         match idx {
             0 => array.bits.clone(),
-            _ => vortex_panic!("BoolArray buffer index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "BoolArray buffer index {idx} out of bounds"),
         }
     }
 
@@ -103,7 +103,7 @@ impl VTable for Bool {
     ) -> VortexResult<ArrayParts<Self>> {
         vortex_ensure!(
             buffers.len() == 1,
-            "Expected 1 buffer, got {}",
+            InvalidArgument: "Expected 1 buffer, got {}",
             buffers.len()
         );
         let mut data = array.data().clone();
@@ -140,7 +140,7 @@ impl VTable for Bool {
         };
         vortex_ensure!(
             data.bits.len() * 8 >= data.meta.offset() + len,
-            "BoolArray buffer with offset {} cannot back outer length {} (buffer bits = {})",
+            InvalidArgument: "BoolArray buffer with offset {} cannot back outer length {} (buffer bits = {})",
             data.meta.offset(),
             len,
             data.bits.len() * 8
@@ -150,7 +150,7 @@ impl VTable for Bool {
         if let Some(validity_len) = validity.maybe_len() {
             vortex_ensure!(
                 validity_len == len,
-                "BoolArray validity len {} does not match outer length {}",
+                InvalidArgument: "BoolArray validity len {} does not match outer length {}",
                 validity_len,
                 len
             );

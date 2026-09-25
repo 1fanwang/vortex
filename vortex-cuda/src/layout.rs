@@ -190,7 +190,7 @@ impl VTable for CudaFlat {
     }
 
     fn child_type(_layout: &Layout<Self>, _idx: usize) -> LayoutChildType {
-        vortex_panic!("CudaFlatLayout has no children");
+        vortex_panic!(OutOfBounds: "CudaFlatLayout has no children");
     }
 
     fn new_reader(

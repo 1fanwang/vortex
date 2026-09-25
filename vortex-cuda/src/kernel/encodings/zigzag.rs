@@ -56,7 +56,7 @@ impl CudaExecute for ZigZagExecutor {
         let output_ptype = PType::try_from(array.dtype())?;
         vortex_ensure!(
             output_ptype == encoded_ptype.to_signed(),
-            "ZigZag output type {output_ptype} must be the signed equivalent of {encoded_ptype}"
+            MismatchedTypes: "ZigZag output type {output_ptype} must be the signed equivalent of {encoded_ptype}"
         );
 
         match_each_unsigned_integer_ptype!(encoded_ptype, |U| {
@@ -74,7 +74,7 @@ where
     U: NativePType + DeviceRepr + Send + Sync + 'static,
 {
     let array_len = array.encoded().len();
-    vortex_ensure!(array_len > 0, "ZigZag array must not be empty");
+    vortex_ensure!(array_len > 0, InvalidArgument: "ZigZag array must not be empty");
 
     // Execute child and copy to device
     let canonical = array.encoded().clone().execute_cuda(ctx).await?;

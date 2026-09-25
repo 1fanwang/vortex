@@ -230,14 +230,14 @@ impl ZstdBuffersData {
         vortex_ensure_eq!(
             self.compressed_buffers.len(),
             self.uncompressed_sizes.len(),
-            "zstd_buffers metadata mismatch: {} compressed buffers vs {} sizes",
+            Serde: "zstd_buffers metadata mismatch: {} compressed buffers vs {} sizes",
             self.compressed_buffers.len(),
             self.uncompressed_sizes.len()
         );
         vortex_ensure_eq!(
             self.compressed_buffers.len(),
             self.buffer_alignments.len(),
-            "zstd_buffers metadata mismatch: {} compressed buffers vs {} alignments",
+            Serde: "zstd_buffers metadata mismatch: {} compressed buffers vs {} alignments",
             self.compressed_buffers.len(),
             self.buffer_alignments.len()
         );

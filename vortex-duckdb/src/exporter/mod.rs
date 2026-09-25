@@ -111,7 +111,7 @@ impl ArrayExporter {
         }
         vortex_ensure!(
             chunk_len > 0,
-            "column exporter returned zero rows for non-empty export"
+            AssertionFailed: "column exporter returned zero rows for non-empty export"
         );
 
         self.remaining -= chunk_len;

@@ -206,7 +206,7 @@ impl Scalar {
             .map(|child| {
                 if child.dtype() != &*element_dtype {
                     vortex_panic!(
-                        "tried to create list of {} with values of type {}",
+                        MismatchedTypes: "tried to create list of {} with values of type {}",
                         element_dtype,
                         child.dtype()
                     );
@@ -279,7 +279,7 @@ impl Scalar {
         vortex_ensure_eq!(
             child.dtype(),
             &expected_dtype,
-            "union type ID {type_id} selects child dtype {expected_dtype}, got {}",
+            MismatchedTypes: "union type ID {type_id} selects child dtype {expected_dtype}, got {}",
             child.dtype()
         );
 

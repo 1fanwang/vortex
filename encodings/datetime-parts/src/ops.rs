@@ -26,7 +26,7 @@ impl OperationsVTable<DateTimeParts> for DateTimeParts {
     ) -> VortexResult<Scalar> {
         let DType::Extension(ext) = array.dtype().clone() else {
             vortex_panic!(
-                "DateTimePartsArray must have extension dtype, found {}",
+                MismatchedTypes: "DateTimePartsArray must have extension dtype, found {}",
                 array.dtype()
             );
         };

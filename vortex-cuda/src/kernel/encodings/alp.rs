@@ -66,7 +66,7 @@ where
     A::ALPInt: NativePType + DeviceRepr + Send + Sync + 'static,
 {
     let array_len = array.encoded().len();
-    vortex_ensure!(array_len > 0, "ALP array must not be empty");
+    vortex_ensure!(array_len > 0, InvalidArgument: "ALP array must not be empty");
 
     // Get the exponent factors from the lookup tables.
     let exponents = array.exponents();

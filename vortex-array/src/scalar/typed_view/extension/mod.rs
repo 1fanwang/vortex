@@ -53,7 +53,7 @@ impl<'a> ExtScalar<'a> {
     /// been verified to be valid for the extension type.
     pub(crate) fn new_unchecked(dtype: &'a DType, value: Option<&'a ScalarValue>) -> Self {
         let DType::Extension(ext_dtype) = dtype else {
-            vortex_panic!("Expected extension scalar, found {}", dtype)
+            vortex_panic!(MismatchedTypes: "Expected extension scalar, found {}", dtype)
         };
 
         Self {

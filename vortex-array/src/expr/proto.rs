@@ -60,7 +60,7 @@ impl Expression {
         if expr.id == ROOT_ID {
             vortex_ensure!(
                 expr.children.is_empty(),
-                "root expression must have no children, got {}",
+                Serde: "root expression must have no children, got {}",
                 expr.children.len()
             );
             return Ok(Expression::Root);

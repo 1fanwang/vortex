@@ -117,7 +117,7 @@ async fn execute_dict_bool_typed<I: DeviceRepr + NativePType>(
     codes: PrimitiveArray,
     ctx: &mut CudaExecutionCtx,
 ) -> VortexResult<Canonical> {
-    vortex_ensure!(!codes.is_empty(), "cannot CUDA-decode an empty dictionary");
+    vortex_ensure!(!codes.is_empty(), InvalidArgument: "cannot CUDA-decode an empty dictionary");
     let codes_len = codes.len();
 
     let values_len = values.len();

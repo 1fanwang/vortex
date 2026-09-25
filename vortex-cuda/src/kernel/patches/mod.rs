@@ -123,19 +123,19 @@ pub(crate) async fn execute_patches<
     );
     vortex_ensure!(
         supported,
-        "Applying patches with null values not currently supported on the GPU"
+        NotImplemented: "Applying patches with null values not currently supported on the GPU"
     );
 
     vortex_ensure!(
         indices.ptype() == IndicesT::PTYPE,
-        "expected PType {} for patch indices, was {}",
+        MismatchedTypes: "expected PType {} for patch indices, was {}",
         IndicesT::PTYPE,
         indices.ptype()
     );
 
     vortex_ensure!(
         values.ptype() == ValuesT::PTYPE,
-        "expected PType {} for patch values, was {}",
+        MismatchedTypes: "expected PType {} for patch values, was {}",
         ValuesT::PTYPE,
         values.ptype()
     );

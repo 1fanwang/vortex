@@ -385,7 +385,7 @@ fn struct_from_df(array: &StructArray, session: &VortexSession) -> Scalar {
                     .from_arrow_array(ArrowArrayRef::clone(column), field)
                     .and_then(|column| column.execute_scalar(0, &mut ctx))
                     .unwrap_or_else(|e| {
-                        vortex_panic!("cannot convert struct field to a Vortex scalar: {e}")
+                        vortex_panic!(MismatchedTypes: "cannot convert struct field to a Vortex scalar: {e}")
                     })
             })
             .collect::<Vec<_>>();

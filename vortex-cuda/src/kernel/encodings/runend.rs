@@ -103,10 +103,10 @@ async fn decode_runend_typed<V: DeviceRepr + NativePType, E: DeviceRepr + Native
     ctx: &mut CudaExecutionCtx,
 ) -> VortexResult<Canonical> {
     let num_runs = ends.len();
-    vortex_ensure!(num_runs > 0, "run-end array must have at least one run");
+    vortex_ensure!(num_runs > 0, InvalidArgument: "run-end array must have at least one run");
     vortex_ensure!(
         output_len > 0,
-        "run-end output length must be greater than zero"
+        InvalidArgument: "run-end output length must be greater than zero"
     );
 
     let PrimitiveDataParts {

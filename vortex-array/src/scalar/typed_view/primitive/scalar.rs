@@ -154,7 +154,7 @@ impl<'a> PrimitiveScalar<'a> {
     pub fn try_typed_value<T: NativePType>(&self) -> VortexResult<Option<T>> {
         vortex_ensure!(
             self.ptype == T::PTYPE,
-            "Attempting to read {} scalar as {}",
+            MismatchedTypes: "Attempting to read {} scalar as {}",
             self.ptype,
             T::PTYPE
         );
@@ -223,7 +223,7 @@ impl<'a> PrimitiveScalar<'a> {
     pub fn as_<T: FromPrimitiveOrF16>(&self) -> Option<T> {
         self.as_opt::<T>().unwrap_or_else(|| {
             vortex_panic!(
-                "cast {} to {}: value out of range",
+                Overflow: "cast {} to {}: value out of range",
                 self.ptype,
                 type_name::<T>()
             )
@@ -346,7 +346,7 @@ impl<'a> PrimitiveScalar<'a> {
         op: NumericOperator,
     ) -> Option<PrimitiveScalar<'a>> {
         if !self.dtype().eq_ignore_nullability(other.dtype()) {
-            vortex_panic!("types must match: {} {}", self.dtype(), other.dtype());
+            vortex_panic!(MismatchedTypes: "types must match: {} {}", self.dtype(), other.dtype());
         }
         let result_dtype = if self.dtype().is_nullable() {
             self.dtype()

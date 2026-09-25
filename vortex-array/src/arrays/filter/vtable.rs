@@ -81,26 +81,26 @@ impl VTable for Filter {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots[FilterSlots::CHILD].is_some(),
-            "FilterArray child slot must be present"
+            InvalidArgument: "FilterArray child slot must be present"
         );
         let child = slots[FilterSlots::CHILD]
             .as_ref()
             .vortex_expect("validated child slot");
         vortex_ensure!(
             child.dtype() == dtype,
-            "FilterArray dtype {} does not match outer dtype {}",
+            MismatchedTypes: "FilterArray dtype {} does not match outer dtype {}",
             child.dtype(),
             dtype
         );
         vortex_ensure!(
             data.len() == len,
-            "FilterArray length {} does not match outer length {}",
+            InvalidArgument: "FilterArray length {} does not match outer length {}",
             data.len(),
             len
         );
         vortex_ensure!(
             child.len() == data.mask.len(),
-            "FilterArray child length {} does not match mask length {}",
+            InvalidArgument: "FilterArray child length {} does not match mask length {}",
             child.len(),
             data.mask.len()
         );
@@ -112,7 +112,7 @@ impl VTable for Filter {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, _idx: usize) -> BufferHandle {
-        vortex_panic!("FilterArray has no buffers")
+        vortex_panic!(OutOfBounds: "FilterArray has no buffers")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {

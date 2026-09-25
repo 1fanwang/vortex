@@ -205,7 +205,7 @@ pub(crate) fn execute_arrow_naive(
 
     vortex_ensure!(
         arrow.len() == len,
-        "Arrow array length does not match Vortex array length after conversion to {:?}",
+        AssertionFailed: "Arrow array length does not match Vortex array length after conversion to {:?}",
         arrow
     );
 

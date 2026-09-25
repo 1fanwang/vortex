@@ -68,7 +68,7 @@ pub(crate) fn validate_frame_content_size(
         .ok_or_else(|| vortex_err!(Serde: "Zstd frame {index} does not declare a content size"))?;
     vortex_ensure!(
         metadata_size == frame_content_size,
-        "Zstd frame {index} metadata declares {metadata_size} uncompressed bytes, but its header declares {frame_content_size}"
+        Serde: "Zstd frame {index} metadata declares {metadata_size} uncompressed bytes, but its header declares {frame_content_size}"
     );
     Ok(())
 }

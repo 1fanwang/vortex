@@ -329,7 +329,7 @@ where
     )?;
     vortex_ensure!(
         computed_len == output_len,
-        "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
     );
     let all_valid = data_validity.all_true();
     let total_elements = if all_valid {
@@ -394,7 +394,7 @@ where
     }
     vortex_ensure!(
         computed_len == output_len,
-        "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
     );
     let all_valid = data_validity.all_true();
     let total_elements = if all_valid {

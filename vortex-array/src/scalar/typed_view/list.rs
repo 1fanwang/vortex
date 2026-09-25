@@ -146,7 +146,9 @@ impl<'a> ListScalar<'a> {
     pub fn element_dtype(&self) -> &DType {
         self.dtype
             .as_any_size_list_element_opt()
-            .unwrap_or_else(|| vortex_panic!("`ListScalar` somehow had dtype {}", self.dtype))
+            .unwrap_or_else(
+                || vortex_panic!(AssertionFailed: "`ListScalar` somehow had dtype {}", self.dtype),
+            )
             .as_ref()
     }
 

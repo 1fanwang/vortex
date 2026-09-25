@@ -63,11 +63,11 @@ impl VTable for PiecewiseSequence {
     ) -> VortexResult<()> {
         vortex_ensure!(
             dtype == &DType::from(PType::U64),
-            "PiecewiseSequenceArray dtype must be u64, got {dtype}"
+            MismatchedTypes: "PiecewiseSequenceArray dtype must be u64, got {dtype}"
         );
         vortex_ensure!(
             slots.len() == PiecewiseSequenceSlots::NAMES.len(),
-            "PiecewiseSequenceArray requires {} slots, got {}",
+            InvalidArgument: "PiecewiseSequenceArray requires {} slots, got {}",
             PiecewiseSequenceSlots::NAMES.len(),
             slots.len()
         );
@@ -90,7 +90,7 @@ impl VTable for PiecewiseSequence {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, _idx: usize) -> BufferHandle {
-        vortex_panic!("PiecewiseSequenceArray has no buffers")
+        vortex_panic!(OutOfBounds: "PiecewiseSequenceArray has no buffers")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {

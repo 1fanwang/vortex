@@ -537,14 +537,14 @@ impl CoercePValue for f16 {
             PValue::U32(u) => {
                 vortex_ensure!(
                     u <= u16::MAX as u32,
-                    "Cannot coerce U32 value to f16: value out of range"
+                    Overflow: "Cannot coerce U32 value to f16: value out of range"
                 );
                 Ok(Self::from_bits(u as u16))
             }
             PValue::U64(u) => {
                 vortex_ensure!(
                     u <= u16::MAX as u64,
-                    "Cannot coerce U64 value to f16: value out of range"
+                    Overflow: "Cannot coerce U64 value to f16: value out of range"
                 );
                 Ok(Self::from_bits(u as u16))
             }
@@ -574,7 +574,7 @@ impl CoercePValue for f32 {
             PValue::U64(u) => {
                 vortex_ensure!(
                     u <= u32::MAX as u64,
-                    "Cannot coerce U64 value to f32: value out of range"
+                    Overflow: "Cannot coerce U64 value to f32: value out of range"
                 );
                 Ok(Self::from_bits(u as u32))
             }

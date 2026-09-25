@@ -106,7 +106,7 @@ impl VTable for Zoned {
                     )
                 }
                 ZoneMapSchema::LegacyStats(_) => {
-                    vortex_panic!("Cannot serialize legacy stats schema as vortex.zoned")
+                    vortex_panic!(NotImplemented: "Cannot serialize legacy stats schema as vortex.zoned")
                 }
             },
         }
@@ -120,7 +120,7 @@ impl VTable for Zoned {
         vortex_ensure_eq!(
             args.children.nchildren(),
             2,
-            "ZonedLayout expects exactly 2 children (data, zones)"
+            InvalidArgument: "ZonedLayout expects exactly 2 children (data, zones)"
         );
         vortex_ensure_eq!(args.children.child_row_count(0), args.row_count);
         let Some(aggregate_fns) =
@@ -156,7 +156,7 @@ impl VTable for Zoned {
         match idx {
             0 => LayoutChildType::Transparent("data".into()),
             1 => LayoutChildType::Auxiliary("zones".into()),
-            _ => vortex_panic!("Invalid child index: {}", idx),
+            _ => vortex_panic!(OutOfBounds: "Invalid child index: {}", idx),
         }
     }
 
@@ -195,7 +195,7 @@ impl VTable for LegacyStats {
         vortex_ensure_eq!(
             args.children.nchildren(),
             2,
-            "LegacyStatsLayout expects exactly 2 children (data, zones)"
+            InvalidArgument: "LegacyStatsLayout expects exactly 2 children (data, zones)"
         );
         let stats_table_dtype = match &metadata.zone_map_schema {
             ZoneMapSchema::LegacyStats(stats) => legacy_stats_table_dtype(args.dtype, stats),
@@ -224,7 +224,7 @@ impl VTable for LegacyStats {
         match idx {
             0 => LayoutChildType::Transparent("data".into()),
             1 => LayoutChildType::Auxiliary("zones".into()),
-            _ => vortex_panic!("Invalid child index: {idx}"),
+            _ => vortex_panic!(OutOfBounds: "Invalid child index: {idx}"),
         }
     }
 
@@ -424,10 +424,10 @@ impl DeserializeMetadata for ZonedMetadata {
 
         vortex_ensure!(
             version == ZONED_METADATA_PROTO_VERSION,
-            "Unsupported zoned metadata version: {}",
+            Serde: "Unsupported zoned metadata version: {}",
             version
         );
-        vortex_ensure!(!proto_bytes.is_empty(), "Zoned metadata missing protobuf");
+        vortex_ensure!(!proto_bytes.is_empty(), Serde: "Zoned metadata missing protobuf");
 
         let proto = ZonedMetadataProto::decode(proto_bytes)?;
         Ok(Self {
@@ -455,7 +455,7 @@ impl DeserializeMetadata for LegacyStatsMetadata {
     fn deserialize(metadata: &[u8]) -> VortexResult<Self::Output> {
         vortex_ensure!(
             metadata.len() >= 4,
-            "Legacy zoned metadata must contain at least 4 bytes for zone length, got {}",
+            Serde: "Legacy zoned metadata must contain at least 4 bytes for zone length, got {}",
             metadata.len()
         );
 
@@ -481,7 +481,7 @@ impl SerializeMetadata for LegacyStatsMetadata {
                 metadata
             }
             ZoneMapSchema::AggregateFns(_) => {
-                vortex_panic!("Cannot serialize aggregate specs as legacy stats metadata")
+                vortex_panic!(NotImplemented: "Cannot serialize aggregate specs as legacy stats metadata")
             }
         }
     }

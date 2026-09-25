@@ -181,7 +181,7 @@ impl StatBinder for ZoneMapStatsBinder<'_> {
         }
         vortex_ensure!(
             input.dtype() == &self.zone_map.column_dtype,
-            "Stats predicate root dtype {} does not match zone-map column dtype {}",
+            MismatchedTypes: "Stats predicate root dtype {} does not match zone-map column dtype {}",
             input.dtype(),
             self.zone_map.column_dtype
         );

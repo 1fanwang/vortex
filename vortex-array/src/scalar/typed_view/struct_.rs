@@ -281,14 +281,14 @@ impl Scalar {
     /// Creates a new struct scalar with the given fields, checking dtypes at runtime.
     pub fn struct_(dtype: DType, children: impl IntoIterator<Item = Scalar>) -> Self {
         let DType::Struct(struct_fields, _) = &dtype else {
-            vortex_panic!("Expected struct dtype, found {}", dtype);
+            vortex_panic!(MismatchedTypes: "Expected struct dtype, found {}", dtype);
         };
 
         let children: Vec<Scalar> = children.into_iter().collect();
         let field_dtypes = struct_fields.fields();
         if children.len() != field_dtypes.len() {
             vortex_panic!(
-                "Struct has {} fields but {} children were provided",
+                InvalidArgument: "Struct has {} fields but {} children were provided",
                 field_dtypes.len(),
                 children.len()
             );
@@ -297,7 +297,7 @@ impl Scalar {
         for (idx, (child, expected_dtype)) in children.iter().zip(field_dtypes).enumerate() {
             if child.dtype() != &expected_dtype {
                 vortex_panic!(
-                    "Field {} expected dtype {} but got {}",
+                    MismatchedTypes: "Field {} expected dtype {} but got {}",
                     idx,
                     expected_dtype,
                     child.dtype()

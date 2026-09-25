@@ -161,7 +161,7 @@ fn padded_device_allocation_len<T>(byte_count: usize) -> VortexResult<usize> {
     let element_size = size_of::<T>();
     vortex_ensure!(
         element_size != 0,
-        "cannot copy zero-sized values to CUDA device"
+        InvalidArgument: "cannot copy zero-sized values to CUDA device"
     );
     let min_allocation_bytes = byte_count.next_multiple_of(CUDF_VALIDITY_BUFFER_PADDING);
     Ok(min_allocation_bytes.div_ceil(element_size))

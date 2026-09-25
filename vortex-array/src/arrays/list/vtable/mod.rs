@@ -77,11 +77,11 @@ impl VTable for List {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("ListArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ListArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("ListArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ListArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(
@@ -122,7 +122,7 @@ impl VTable for List {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots.len() == ListSlots::COUNT,
-            "ListArray expected {} slots, found {}",
+            InvalidArgument: "ListArray expected {} slots, found {}",
             ListSlots::COUNT,
             slots.len()
         );
@@ -134,7 +134,7 @@ impl VTable for List {
             .vortex_expect("ListArray offsets slot");
         vortex_ensure!(
             offsets.len().saturating_sub(1) == len,
-            "ListArray length {} does not match outer length {}",
+            InvalidArgument: "ListArray length {} does not match outer length {}",
             offsets.len().saturating_sub(1),
             len
         );
@@ -142,7 +142,7 @@ impl VTable for List {
         let actual_dtype = DType::List(Arc::new(elements.dtype().clone()), dtype.nullability());
         vortex_ensure!(
             &actual_dtype == dtype,
-            "ListArray dtype {} does not match outer dtype {}",
+            MismatchedTypes: "ListArray dtype {} does not match outer dtype {}",
             actual_dtype,
             dtype
         );

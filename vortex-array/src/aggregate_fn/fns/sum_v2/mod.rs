@@ -95,7 +95,7 @@ impl SumV2 {
                 sum.dtype(),
                 DType::Primitive(PType::U64 | PType::I64 | PType::F64, _)
             ),
-            "Expected a widened primitive sum, got {}",
+            MismatchedTypes: "Expected a widened primitive sum, got {}",
             sum.dtype(),
         );
 
@@ -399,7 +399,7 @@ fn has_valid_value(batch: &Columnar, ctx: &mut ExecutionCtx) -> VortexResult<boo
 }
 
 fn decode_partial_scalar(scalar: Scalar) -> VortexResult<(Scalar, bool, bool)> {
-    vortex_ensure!(!scalar.is_null(), "SumV2 partial must not be null");
+    vortex_ensure!(!scalar.is_null(), InvalidArgument: "SumV2 partial must not be null");
 
     let Some(fields) = scalar.as_struct_opt() else {
         vortex_bail!(MismatchedTypes: "SumV2 partial must be a struct, got {}", scalar.dtype());
@@ -423,7 +423,7 @@ fn validate_sum_field_dtype(sum: &Scalar, return_dtype: &DType) -> VortexResult<
     vortex_ensure!(
         sum.dtype().nullability() == Nullability::NonNullable
             && sum.dtype().eq_ignore_nullability(return_dtype),
-        "SumV2 partial value has dtype {}, expected {}",
+        MismatchedTypes: "SumV2 partial value has dtype {}, expected {}",
         sum.dtype(),
         return_dtype.as_nonnullable(),
     );

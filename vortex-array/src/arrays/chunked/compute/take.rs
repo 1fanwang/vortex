@@ -479,7 +479,7 @@ fn take_piecewise_chunked(
 
     vortex_ensure!(
         total_len == output_len,
-        "PiecewiseSequenceArray expanded length {total_len} does not match declared length {output_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {total_len} does not match declared length {output_len}"
     );
 
     // Chunks visited in order: the per-chunk gathers already concatenate into the result.

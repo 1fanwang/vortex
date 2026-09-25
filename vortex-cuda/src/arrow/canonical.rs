@@ -426,7 +426,7 @@ async fn export_dictionary_codes(
     let parts = codes.into_data_parts();
     vortex_ensure!(
         parts.ptype == target_ptype,
-        "dictionary codes export produced {}",
+        AssertionFailed: "dictionary codes export produced {}",
         parts.ptype
     );
     Ok(parts)
@@ -632,7 +632,7 @@ async fn export_decoded_varbin(
     } = decoded;
     vortex_ensure!(
         matches!(dtype, DType::Utf8(_) | DType::Binary(_)),
-        "offset-based decode produced invalid variable-length dtype {dtype}"
+        AssertionFailed: "offset-based decode produced invalid variable-length dtype {dtype}"
     );
     let (validity_buffer, null_count) = export_arrow_validity_buffer(validity, len, 0, ctx).await?;
     export_varbin_buffers(len, validity_buffer, null_count, offsets, values, ctx)
@@ -915,7 +915,7 @@ fn device_zeroed_byte_buffer(
 ) -> VortexResult<BufferHandle> {
     vortex_ensure!(
         byte_len > 0,
-        "zero-length validity buffers should be omitted"
+        AssertionFailed: "zero-length validity buffers should be omitted"
     );
     let allocation_len = byte_len.next_multiple_of(CUDF_VALIDITY_BUFFER_PADDING);
     let buffer = ctx
@@ -962,11 +962,11 @@ fn copy_arrow_bitmap(
 ) -> VortexResult<BufferHandle> {
     vortex_ensure!(
         output_bytes > 0,
-        "zero-length validity buffers should be omitted"
+        AssertionFailed: "zero-length validity buffers should be omitted"
     );
     vortex_ensure!(
         input_buffer.len() >= output_bytes,
-        "Arrow validity bitmap has {} bytes, expected at least {output_bytes}",
+        InvalidArgument: "Arrow validity bitmap has {} bytes, expected at least {output_bytes}",
         input_buffer.len()
     );
 
@@ -998,7 +998,7 @@ pub fn count_arrow_validity_nulls(
     let expected_bytes = arrow_bitmap_byte_len(len, arrow_offset)?;
     vortex_ensure!(
         bitmap.len() >= expected_bytes,
-        "Arrow validity bitmap has {} bytes, expected at least {expected_bytes}",
+        InvalidArgument: "Arrow validity bitmap has {} bytes, expected at least {expected_bytes}",
         bitmap.len()
     );
 
@@ -1056,7 +1056,7 @@ pub fn repack_arrow_bitmap(
     let output_bytes = arrow_bitmap_byte_len(len, arrow_offset)?;
     vortex_ensure!(
         output_bytes > 0,
-        "zero-length validity buffers should be omitted"
+        AssertionFailed: "zero-length validity buffers should be omitted"
     );
     // The nonzero byte count guarantees at least one u64 output word.
     let output_words = output_bytes.div_ceil(size_of::<u64>());
@@ -1069,7 +1069,7 @@ pub fn repack_arrow_bitmap(
     let expected_input_bytes = arrow_bitmap_byte_len(len, input_offset)?;
     vortex_ensure!(
         input_buffer.len() >= expected_input_bytes,
-        "Arrow validity bitmap has {} bytes, expected at least {expected_input_bytes}",
+        InvalidArgument: "Arrow validity bitmap has {} bytes, expected at least {expected_input_bytes}",
         input_buffer.len()
     );
 
@@ -1314,7 +1314,7 @@ async fn export_arrow_list_offsets(
     let PrimitiveDataParts { ptype, buffer, .. } = offsets.into_data_parts();
     vortex_ensure!(
         ptype == PType::I32,
-        "list offsets cast to i32 produced {ptype}"
+        AssertionFailed: "list offsets cast to i32 produced {ptype}"
     );
 
     ctx.ensure_on_device(buffer).await
@@ -1369,7 +1369,7 @@ fn export_fixed_size(
 ) -> VortexResult<(ArrowArray, SyncEvent)> {
     vortex_ensure!(
         buffer.is_on_device(),
-        "buffer must already be copied to device before calling"
+        InvalidArgument: "buffer must already be copied to device before calling"
     );
 
     let mut private_data = PrivateData::new(vec![validity, Some(buffer)], vec![], ctx)?;

@@ -39,7 +39,7 @@ macro_rules! match_each_alp_float_ptype {
                 type $enc = f64;
                 $body
             }
-            _ => vortex_panic!("ALP can only encode f32 and f64, got {}", ptype),
+            _ => vortex_panic!(MismatchedTypes: "ALP can only encode f32 and f64, got {}", ptype),
         }
     }};
 }

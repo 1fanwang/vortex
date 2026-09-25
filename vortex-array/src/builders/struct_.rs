@@ -145,7 +145,7 @@ impl StructBuilder {
     /// The [`StructFields`] of this struct builder.
     pub fn struct_fields(&self) -> &StructFields {
         let DType::Struct(struct_fields, _) = &self.dtype else {
-            vortex_panic!("`StructBuilder` somehow had dtype {}", self.dtype);
+            vortex_panic!(AssertionFailed: "`StructBuilder` somehow had dtype {}", self.dtype);
         };
 
         struct_fields
@@ -206,7 +206,7 @@ impl ArrayBuilder for StructBuilder {
     fn append_scalar(&mut self, scalar: &Scalar) -> VortexResult<()> {
         vortex_ensure!(
             scalar.dtype() == self.dtype(),
-            "StructBuilder expected scalar with dtype {}, got {}",
+            MismatchedTypes: "StructBuilder expected scalar with dtype {}, got {}",
             self.dtype(),
             scalar.dtype()
         );

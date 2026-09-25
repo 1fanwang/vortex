@@ -266,7 +266,7 @@ pub unsafe extern "C-unwind" fn vx_cuda_scan_path_arrow_device_stream_projected(
     error_out: *mut *mut vx_error,
 ) -> c_int {
     try_or(error_out, VX_CUDA_ERR, || {
-        vortex_ensure!(!out_stream.is_null(), "null ArrowDeviceArrayStream output");
+        vortex_ensure!(!out_stream.is_null(), InvalidArgument: "null ArrowDeviceArrayStream output");
 
         // SAFETY: The caller keeps options, column views and their bytes, path bytes, and the
         // borrowed session handle valid for this call.
@@ -309,12 +309,12 @@ unsafe fn scan_columns(columns: *const vx_view, ncolumns: usize) -> VortexResult
     }
     vortex_ensure!(
         !columns.is_null(),
-        "null CUDA scan columns with nonzero count"
+        InvalidArgument: "null CUDA scan columns with nonzero count"
     );
-    vortex_ensure!(columns.is_aligned(), "unaligned CUDA scan columns pointer");
+    vortex_ensure!(columns.is_aligned(), InvalidArgument: "unaligned CUDA scan columns pointer");
     vortex_ensure!(
         ncolumns <= isize::MAX as usize / size_of::<vx_view>(),
-        "CUDA scan column count is too large"
+        Overflow: "CUDA scan column count is too large"
     );
     // SAFETY: Null, alignment, and size were checked; the caller guarantees readable views.
     let columns = unsafe { std::slice::from_raw_parts(columns, ncolumns) };
@@ -323,13 +323,13 @@ unsafe fn scan_columns(columns: *const vx_view, ncolumns: usize) -> VortexResult
     for (index, column) in columns.iter().enumerate() {
         vortex_ensure!(
             column.len <= isize::MAX as usize,
-            "CUDA scan column {index} name is too long"
+            Overflow: "CUDA scan column {index} name is too long"
         );
         // SAFETY: The caller guarantees readable name bytes. as_str checks null and UTF-8.
         let name = unsafe { column.as_str() }.map_err(
             |error| vortex_err!(InvalidArgument: "invalid CUDA scan column {index}: {error}"),
         )?;
-        vortex_ensure!(seen.insert(name), "duplicate CUDA scan column: {name:?}");
+        vortex_ensure!(seen.insert(name), InvalidArgument: "duplicate CUDA scan column: {name:?}");
         names.push(FieldName::from(name));
     }
     Ok(names.into())
@@ -377,7 +377,7 @@ unsafe fn scan_options(options: *const vx_cuda_scan_options) -> VortexResult<Cud
     let options = unsafe { options.as_ref() }.unwrap_or(&defaults);
     vortex_ensure!(
         options.flags & !VX_CUDA_SCAN_KNOWN_FLAGS == 0,
-        "unsupported CUDA scan option flags: {:#x}",
+        InvalidArgument: "unsupported CUDA scan option flags: {:#x}",
         options.flags & !VX_CUDA_SCAN_KNOWN_FLAGS
     );
     let read_at_options = PooledFileReadAtOptions::default();
@@ -427,8 +427,8 @@ pub unsafe extern "C-unwind" fn vx_cuda_array_export_arrow_device(
     error_out: *mut *mut vx_error,
 ) -> c_int {
     try_or(error_out, VX_CUDA_ERR, || {
-        vortex_ensure!(!out_schema.is_null(), "null ArrowSchema output");
-        vortex_ensure!(!out_array.is_null(), "null ArrowDeviceArray output");
+        vortex_ensure!(!out_schema.is_null(), InvalidArgument: "null ArrowSchema output");
+        vortex_ensure!(!out_array.is_null(), InvalidArgument: "null ArrowDeviceArray output");
 
         // SAFETY: The caller supplies a live borrowed session handle.
         let session = session_with_cuda(unsafe { vx_session_ref(session) }?);
@@ -465,11 +465,11 @@ pub unsafe extern "C-unwind" fn vx_cuda_partition_scan_arrow_device_stream(
     error_out: *mut *mut vx_error,
 ) -> c_int {
     try_or(error_out, VX_CUDA_ERR, || {
-        vortex_ensure!(!partition.is_null(), "null vx_partition");
+        vortex_ensure!(!partition.is_null(), InvalidArgument: "null vx_partition");
 
         // SAFETY: The caller transfers ownership of this non-null partition handle.
         let array_stream = unsafe { vx_partition_into_array_stream(partition) }?;
-        vortex_ensure!(!out_stream.is_null(), "null ArrowDeviceArrayStream output");
+        vortex_ensure!(!out_stream.is_null(), InvalidArgument: "null ArrowDeviceArrayStream output");
 
         // SAFETY: The caller supplies a live borrowed session handle.
         let session = session_with_cuda(unsafe { vx_session_ref(session) }?);
@@ -845,7 +845,7 @@ mod tests {
             let mut array = ArrowDeviceArray::empty();
             // SAFETY: This live stream owns the callback; array is writable.
             let status = unsafe { get_next(stream, &raw mut array) };
-            vortex_ensure!(status == 0, "get_next failed: {}", stream_error(stream));
+            vortex_ensure!(status == 0, Io: "get_next failed: {}", stream_error(stream));
             if array.array.release.is_none() {
                 break;
             }

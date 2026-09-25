@@ -225,14 +225,14 @@ impl VTable for Sparse {
                     ScalarValue::to_proto_bytes::<Vec<u8>>(array.fill_value.value()).into();
                 BufferHandle::new_host(fill_value_buffer)
             }
-            _ => vortex_panic!("SparseArray buffer index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "SparseArray buffer index {idx} out of bounds"),
         }
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
         match idx {
             0 => Some("fill_value".to_string()),
-            _ => vortex_panic!("SparseArray buffer_name index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "SparseArray buffer_name index {idx} out of bounds"),
         }
     }
 
@@ -279,7 +279,7 @@ impl VTable for Sparse {
         vortex_ensure_eq!(
             children.len(),
             2,
-            "SparseArray expects 2 children for sparse encoding, found {}",
+            InvalidArgument: "SparseArray expects 2 children for sparse encoding, found {}",
             children.len()
         );
 
@@ -427,7 +427,7 @@ impl Sparse {
         let dtype = fill_value.dtype().clone();
         vortex_ensure!(
             values.dtype() == &dtype,
-            "sparse values dtype {} must match fill value dtype {}",
+            MismatchedTypes: "sparse values dtype {} must match fill value dtype {}",
             values.dtype(),
             dtype,
         );
@@ -478,19 +478,19 @@ impl SparseData {
     ) -> VortexResult<()> {
         vortex_ensure!(
             fill_value.dtype() == dtype,
-            "fill value dtype {} does not match array dtype {}",
+            MismatchedTypes: "fill value dtype {} does not match array dtype {}",
             fill_value.dtype(),
             dtype,
         );
         vortex_ensure!(
             patches.array_len() == len,
-            "patches length {} does not match array length {}",
+            InvalidArgument: "patches length {} does not match array length {}",
             patches.array_len(),
             len
         );
         vortex_ensure!(
             patches.values().dtype() == dtype,
-            "patch values dtype {} does not match array dtype {}",
+            MismatchedTypes: "patch values dtype {} does not match array dtype {}",
             patches.values().dtype(),
             dtype,
         );
@@ -521,7 +521,7 @@ impl SparseData {
     fn from_patches(patches: &Patches, fill_value: Scalar) -> VortexResult<Self> {
         vortex_ensure!(
             patches.values().dtype() == fill_value.dtype(),
-            "patch values dtype {} must match fill dtype {}",
+            MismatchedTypes: "patch values dtype {} must match fill dtype {}",
             patches.values().dtype(),
             fill_value.dtype(),
         );

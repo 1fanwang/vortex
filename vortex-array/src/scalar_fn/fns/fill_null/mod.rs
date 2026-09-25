@@ -82,7 +82,7 @@ impl ScalarFnVTable for FillNull {
     fn return_dtype(&self, _options: &Self::Options, arg_dtypes: &[DType]) -> VortexResult<DType> {
         vortex_ensure!(
             arg_dtypes[0].eq_ignore_nullability(&arg_dtypes[1]),
-            "fill_null requires input and fill value to have the same base type, got {} and {}",
+            MismatchedTypes: "fill_null requires input and fill value to have the same base type, got {} and {}",
             arg_dtypes[0],
             arg_dtypes[1]
         );
@@ -107,7 +107,7 @@ impl ScalarFnVTable for FillNull {
 
         vortex_ensure!(
             !fill_scalar.is_null(),
-            "fill_null requires a non-null fill value"
+            InvalidArgument: "fill_null requires a non-null fill value"
         );
 
         let Some(columnar) = input.as_opt::<AnyColumnar>() else {

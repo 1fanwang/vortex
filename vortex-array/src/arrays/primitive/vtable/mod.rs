@@ -112,7 +112,7 @@ impl VTable for Primitive {
         };
         vortex_ensure!(
             data.len() == len,
-            "PrimitiveArray length {} does not match outer length {}",
+            InvalidArgument: "PrimitiveArray length {} does not match outer length {}",
             data.len(),
             len
         );
@@ -121,7 +121,7 @@ impl VTable for Primitive {
         if let Some(validity_len) = validity.maybe_len() {
             vortex_ensure!(
                 validity_len == len,
-                "PrimitiveArray validity len {} does not match outer length {}",
+                InvalidArgument: "PrimitiveArray validity len {} does not match outer length {}",
                 validity_len,
                 len
             );
@@ -154,7 +154,7 @@ impl VTable for Primitive {
 
         vortex_ensure!(
             buffer.is_aligned_to(Alignment::new(ptype.byte_width())),
-            "Misaligned buffer cannot be used to build PrimitiveArray of {ptype}"
+            InvalidArgument: "Misaligned buffer cannot be used to build PrimitiveArray of {ptype}"
         );
 
         if buffer.len() != ptype.byte_width() * len {

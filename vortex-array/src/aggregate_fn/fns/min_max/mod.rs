@@ -145,7 +145,7 @@ pub(crate) fn nan_scalar(dtype: &DType) -> Scalar {
         PType::F16 => Scalar::primitive(f16::NAN, Nullability::NonNullable),
         PType::F32 => Scalar::primitive(f32::NAN, Nullability::NonNullable),
         PType::F64 => Scalar::primitive(f64::NAN, Nullability::NonNullable),
-        _ => vortex_panic!("NaN scalar requested for non-float dtype {dtype}"),
+        _ => vortex_panic!(AssertionFailed: "NaN scalar requested for non-float dtype {dtype}"),
     }
 }
 

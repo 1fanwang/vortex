@@ -38,7 +38,7 @@ unsafe impl InputElement for bool {
     fn validate(dtype: &DType) -> VortexResult<()> {
         vortex_ensure!(
             matches!(dtype, DType::Bool(_)),
-            "expected a Bool column, got {dtype}",
+            MismatchedTypes: "expected a Bool column, got {dtype}",
         );
         Ok(())
     }

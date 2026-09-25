@@ -322,7 +322,7 @@ impl StructFields {
     pub fn new(names: FieldNames, dtypes: Vec<DType>) -> Self {
         if names.len() != dtypes.len() {
             vortex_panic!(
-                "length mismatch between names ({}) and dtypes ({})",
+                InvalidArgument: "length mismatch between names ({}) and dtypes ({})",
                 names.len(),
                 dtypes.len()
             );
@@ -342,7 +342,7 @@ impl StructFields {
     pub fn from_fields(names: FieldNames, dtypes: Vec<FieldDType>) -> Self {
         if names.len() != dtypes.len() {
             vortex_panic!(
-                "length mismatch between names ({}) and dtypes ({})",
+                InvalidArgument: "length mismatch between names ({}) and dtypes ({})",
                 names.len(),
                 dtypes.len()
             );

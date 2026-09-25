@@ -13,8 +13,8 @@ use vortex_error::VortexErrorKind;
 use vortex_error::vortex_err;
 
 #[test]
-fn test_untagged_err_is_other() {
-    assert_eq!(vortex_err!("boom").kind(), VortexErrorKind::Other);
+fn test_other_err_is_other() {
+    assert_eq!(vortex_err!(Other: "boom").kind(), VortexErrorKind::Other);
 }
 
 #[test]

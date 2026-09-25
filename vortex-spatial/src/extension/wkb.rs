@@ -71,7 +71,7 @@ impl TryFrom<ExtensionArray> for WellKnownBinaryData {
     fn try_from(ext: ExtensionArray) -> Result<Self, Self::Error> {
         vortex_ensure!(
             ext.ext_dtype().is::<WellKnownBinary>(),
-            "array extension dtype {} is not a WKB",
+            MismatchedTypes: "array extension dtype {} is not a WKB",
             ext.ext_dtype()
         );
 
@@ -150,7 +150,7 @@ impl ExtVTable for WellKnownBinary {
     fn validate_dtype(ext_dtype: &ExtDType<Self>) -> VortexResult<()> {
         vortex_ensure!(
             ext_dtype.storage_dtype().is_binary(),
-            "vortex.st.wkb must have binary storage type, was {}",
+            MismatchedTypes: "vortex.st.wkb must have binary storage type, was {}",
             ext_dtype.storage_dtype()
         );
 

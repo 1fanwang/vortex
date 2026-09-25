@@ -103,7 +103,7 @@ impl VTable for Flat {
     }
 
     fn child_type(_layout: &Layout<Self>, idx: usize) -> LayoutChildType {
-        vortex_panic!("Flat layout has no child {idx}")
+        vortex_panic!(OutOfBounds: "Flat layout has no child {idx}")
     }
 
     fn new_reader(

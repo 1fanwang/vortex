@@ -148,7 +148,7 @@ pub(crate) fn box_dimension(dtype: &DType) -> VortexResult<Dimension> {
                 field,
                 DType::Primitive(PType::F64, Nullability::NonNullable)
             ),
-            "box field {name} must be non-nullable f64, was {field}"
+            MismatchedTypes: "box field {name} must be non-nullable f64, was {field}"
         );
     }
     box_dimension_from_names(fields.names()).ok_or_else(

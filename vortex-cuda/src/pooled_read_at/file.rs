@@ -208,7 +208,7 @@ impl VortexReadAt for PooledFileReadAt {
         async move {
             vortex_ensure!(
                 offset.checked_add(u64::try_from(length)?).is_some(),
-                "file read range overflow: offset={offset}, length={length}"
+                Overflow: "file read range overflow: offset={offset}, length={length}"
             );
             if length <= FILE_READ_CHUNK_BYTES {
                 let read = reader.read_host(offset, length).await?;

@@ -362,10 +362,10 @@ pub extern "system" fn Java_dev_vortex_jni_NativeWriter_create(
 ) -> jlong {
     try_or_throw(&mut env, |env| {
         if session_ptr == 0 {
-            throw_runtime!("null session pointer");
+            throw_runtime!(InvalidArgument: "null session pointer");
         }
         if arrow_schema_addr == 0 {
-            throw_runtime!("null arrow schema address");
+            throw_runtime!(InvalidArgument: "null arrow schema address");
         }
         let session = unsafe { session_ref(session_ptr) };
 
@@ -446,13 +446,13 @@ pub extern "system" fn Java_dev_vortex_jni_NativeWriter_createStream(
 ) -> jlong {
     try_or_throw(&mut env, |env| {
         if session_ptr == 0 {
-            throw_runtime!("null session pointer");
+            throw_runtime!(InvalidArgument: "null session pointer");
         }
         if arrow_schema_addr == 0 {
-            throw_runtime!("null arrow schema address");
+            throw_runtime!(InvalidArgument: "null arrow schema address");
         }
         if writable.is_null() {
-            throw_runtime!("null writable");
+            throw_runtime!(InvalidArgument: "null writable");
         }
         let session = unsafe { session_ref(session_ptr) };
 

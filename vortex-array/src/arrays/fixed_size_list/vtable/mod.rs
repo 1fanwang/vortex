@@ -75,11 +75,11 @@ impl VTable for FixedSizeList {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("FixedSizeListArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "FixedSizeListArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("FixedSizeListArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "FixedSizeListArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(
@@ -114,7 +114,7 @@ impl VTable for FixedSizeList {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots.len() == FixedSizeListSlots::COUNT,
-            "FixedSizeListArray expected {} slots, found {}",
+            InvalidArgument: "FixedSizeListArray expected {} slots, found {}",
             FixedSizeListSlots::COUNT,
             slots.len()
         );
@@ -130,7 +130,7 @@ impl VTable for FixedSizeList {
             } else {
                 elements.len() / *list_size as usize == len
             },
-            "FixedSizeListArray length {} does not match outer length {}",
+            InvalidArgument: "FixedSizeListArray length {} does not match outer length {}",
             len,
             len
         );
@@ -139,7 +139,7 @@ impl VTable for FixedSizeList {
             DType::FixedSizeList(Arc::new(elements.dtype().clone()), *list_size, *nullability);
         vortex_ensure!(
             &actual_dtype == dtype,
-            "FixedSizeListArray dtype {} does not match outer dtype {}",
+            MismatchedTypes: "FixedSizeListArray dtype {} does not match outer dtype {}",
             actual_dtype,
             dtype
         );
@@ -165,7 +165,7 @@ impl VTable for FixedSizeList {
         }
         vortex_ensure!(
             buffers.is_empty(),
-            "`FixedSizeList::build` expects no buffers"
+            InvalidArgument: "`FixedSizeList::build` expects no buffers"
         );
 
         let DType::FixedSizeList(element_dtype, list_size, _) = &dtype else {

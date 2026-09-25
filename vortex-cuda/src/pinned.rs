@@ -52,11 +52,11 @@ impl PinnedByteBuffer {
     ) -> VortexResult<Self> {
         vortex_ensure!(
             capacity < isize::MAX as usize,
-            "pinned host buffer capacity is too large: {capacity}"
+            Overflow: "pinned host buffer capacity is too large: {capacity}"
         );
         vortex_ensure!(
             logical_len <= capacity,
-            "pinned host buffer length {logical_len} exceeds capacity {capacity}"
+            Overflow: "pinned host buffer length {logical_len} exceeds capacity {capacity}"
         );
         let event = ctx
             .new_event(Some(CUevent_flags::CU_EVENT_BLOCKING_SYNC))
@@ -66,7 +66,7 @@ impl PinnedByteBuffer {
         let ptr = unsafe { result::malloc_host(capacity, 0) }
             .map_err(|e| vortex_err!(Io: "failed to allocate pinned host buffer: {e}"))?
             .cast::<u8>();
-        vortex_ensure!(!ptr.is_null(), "CUDA returned a null pinned host buffer");
+        vortex_ensure!(!ptr.is_null(), Io: "CUDA returned a null pinned host buffer");
         Ok(Self {
             ptr,
             capacity,
@@ -353,13 +353,13 @@ impl PooledPinnedBuffer {
         let pinned = self.inner.as_mut().vortex_expect("buffer already consumed");
         vortex_ensure!(
             range.start <= range.end && range.end <= pinned.logical_len,
-            "invalid pinned host buffer range {:?} for length {}",
+            InvalidArgument: "invalid pinned host buffer range {:?} for length {}",
             range,
             pinned.logical_len
         );
         vortex_ensure!(
             range.len() == destination.len(),
-            "pinned host buffer range length {} does not match destination length {}",
+            InvalidArgument: "pinned host buffer range length {} does not match destination length {}",
             range.len(),
             destination.len()
         );

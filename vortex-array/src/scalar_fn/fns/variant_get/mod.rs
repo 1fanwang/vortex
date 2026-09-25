@@ -122,7 +122,7 @@ impl ScalarFnVTable for VariantGet {
         let input_dtype = &arg_dtypes[0];
         vortex_ensure!(
             matches!(input_dtype, DType::Variant(_)),
-            "VariantGet input must be Variant, found {input_dtype}"
+            MismatchedTypes: "VariantGet input must be Variant, found {input_dtype}"
         );
 
         // Missing paths, traversal mismatches, and cast failures all produce nulls.
@@ -525,7 +525,7 @@ mod tests {
         }
         vortex_ensure!(
             pos > start,
-            "Invalid Variant path {path:?}: expected field name"
+            InvalidArgument: "Invalid Variant path {path:?}: expected field name"
         );
         Ok((&path[start..pos], pos))
     }
@@ -541,11 +541,11 @@ mod tests {
         }
         vortex_ensure!(
             pos > start,
-            "Invalid Variant path {path:?}: expected list index"
+            InvalidArgument: "Invalid Variant path {path:?}: expected list index"
         );
         vortex_ensure!(
             path.as_bytes().get(pos) == Some(&b']'),
-            "Invalid Variant path {path:?}: expected closing ']'"
+            InvalidArgument: "Invalid Variant path {path:?}: expected closing ']'"
         );
         let index = path[start..pos].parse().map_err(
             |_| vortex_err!(Overflow: "Invalid Variant path {path:?}: list index is too large"),

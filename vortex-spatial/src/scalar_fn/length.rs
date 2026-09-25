@@ -49,14 +49,14 @@ use crate::scalar_fn::execute::dispatch_unary;
 fn validate_length_operands(dtypes: &[DType]) -> VortexResult<()> {
     vortex_ensure!(
         dtypes.len() == 1,
-        "spatial: length requires exactly one lineal operand, got {}",
+        InvalidArgument: "spatial: length requires exactly one lineal operand, got {}",
         dtypes.len()
     );
     vortex_ensure!(
         dtypes[0].as_extension_opt().is_some_and(|extension| {
             extension.is::<LineString>() || extension.is::<MultiLineString>()
         }),
-        "spatial: length operand {} is not a native LineString or MultiLineString",
+        MismatchedTypes: "spatial: length operand {} is not a native LineString or MultiLineString",
         dtypes[0]
     );
     Ok(())

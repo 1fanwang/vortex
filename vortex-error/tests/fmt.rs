@@ -13,7 +13,7 @@ use vortex_error::vortex_err;
 #[inline(never)]
 fn test_basic_display() {
     temp_env::with_var("RUST_BACKTRACE", Some("1"), || {
-        let err = vortex_err!("this is bad");
+        let err = vortex_err!(Other: "this is bad");
         let display = err.to_string();
 
         assert!(

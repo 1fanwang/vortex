@@ -34,7 +34,7 @@ impl ValueRef {
 
     pub fn as_string(&self) -> BufferString {
         let ExtractedValue::Varchar(string) = self.extract() else {
-            vortex_panic!("ValueRef is not a string");
+            vortex_panic!(MismatchedTypes: "ValueRef is not a string");
         };
         string
     }
@@ -45,7 +45,9 @@ impl ValueRef {
             return ExtractedValue::Null;
         }
         match self.logical_type().as_type_id() {
-            DUCKDB_TYPE::DUCKDB_TYPE_INVALID => vortex_panic!("Invalid type for DuckDB value"),
+            DUCKDB_TYPE::DUCKDB_TYPE_INVALID => {
+                vortex_panic!(MismatchedTypes: "Invalid type for DuckDB value")
+            }
             DUCKDB_TYPE::DUCKDB_TYPE_SQLNULL => ExtractedValue::Null,
             DUCKDB_TYPE::DUCKDB_TYPE_BOOLEAN => {
                 ExtractedValue::Boolean(unsafe { cpp::duckdb_get_bool(self.as_ptr()) })

@@ -147,7 +147,7 @@ impl TryFrom<ExtensionArray> for MultiPointData {
     fn try_from(ext: ExtensionArray) -> Result<Self, Self::Error> {
         vortex_ensure!(
             ext.ext_dtype().is::<MultiPoint>(),
-            "expected a MultiPoint extension array"
+            MismatchedTypes: "expected a MultiPoint extension array"
         );
         Ok(MultiPointData(ext))
     }
@@ -246,34 +246,35 @@ impl ArrowImportVTable for MultiPoint {
         field: &Field,
         session: &ArrowSession,
     ) -> VortexResult<Option<DType>> {
-        let (dimension, metadata) =
-            if let Ok(multipoint_meta) = field.try_extension_type::<MultiPointType>() {
-                vortex_ensure!(
-                    multipoint_meta.coord_type() == CoordType::Separated,
-                    "geoarrow.multipoint with interleaved coordinates is not supported; \
-                 re-encode with separated (struct) coordinates"
-                );
-                (
-                    multipoint_meta.dimension().into(),
-                    spatial_metadata_from_arrow(multipoint_meta.metadata()),
-                )
-            } else {
-                if field.extension_type_name() != Some(MultiPointType::NAME) {
-                    return Ok(None);
-                }
-                let Ok(DType::List(coords, _)) =
-                    session.from_arrow_datatype(field.data_type(), field.is_nullable().into())
-                else {
-                    return Ok(None);
-                };
-                let DType::Struct(fields, _) = coords.as_ref() else {
-                    return Ok(None);
-                };
-                let Ok(dimension) = Dimension::from_field_names(fields.names()) else {
-                    return Ok(None);
-                };
-                (dimension, SpatialMetadata::default())
+        let (dimension, metadata) = if let Ok(multipoint_meta) =
+            field.try_extension_type::<MultiPointType>()
+        {
+            vortex_ensure!(
+                multipoint_meta.coord_type() == CoordType::Separated,
+                NotImplemented: "geoarrow.multipoint with interleaved coordinates is not supported; \
+             re-encode with separated (struct) coordinates"
+            );
+            (
+                multipoint_meta.dimension().into(),
+                spatial_metadata_from_arrow(multipoint_meta.metadata()),
+            )
+        } else {
+            if field.extension_type_name() != Some(MultiPointType::NAME) {
+                return Ok(None);
+            }
+            let Ok(DType::List(coords, _)) =
+                session.from_arrow_datatype(field.data_type(), field.is_nullable().into())
+            else {
+                return Ok(None);
             };
+            let DType::Struct(fields, _) = coords.as_ref() else {
+                return Ok(None);
+            };
+            let Ok(dimension) = Dimension::from_field_names(fields.names()) else {
+                return Ok(None);
+            };
+            (dimension, SpatialMetadata::default())
+        };
 
         let storage_dtype = multipoint_storage_dtype(dimension, field.is_nullable().into());
         Ok(Some(DType::Extension(

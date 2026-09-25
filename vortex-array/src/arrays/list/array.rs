@@ -242,7 +242,7 @@ impl ListData {
 
                     vortex_ensure!(
                         max <= P::try_from(elements.len()).unwrap_or_else(|_| vortex_panic!(
-                            "Offsets type {} must be able to fit elements length {}",
+                            Overflow: "Offsets type {} must be able to fit elements length {}",
                             <P as NativePType>::PTYPE,
                             elements.len()
                         )),
@@ -295,7 +295,7 @@ pub trait ListArrayExt: ListArraySlotsExt {
     fn offset_at(&self, index: usize) -> VortexResult<usize> {
         vortex_ensure!(
             index <= self.as_ref().len(),
-            "Index {index} out of bounds 0..={}",
+            OutOfBounds: "Index {index} out of bounds 0..={}",
             self.as_ref().len()
         );
 

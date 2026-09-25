@@ -54,7 +54,7 @@ impl ArrayPlugin for ALPPatchedPlugin {
     ) -> VortexResult<ArrayRef> {
         vortex_ensure!(
             parts.serialized_id == self.id(),
-            "ALP plugin does not recognize serialized ID {}",
+            Serde: "ALP plugin does not recognize serialized ID {}",
             parts.serialized_id,
         );
         let alp_array = Array::<ALP>::try_from_parts(ArrayVTable::deserialize(

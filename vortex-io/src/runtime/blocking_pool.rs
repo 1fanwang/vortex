@@ -61,7 +61,7 @@ impl BlockingPool {
             })
             .is_err()
         {
-            vortex_panic!("cannot spawn blocking work on a shut down runtime");
+            vortex_panic!(InvalidArgument: "cannot spawn blocking work on a shut down runtime");
         }
         state.queued_job_count += 1;
         if state.queued_job_count > state.idle_thread_count {
@@ -83,7 +83,7 @@ impl BlockingPool {
             .spawn(move || worker_loop(receiver, worker_state))
         {
             state.thread_count -= 1;
-            vortex_panic!("failed to spawn a blocking I/O worker: {error}");
+            vortex_panic!(Io: "failed to spawn a blocking I/O worker: {error}");
         }
     }
 }

@@ -171,7 +171,7 @@ impl VTable for Decimal {
             // Check and reinterpret-cast the buffer
             vortex_ensure!(
                 values.is_aligned_to(Alignment::of::<D>()),
-                "DecimalArray buffer not aligned for values type {:?}",
+                InvalidArgument: "DecimalArray buffer not aligned for values type {:?}",
                 D::DECIMAL_TYPE
             );
             DecimalData::try_new_handle(values, metadata.values_type(), *decimal_dtype)

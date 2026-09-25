@@ -318,7 +318,7 @@ impl<'a> TryFrom<&'a ValueRef> for Scalar {
                     Scalar::binary(b, Nullable),
                 )),
                 DType::Extension(ext) if ext.is::<Uuid>() => {
-                    vortex_ensure!(b.len() == 16, "UUID blob must be 16 bytes, got {}", b.len());
+                    vortex_ensure!(b.len() == 16, InvalidArgument: "UUID blob must be 16 bytes, got {}", b.len());
                     let children = b
                         .iter()
                         .map(|&byte| Scalar::primitive(byte, NonNullable))

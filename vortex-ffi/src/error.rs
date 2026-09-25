@@ -192,14 +192,17 @@ mod tests {
     fn test_try_or_null_error_out() {
         // A null error_out must be tolerated on both the success and failure paths.
         assert_eq!(try_or(ptr::null_mut(), -1, || Ok(42)), 42);
-        assert_eq!(try_or(ptr::null_mut(), -1, || Err(vortex_err!("boom"))), -1);
+        assert_eq!(
+            try_or(ptr::null_mut(), -1, || Err(vortex_err!(Other: "boom"))),
+            -1
+        );
     }
 
     #[test]
     fn test_try_or_default_null_error_out() {
         assert_eq!(try_or_default(ptr::null_mut(), || Ok(42)), 42);
         assert_eq!(
-            try_or_default::<i32>(ptr::null_mut(), || Err(vortex_err!("boom"))),
+            try_or_default::<i32>(ptr::null_mut(), || Err(vortex_err!(Other: "boom"))),
             0
         );
     }
@@ -208,7 +211,10 @@ mod tests {
     fn test_try_or_writes_and_clears_error_out() {
         let mut error: *mut vx_error = ptr::null_mut();
 
-        assert_eq!(try_or(&raw mut error, -1, || Err(vortex_err!("boom"))), -1);
+        assert_eq!(
+            try_or(&raw mut error, -1, || Err(vortex_err!(Other: "boom"))),
+            -1
+        );
         assert!(!error.is_null());
         unsafe { vx_error_free(error) };
 

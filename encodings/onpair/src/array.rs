@@ -412,7 +412,7 @@ fn validate_parts(
 ) -> VortexResult<()> {
     vortex_ensure!(
         matches!(dtype, DType::Binary(_) | DType::Utf8(_)),
-        "OnPair arrays must be Binary or Utf8, found {dtype}"
+        MismatchedTypes: "OnPair arrays must be Binary or Utf8, found {dtype}"
     );
 
     if !dict_offsets.dtype().is_int() || dict_offsets.dtype().is_nullable() {
@@ -475,14 +475,14 @@ impl VTable for OnPair {
     fn buffer(array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
         match idx {
             0 => array.dict_bytes_handle().clone(),
-            _ => vortex_panic!("OnPairArray buffer index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "OnPairArray buffer index {idx} out of bounds"),
         }
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
         match idx {
             0 => Some("dict_bytes".to_string()),
-            _ => vortex_panic!("OnPairArray buffer_name index {idx} out of bounds"),
+            _ => vortex_panic!(OutOfBounds: "OnPairArray buffer_name index {idx} out of bounds"),
         }
     }
 
@@ -493,7 +493,7 @@ impl VTable for OnPair {
     ) -> VortexResult<ArrayParts<Self>> {
         vortex_ensure!(
             buffers.len() == 1,
-            "Expected 1 buffer, got {}",
+            InvalidArgument: "Expected 1 buffer, got {}",
             buffers.len()
         );
         let mut data = array.data().clone();

@@ -55,12 +55,12 @@ use crate::scalar_fn::execute::dispatch_unary;
 fn validate_envelope_operands(dtypes: &[DType]) -> VortexResult<()> {
     vortex_ensure!(
         dtypes.len() == 1,
-        "spatial: envelope requires exactly one geometry operand, got {}",
+        InvalidArgument: "spatial: envelope requires exactly one geometry operand, got {}",
         dtypes.len()
     );
     vortex_ensure!(
         is_native_geometry(&dtypes[0]),
-        "spatial: envelope operand {} is not a native geometry type",
+        MismatchedTypes: "spatial: envelope operand {} is not a native geometry type",
         dtypes[0]
     );
     Ok(())

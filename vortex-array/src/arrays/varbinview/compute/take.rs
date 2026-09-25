@@ -169,7 +169,7 @@ where
     )?;
     vortex_ensure!(
         computed_len == output_len,
-        "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
     );
 
     let mut views = BufferMut::<BinaryView>::with_capacity(output_len);
@@ -185,7 +185,7 @@ where
     unsafe { views.set_len(cursor) };
     vortex_ensure!(
         views.len() == output_len,
-        "PiecewiseSequenceArray expanded length {} does not match declared length {output_len}",
+        AssertionFailed: "PiecewiseSequenceArray expanded length {} does not match declared length {output_len}",
         views.len()
     );
     Ok(views.freeze())
@@ -215,7 +215,7 @@ where
     unsafe { views.set_len(cursor) };
     vortex_ensure!(
         views.len() == output_len,
-        "PiecewiseSequenceArray expanded length {} does not match declared length {output_len}",
+        AssertionFailed: "PiecewiseSequenceArray expanded length {} does not match declared length {output_len}",
         views.len()
     );
     Ok(views.freeze())

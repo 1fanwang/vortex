@@ -85,11 +85,11 @@ impl VTable for Union {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("UnionArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "UnionArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("UnionArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "UnionArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(
@@ -116,15 +116,15 @@ impl VTable for Union {
         children: &dyn ArrayChildren,
         _session: &VortexSession,
     ) -> VortexResult<ArrayParts<Self>> {
-        vortex_ensure!(metadata.is_empty(), "UnionArray expects empty metadata");
-        vortex_ensure!(buffers.is_empty(), "UnionArray expects no buffers");
+        vortex_ensure!(metadata.is_empty(), Serde: "UnionArray expects empty metadata");
+        vortex_ensure!(buffers.is_empty(), InvalidArgument: "UnionArray expects no buffers");
         let DType::Union(variants, nullability) = dtype else {
             vortex_bail!(InvalidArgument: "Expected union dtype, found {dtype}")
         };
         vortex_ensure_eq!(
             children.len(),
             UnionSlots::CHILDREN_OFFSET + variants.len(),
-            "UnionArray expected {} children, found {}",
+            InvalidArgument: "UnionArray expected {} children, found {}",
             UnionSlots::CHILDREN_OFFSET + variants.len(),
             children.len()
         );

@@ -53,7 +53,7 @@ impl ArrayPlugin for BitPackedPatchedPlugin {
     ) -> VortexResult<ArrayRef> {
         vortex_ensure!(
             parts.serialized_id == self.id(),
-            "BitPacked plugin does not recognize serialized ID {}",
+            Serde: "BitPacked plugin does not recognize serialized ID {}",
             parts.serialized_id,
         );
         let bitpacked = Array::<BitPacked>::try_from_parts(ArrayVTable::deserialize(

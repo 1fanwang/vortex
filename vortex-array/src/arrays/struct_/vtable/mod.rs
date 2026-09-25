@@ -116,11 +116,11 @@ impl VTable for Struct {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("StructArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "StructArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("StructArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "StructArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(

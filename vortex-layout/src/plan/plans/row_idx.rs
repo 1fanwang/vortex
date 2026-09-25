@@ -137,7 +137,7 @@ pub fn plan_row_idx_expression(
 
     vortex_ensure!(
         partitioned.partition_annotations.len() == 2,
-        "Row-index expression produced more than two partitions"
+        AssertionFailed: "Row-index expression produced more than two partitions"
     );
     let row_idx_index = partitioned
         .partition_annotations

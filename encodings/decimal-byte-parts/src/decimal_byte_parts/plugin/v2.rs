@@ -65,17 +65,17 @@ pub(super) fn deserialize(parts: ArrayDeserialization<'_>) -> VortexResult<Decim
     let metadata = DecimalBytePartsV2Metadata::decode(parts.metadata)?;
     vortex_ensure!(
         parts.dtype.as_decimal_opt().is_some(),
-        "expected a decimal dtype"
+        MismatchedTypes: "expected a decimal dtype"
     );
 
     let lower_part_count = metadata.lower_part_ptypes.len();
     vortex_ensure!(
         lower_part_count <= MAX_LOWER_PARTS,
-        "v2 carries at most {MAX_LOWER_PARTS} lower parts, got {lower_part_count}"
+        Serde: "v2 carries at most {MAX_LOWER_PARTS} lower parts, got {lower_part_count}"
     );
     vortex_ensure!(
         parts.children.len() == 1 + lower_part_count,
-        "expected {} children, got {}",
+        Serde: "expected {} children, got {}",
         1 + lower_part_count,
         parts.children.len()
     );
@@ -83,7 +83,7 @@ pub(super) fn deserialize(parts: ArrayDeserialization<'_>) -> VortexResult<Decim
     let msp_ptype = PType::try_from(metadata.msp_ptype)?;
     vortex_ensure!(
         msp_ptype.is_signed_int(),
-        "MSP must have a signed integer dtype, got {msp_ptype}"
+        MismatchedTypes: "MSP must have a signed integer dtype, got {msp_ptype}"
     );
     let msp_dtype = DType::Primitive(msp_ptype, parts.dtype.nullability());
 
@@ -95,7 +95,7 @@ pub(super) fn deserialize(parts: ArrayDeserialization<'_>) -> VortexResult<Decim
         )?;
         vortex_ensure!(
             ptype.is_unsigned_int(),
-            "lower part {idx} must have an unsigned integer dtype, got {ptype}"
+            MismatchedTypes: "lower part {idx} must have an unsigned integer dtype, got {ptype}"
         );
         slots.push(Some(parts.children.get(
             1 + idx,

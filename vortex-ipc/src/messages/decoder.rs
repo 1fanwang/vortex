@@ -193,7 +193,7 @@ mod test {
         let mut buffer = BytesMut::from(ipc_bytes.as_ref());
         let (array_parts, ctx, row_count) = match decoder.read_next(&mut buffer).unwrap() {
             PollRead::Some(DecoderMessage::Array(array_parts)) => array_parts,
-            otherwise => vortex_panic!("Expected an array, got {:?}", otherwise),
+            otherwise => vortex_panic!(MismatchedTypes: "Expected an array, got {:?}", otherwise),
         };
 
         // Decode the array parts with the context

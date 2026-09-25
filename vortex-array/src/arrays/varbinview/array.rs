@@ -232,7 +232,7 @@ impl VarBinViewData {
         let views_nbytes = views.len();
         vortex_ensure!(
             views_nbytes.is_multiple_of(size_of::<BinaryView>()),
-            "Expected views buffer length ({views_nbytes}) to be a multiple of {}",
+            InvalidArgument: "Expected views buffer length ({views_nbytes}) to be a multiple of {}",
             size_of::<BinaryView>()
         );
 
@@ -240,7 +240,7 @@ impl VarBinViewData {
         if let Some(host) = views.as_host_opt() {
             vortex_ensure!(
                 host.is_aligned(Alignment::of::<BinaryView>()),
-                "Views on host must be 16 byte aligned"
+                InvalidArgument: "Views on host must be 16 byte aligned"
             );
         }
 
@@ -553,7 +553,7 @@ impl VarBinViewData {
     pub fn buffer(&self, idx: usize) -> &ByteBuffer {
         if idx >= self.data_buffers().len() {
             vortex_panic!(
-                "{idx} buffer index out of bounds, there are {} buffers",
+                OutOfBounds: "{idx} buffer index out of bounds, there are {} buffers",
                 self.data_buffers().len()
             );
         }

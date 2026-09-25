@@ -485,7 +485,7 @@ impl SerializedArray {
             .vortex_expect("Expected array to have children");
         if idx >= children.len() {
             vortex_panic!(
-                "Invalid child index {} for array with {} children",
+                OutOfBounds: "Invalid child index {} for array with {} children",
                 idx,
                 children.len()
             );
@@ -817,7 +817,7 @@ mod tests {
         ) -> VortexResult<Option<ArraySerialization>> {
             vortex_ensure!(
                 array.encoding_id() == self.id(),
-                "versioned primitive serializer received {}",
+                Serde: "versioned primitive serializer received {}",
                 array.encoding_id(),
             );
 
@@ -842,12 +842,12 @@ mod tests {
             vortex_ensure!(
                 parts.serialized_id == old_primitive_id()
                     || parts.serialized_id == new_primitive_id(),
-                "versioned primitive deserializer does not recognize {}",
+                Serde: "versioned primitive deserializer does not recognize {}",
                 parts.serialized_id,
             );
             vortex_ensure!(
                 parts.serialized_id != old_primitive_id() || parts.len <= 4,
-                "old primitive wire ID cannot represent length {}",
+                Serde: "old primitive wire ID cannot represent length {}",
                 parts.len,
             );
             Ok(Array::<Primitive>::try_from_parts(ArrayVTable::deserialize(

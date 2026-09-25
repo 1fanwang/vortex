@@ -87,7 +87,7 @@ impl VTable for List {
         let offsets = args.children.child(OFFSETS_CHILD_INDEX, &offsets_dtype)?;
         vortex_error::vortex_ensure!(
             offsets.row_count().saturating_sub(1) == args.row_count,
-            "List offsets row count does not match parent"
+            InvalidArgument: "List offsets row count does not match parent"
         );
         if args.dtype.is_nullable() {
             let validity = args
@@ -95,7 +95,7 @@ impl VTable for List {
                 .child(VALIDITY_CHILD_INDEX, &DType::Bool(Nullability::NonNullable))?;
             vortex_error::vortex_ensure!(
                 validity.row_count() == args.row_count,
-                "List validity row count does not match parent"
+                InvalidArgument: "List validity row count does not match parent"
             );
         }
         Ok(ListData {
@@ -141,7 +141,7 @@ impl VTable for List {
             VALIDITY_CHILD_INDEX if layout.dtype().is_nullable() => {
                 LayoutChildType::Auxiliary("validity".into())
             }
-            _ => vortex_panic!("Invalid child index {idx} for ListLayout"),
+            _ => vortex_panic!(OutOfBounds: "Invalid child index {idx} for ListLayout"),
         }
     }
 

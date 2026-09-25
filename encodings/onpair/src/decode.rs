@@ -84,19 +84,19 @@ pub(crate) fn collect_codes_window(
     let offsets = collect_widened::<u64>(array.codes_offsets(), ctx)?;
     vortex_ensure!(
         offsets.len() == len + 1,
-        "OnPair codes_offsets has {} entries, expected len + 1 = {}",
+        InvalidArgument: "OnPair codes_offsets has {} entries, expected len + 1 = {}",
         offsets.len(),
         len + 1
     );
     vortex_ensure!(
         offsets.is_sorted(),
-        "OnPair codes_offsets must be nondecreasing"
+        InvalidArgument: "OnPair codes_offsets must be nondecreasing"
     );
     let code_start = usize::try_from(offsets[0]).vortex_expect("code offset fits usize");
     let code_end = usize::try_from(offsets[len]).vortex_expect("code offset fits usize");
     vortex_ensure!(
         code_end <= array.codes().len(),
-        "OnPair codes_offsets end {} exceeds codes len {}",
+        InvalidArgument: "OnPair codes_offsets end {} exceeds codes len {}",
         code_end,
         array.codes().len()
     );

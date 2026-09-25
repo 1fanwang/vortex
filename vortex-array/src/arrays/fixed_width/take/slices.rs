@@ -48,7 +48,7 @@ pub(super) fn take_slices_constant_length<S: UnsignedPType>(
     )?;
     vortex_ensure!(
         computed_len == output_len,
-        "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
+        AssertionFailed: "PiecewiseSequenceArray expanded length {computed_len} does not match declared length {output_len}"
     );
     copy_slices(
         values,
@@ -73,7 +73,7 @@ fn copy_slices(
         .ok_or_else(|| vortex_err!(Overflow: "Fixed-width values buffer length overflows usize"))?;
     vortex_ensure!(
         values.len() == input_byte_len,
-        "Fixed-width values buffer length does not match record count"
+        InvalidArgument: "Fixed-width values buffer length does not match record count"
     );
 
     let output_byte_len = output_len.checked_mul(byte_width).ok_or_else(
@@ -93,7 +93,7 @@ fn copy_slices(
         )?;
         vortex_ensure!(
             end <= record_count,
-            "PiecewiseSequenceArray slice {start}..{end} exceeds array length {record_count}"
+            OutOfBounds: "PiecewiseSequenceArray slice {start}..{end} exceeds array length {record_count}"
         );
         // These multiplications cannot overflow because `end <= record_count` and the complete
         // values buffer length was checked above.
@@ -108,7 +108,7 @@ fn copy_slices(
     unsafe { result.set_len(cursor) };
     vortex_ensure!(
         result.len() == output_byte_len,
-        "PiecewiseSequenceArray expanded length {} does not match declared length {output_byte_len}",
+        AssertionFailed: "PiecewiseSequenceArray expanded length {} does not match declared length {output_byte_len}",
         result.len()
     );
     Ok(result.freeze().into_byte_buffer())

@@ -14,7 +14,7 @@ use crate::validity::Validity;
 pub(crate) fn buffer(array_name: &str, values: &BufferHandle, idx: usize) -> BufferHandle {
     match idx {
         0 => values.clone(),
-        _ => vortex_panic!("{array_name} buffer index {idx} out of bounds"),
+        _ => vortex_panic!(OutOfBounds: "{array_name} buffer index {idx} out of bounds"),
     }
 }
 
@@ -28,7 +28,7 @@ pub(crate) fn buffer_name(idx: usize) -> Option<String> {
 pub(crate) fn single_buffer(buffers: &[BufferHandle]) -> VortexResult<BufferHandle> {
     vortex_ensure!(
         buffers.len() == 1,
-        "Expected 1 buffer, got {}",
+        InvalidArgument: "Expected 1 buffer, got {}",
         buffers.len()
     );
     Ok(buffers[0].clone())

@@ -407,7 +407,7 @@ impl DeviceArrayStreamPrivateData {
     fn export_stream_array(&mut self, array: ArrayRef) -> VortexResult<ArrowDeviceArray> {
         vortex_ensure!(
             array.dtype() == &self.dtype,
-            "stream array dtype changed from {} to {}",
+            InvalidArgument: "stream array dtype changed from {} to {}",
             self.dtype,
             array.dtype()
         );
@@ -463,12 +463,12 @@ impl DeviceArrayStreamPrivateData {
     fn check_device(&self, device_array: &ArrowDeviceArray) -> VortexResult<()> {
         vortex_ensure!(
             device_array.device_type == ARROW_DEVICE_CUDA,
-            "stream array exported on non-CUDA device type {}",
+            InvalidArgument: "stream array exported on non-CUDA device type {}",
             device_array.device_type
         );
         vortex_ensure!(
             device_array.device_id == self.device_id,
-            "stream array moved from CUDA device {} to {}",
+            InvalidArgument: "stream array moved from CUDA device {} to {}",
             self.device_id,
             device_array.device_id
         );

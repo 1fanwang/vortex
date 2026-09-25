@@ -141,14 +141,14 @@ impl AggregateFnVTable for BoundedMax {
     ) -> VortexResult<Self::Options> {
         vortex_ensure!(
             metadata.len() == size_of::<u64>(),
-            "BoundedMax options expected {} bytes, got {}",
+            Serde: "BoundedMax options expected {} bytes, got {}",
             size_of::<u64>(),
             metadata.len()
         );
         let mut bytes = [0u8; size_of::<u64>()];
         bytes.copy_from_slice(metadata);
         let max_bytes = usize::try_from(u64::from_le_bytes(bytes))?;
-        vortex_ensure!(max_bytes > 0, "BoundedMax requires max_bytes > 0");
+        vortex_ensure!(max_bytes > 0, InvalidArgument: "BoundedMax requires max_bytes > 0");
         Ok(BoundedMaxOptions {
             max_bytes: NonZeroUsize::new(max_bytes).vortex_expect("checked non-zero max_bytes"),
         })

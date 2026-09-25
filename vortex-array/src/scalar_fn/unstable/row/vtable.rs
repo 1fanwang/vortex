@@ -155,7 +155,7 @@ fn ensure_arity<F: RowFn>(function: &F, actual: usize) -> VortexResult<()> {
     vortex_ensure_eq!(
         actual,
         expected,
-        "row function {} requires arity {expected}, got {actual}",
+        InvalidArgument: "row function {} requires arity {expected}, got {actual}",
         RowFn::id(function),
     );
 

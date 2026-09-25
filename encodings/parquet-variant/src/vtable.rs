@@ -98,7 +98,7 @@ impl VTable for ParquetVariant {
     ) -> VortexResult<()> {
         vortex_ensure!(
             slots.len() == ParquetVariantSlots::COUNT,
-            "ParquetVariantArray expects {} slots, got {}",
+            InvalidArgument: "ParquetVariantArray expects {} slots, got {}",
             ParquetVariantSlots::COUNT,
             slots.len()
         );
@@ -114,44 +114,44 @@ impl VTable for ParquetVariant {
 
         vortex_ensure!(
             matches!(dtype, DType::Variant(_)),
-            "Expected Variant DType, found {dtype}"
+            MismatchedTypes: "Expected Variant DType, found {dtype}"
         );
         vortex_ensure!(
             value.is_some() || typed_value.is_some(),
-            "at least one of value or typed_value must be present"
+            InvalidArgument: "at least one of value or typed_value must be present"
         );
         vortex_ensure_eq!(
             dtype.nullability(),
             validity.nullability(),
-            "variant dtype nullability must match validity nullability"
+            InvalidArgument: "variant dtype nullability must match validity nullability"
         );
         vortex_ensure_eq!(
             metadata.dtype(),
             &DType::Binary(Nullability::NonNullable),
-            "metadata dtype must be non-nullable binary"
+            MismatchedTypes: "metadata dtype must be non-nullable binary"
         );
         vortex_ensure_eq!(
             metadata.len(),
             len,
-            "metadata length must match array length"
+            InvalidArgument: "metadata length must match array length"
         );
 
         if let Some(validity_len) = validity.maybe_len() {
-            vortex_ensure_eq!(validity_len, len, "validity length must match array length");
+            vortex_ensure_eq!(validity_len, len, InvalidArgument: "validity length must match array length");
         }
         if let Some(value) = value {
             vortex_ensure!(
                 matches!(value.dtype(), DType::Binary(_)),
-                "value dtype must be binary, found {}",
+                MismatchedTypes: "value dtype must be binary, found {}",
                 value.dtype()
             );
-            vortex_ensure_eq!(value.len(), len, "value length must match array length");
+            vortex_ensure_eq!(value.len(), len, InvalidArgument: "value length must match array length");
         }
         if let Some(typed_value) = typed_value {
             vortex_ensure_eq!(
                 typed_value.len(),
                 len,
-                "typed_value length must match array length"
+                InvalidArgument: "typed_value length must match array length"
             );
         }
         Ok(())
@@ -162,7 +162,7 @@ impl VTable for ParquetVariant {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("ParquetVariantArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ParquetVariantArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {
@@ -210,7 +210,7 @@ impl VTable for ParquetVariant {
     ) -> VortexResult<ArrayParts<Self>> {
         vortex_ensure!(
             buffers.is_empty(),
-            "ParquetVariantArray expects 0 buffers, got {}",
+            InvalidArgument: "ParquetVariantArray expects 0 buffers, got {}",
             buffers.len()
         );
 
@@ -220,17 +220,17 @@ impl VTable for ParquetVariant {
             None => None,
         };
 
-        vortex_ensure!(matches!(dtype, DType::Variant(_)), "Expected Variant DType");
+        vortex_ensure!(matches!(dtype, DType::Variant(_)), InvalidArgument: "Expected Variant DType");
         let has_typed_value = typed_value_dtype.is_some();
         vortex_ensure!(
             proto.has_value || has_typed_value,
-            "At least one of value or typed_value must be present"
+            InvalidArgument: "At least one of value or typed_value must be present"
         );
 
         let expected_children = 1 + proto.has_value as usize + has_typed_value as usize;
         vortex_ensure!(
             children.len() == expected_children || children.len() == expected_children + 1,
-            "Expected {} or {} children, got {}",
+            InvalidArgument: "Expected {} or {} children, got {}",
             expected_children,
             expected_children + 1,
             children.len()

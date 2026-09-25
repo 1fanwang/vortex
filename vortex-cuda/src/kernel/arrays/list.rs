@@ -79,7 +79,7 @@ impl CudaExecute for ListExecutor {
             .into_primitive();
         vortex_ensure!(
             offsets.len() == list_len + 1,
-            "ListArray must have {} offsets, got {}",
+            InvalidArgument: "ListArray must have {} offsets, got {}",
             list_len + 1,
             offsets.len()
         );

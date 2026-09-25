@@ -27,7 +27,7 @@ impl OperationsVTable<Union> for Union {
         };
 
         let Some(child_index) = array.variants().tag_to_child_index(type_id) else {
-            vortex_panic!("Unknown UnionArray type ID {type_id}")
+            vortex_panic!(NotFound: "Unknown UnionArray type ID {type_id}")
         };
         let child = array
             .child(child_index)

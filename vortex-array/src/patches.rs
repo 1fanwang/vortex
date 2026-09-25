@@ -121,7 +121,7 @@ impl PatchesMetadata {
         })?;
         vortex_ensure!(
             ptype.is_unsigned_int(),
-            "Patch indices must be unsigned integers"
+            MismatchedTypes: "Patch indices must be unsigned integers"
         );
         Ok(DType::Primitive(ptype, NonNullable))
     }
@@ -251,19 +251,19 @@ impl Patches {
     ) -> VortexResult<Self> {
         vortex_ensure!(
             indices.len() == values.len(),
-            "Patch indices and values must have the same length"
+            InvalidArgument: "Patch indices and values must have the same length"
         );
         vortex_ensure!(
             indices.dtype().is_unsigned_int() && !indices.dtype().is_nullable(),
-            "Patch indices must be non-nullable unsigned integers, got {:?}",
+            MismatchedTypes: "Patch indices must be non-nullable unsigned integers, got {:?}",
             indices.dtype()
         );
 
         vortex_ensure!(
             indices.len() <= array_len,
-            "Patch indices must be shorter than the array length"
+            InvalidArgument: "Patch indices must be shorter than the array length"
         );
-        vortex_ensure!(!indices.is_empty(), "Patch indices must not be empty");
+        vortex_ensure!(!indices.is_empty(), InvalidArgument: "Patch indices must not be empty");
 
         // Perform validation of components when they are host-resident.
         // This is not possible to do eagerly when the data is on GPU memory.
@@ -275,7 +275,7 @@ impl Patches {
             .map_err(|_| vortex_err!(InvalidArgument: "indices must be a number"))?;
             vortex_ensure!(
                 max - offset < array_len,
-                "Patch indices {max:?}, offset {offset} are longer than the array length {array_len}"
+                OutOfBounds: "Patch indices {max:?}, offset {offset} are longer than the array length {array_len}"
             );
 
             #[cfg(debug_assertions)]

@@ -121,7 +121,7 @@ impl VTable for ALPRD {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("ALPRDArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "ALPRDArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, _idx: usize) -> Option<String> {
@@ -478,12 +478,12 @@ fn validate_parts(
 
     vortex_ensure!(
         left_parts.len() == len,
-        "left_parts len {} != outer len {len}",
+        InvalidArgument: "left_parts len {} != outer len {len}",
         left_parts.len(),
     );
     vortex_ensure!(
         right_parts.len() == len,
-        "right_parts len {} != outer len {len}",
+        InvalidArgument: "right_parts len {} != outer len {len}",
         right_parts.len(),
     );
 
@@ -505,7 +505,7 @@ fn validate_parts(
     };
     vortex_ensure!(
         right_parts.dtype() == &expected_right_parts_dtype,
-        "right_parts dtype {} does not match expected {}",
+        MismatchedTypes: "right_parts dtype {} does not match expected {}",
         right_parts.dtype(),
         expected_right_parts_dtype,
     );
@@ -513,7 +513,7 @@ fn validate_parts(
     if let Some(patches) = left_parts_patches {
         vortex_ensure!(
             patches.array_len() == len,
-            "patches array_len {} != outer len {len}",
+            InvalidArgument: "patches array_len {} != outer len {len}",
             patches.array_len(),
         );
         // Left-parts exceptions are always all-valid and are stored as the non-nullable left-parts
@@ -523,7 +523,7 @@ fn validate_parts(
         let expected = left_parts.dtype().as_nonnullable();
         vortex_ensure!(
             patches.dtype() == &expected,
-            "patches dtype {} must be the non-nullable left_parts dtype {}",
+            MismatchedTypes: "patches dtype {} must be the non-nullable left_parts dtype {}",
             patches.dtype(),
             expected,
         );

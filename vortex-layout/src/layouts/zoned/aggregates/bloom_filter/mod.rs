@@ -99,12 +99,12 @@ impl BloomOptions {
         vortex_ensure_eq!(
             bytes.len(),
             OPTIONS_BYTES_LEN,
-            "invalid bloom metadata length"
+            Serde: "invalid bloom metadata length"
         );
 
         // Both options are u32
         let (chunks, remainder) = bytes.as_chunks::<4>();
-        vortex_ensure_eq!(remainder.len(), 0, "expected no trailing metadata bytes");
+        vortex_ensure_eq!(remainder.len(), 0, Serde: "expected no trailing metadata bytes");
 
         let blocks_count = u32::from_le_bytes(chunks[0]);
         let hash_fn = HashFn::try_from(u32::from_le_bytes(chunks[1]))?;
@@ -329,7 +329,7 @@ impl AggregateFnVTable for BloomFilter {
         vortex_ensure_eq!(
             partial.len(),
             args.options.blocks_count().get() as usize,
-            "expected equal blocks count"
+            InvalidArgument: "expected equal blocks count"
         );
 
         Ok(partial)

@@ -47,7 +47,7 @@ impl Scalar {
         if self.value().is_none() || matches!(self.dtype(), DType::Null) {
             vortex_ensure!(
                 target_dtype.is_nullable(),
-                "Cannot cast null to {target_dtype}: target type is non-nullable"
+                InvalidArgument: "Cannot cast null to {target_dtype}: target type is non-nullable"
             );
 
             return Scalar::try_new(target_dtype.clone(), self.value().cloned());

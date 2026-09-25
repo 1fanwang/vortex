@@ -147,7 +147,7 @@ impl ScalarFnVTable for JsonToVariant {
             input_dtype
                 .as_extension_opt()
                 .is_some_and(|ext_dtype| ext_dtype.is::<Json>()),
-            "JsonToVariant input must be a Json extension, found {input_dtype}"
+            MismatchedTypes: "JsonToVariant input must be a Json extension, found {input_dtype}"
         );
 
         Ok(DType::Variant(input_dtype.nullability()))
@@ -243,7 +243,7 @@ impl ShreddingSpec {
                 path.elements()
                     .iter()
                     .all(|element| matches!(element, VariantPathElement::Field(_))),
-                "ShreddingSpec paths must only contain object fields, found list index in {path}"
+                InvalidArgument: "ShreddingSpec paths must only contain object fields, found list index in {path}"
             );
         }
         Ok(Self(fields))

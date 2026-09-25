@@ -105,7 +105,7 @@ impl TryFrom<ExtensionArray> for PointData {
     fn try_from(ext: ExtensionArray) -> Result<Self, Self::Error> {
         vortex_ensure!(
             ext.ext_dtype().is::<Point>(),
-            "expected a Point extension array"
+            MismatchedTypes: "expected a Point extension array"
         );
         Ok(PointData(ext))
     }
@@ -239,7 +239,7 @@ impl ArrowImportVTable for Point {
         {
             vortex_ensure!(
                 point_meta.coord_type() == CoordType::Separated,
-                "geoarrow.point with interleaved coordinates is not supported; \
+                NotImplemented: "geoarrow.point with interleaved coordinates is not supported; \
                  re-encode with separated (struct) coordinates"
             );
             (

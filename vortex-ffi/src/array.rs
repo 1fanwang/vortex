@@ -119,7 +119,7 @@ impl vx_bool_view {
 /// `array` must be null or a valid `vx_array` pointer created by this crate, and must stay valid
 /// for the returned reference.
 pub unsafe fn vx_array_ref<'a>(array: *const vx_array) -> VortexResult<&'a ArrayRef> {
-    vortex_ensure!(!array.is_null(), "null vx_array");
+    vortex_ensure!(!array.is_null(), InvalidArgument: "null vx_array");
     Ok(vx_array::as_ref(array))
 }
 
@@ -451,11 +451,11 @@ pub extern "C-unwind" fn vx_array_new_bool(
         vortex_ensure!(!validity.is_null());
         let bits = unsafe { &*view };
         let validity = unsafe { &*validity };
-        vortex_ensure!(bits.bit_offset < 8, "bit_offset must be in [0; 8)");
+        vortex_ensure!(bits.bit_offset < 8, InvalidArgument: "bit_offset must be in [0; 8)");
         let byte_len = bits.len();
 
         let slice = if bits.ptr.is_null() {
-            vortex_ensure!(byte_len == 0, "nonzero length but null pointer for view");
+            vortex_ensure!(byte_len == 0, InvalidArgument: "nonzero length but null pointer for view");
             &[]
         } else {
             unsafe { std::slice::from_raw_parts(bits.ptr, byte_len) }
@@ -495,8 +495,8 @@ pub unsafe extern "C-unwind" fn vx_array_from_arrow(
     error_out: *mut *mut vx_error,
 ) -> *const vx_array {
     try_or_default(error_out, || {
-        vortex_ensure!(!array.is_null(), "null arrow array");
-        vortex_ensure!(!schema.is_null(), "null arrow schema");
+        vortex_ensure!(!array.is_null(), InvalidArgument: "null arrow array");
+        vortex_ensure!(!schema.is_null(), InvalidArgument: "null arrow schema");
         let session = vx_session::as_ref(session);
         let ffi_array = unsafe { ptr::replace(array, FFI_ArrowArray::empty()) };
         let ffi_schema = unsafe { ptr::replace(schema, FFI_ArrowSchema::empty()) };
@@ -518,7 +518,7 @@ unsafe fn varbinview_at(
 ) -> vx_view {
     try_or(error_out, vx_view::null(), || {
         let array = unsafe { vx_array_ref(array) }?;
-        vortex_ensure!(index < array.len(), "index {index} out of bounds");
+        vortex_ensure!(index < array.len(), OutOfBounds: "index {index} out of bounds");
         let dtype_matches = if want_utf8 {
             matches!(array.dtype(), DType::Utf8(_))
         } else {
@@ -526,7 +526,7 @@ unsafe fn varbinview_at(
         };
         vortex_ensure!(
             dtype_matches,
-            "expected a {} array, got {}",
+            MismatchedTypes: "expected a {} array, got {}",
             if want_utf8 { "Utf8" } else { "Binary" },
             array.dtype()
         );
@@ -583,7 +583,7 @@ pub unsafe extern "C-unwind" fn vx_array_get_bool(array: *const vx_array, index:
     let bits = bool_array.to_bit_buffer();
     if index >= bits.len() {
         vortex_panic!(
-            "index {index} out of bounds for array of length {}",
+            OutOfBounds: "index {index} out of bounds for array of length {}",
             bits.len()
         );
     }

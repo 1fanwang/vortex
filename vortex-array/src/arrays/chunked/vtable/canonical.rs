@@ -113,7 +113,7 @@ fn pack_variant_chunks(
             for chunk in &variant_chunks[1..] {
                 vortex_ensure!(
                     chunk.shredded().is_none(),
-                    "cannot canonicalize ChunkedArray<Variant>: chunks disagree on shredded presence"
+                    InvalidArgument: "cannot canonicalize ChunkedArray<Variant>: chunks disagree on shredded presence"
                 );
             }
             None
@@ -131,7 +131,7 @@ fn pack_variant_chunks(
                 })?;
                 vortex_ensure!(
                     shredded.dtype() == &shredded_dtype,
-                    "cannot canonicalize ChunkedArray<Variant>: shredded dtype mismatch ({} vs {})",
+                    MismatchedTypes: "cannot canonicalize ChunkedArray<Variant>: shredded dtype mismatch ({} vs {})",
                     shredded_dtype,
                     shredded.dtype()
                 );

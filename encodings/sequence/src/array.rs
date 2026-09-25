@@ -133,7 +133,7 @@ impl SequenceData {
             vortex_bail!(NotImplemented: "only integer ptypes are supported in SequenceArray currently")
         }
 
-        vortex_ensure!(length > 0, "SequenceArray length must be greater than zero");
+        vortex_ensure!(length > 0, InvalidArgument: "SequenceArray length must be greater than zero");
 
         Self::narrowed_base(base, *ptype)?;
         Self::ensure_last_expressible(base, multiplier, *ptype, length)
@@ -170,7 +170,7 @@ impl SequenceData {
 
         vortex_ensure!(
             steps <= room / magnitude,
-            "final value not expressible, base = {base:?}, multiplier = {multiplier:?}, len = {length}"
+            Overflow: "final value not expressible, base = {base:?}, multiplier = {multiplier:?}, len = {length}"
         );
         Ok(())
     }
@@ -192,7 +192,7 @@ impl SequenceData {
     }
 
     fn narrowed_base(base: PValue, ptype: PType) -> VortexResult<PValue> {
-        vortex_ensure!(base.ptype().is_int(), "base {base} must be an integer");
+        vortex_ensure!(base.ptype().is_int(), MismatchedTypes: "base {base} must be an integer");
         match_each_integer_ptype!(ptype, |P| { Ok(PValue::from(base.cast::<P>()?)) })
     }
 
@@ -320,11 +320,11 @@ impl VTable for Sequence {
     }
 
     fn buffer(_array: ArrayView<'_, Self>, idx: usize) -> BufferHandle {
-        vortex_panic!("SequenceArray buffer index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "SequenceArray buffer index {idx} out of bounds")
     }
 
     fn buffer_name(_array: ArrayView<'_, Self>, idx: usize) -> Option<String> {
-        vortex_panic!("SequenceArray buffer_name index {idx} out of bounds")
+        vortex_panic!(OutOfBounds: "SequenceArray buffer_name index {idx} out of bounds")
     }
 
     fn with_buffers(
@@ -358,12 +358,12 @@ impl VTable for Sequence {
     ) -> VortexResult<ArrayParts<Self>> {
         vortex_ensure!(
             buffers.is_empty(),
-            "SequenceArray expects 0 buffers, got {}",
+            InvalidArgument: "SequenceArray expects 0 buffers, got {}",
             buffers.len()
         );
         vortex_ensure!(
             children.is_empty(),
-            "SequenceArray expects 0 children, got {}",
+            InvalidArgument: "SequenceArray expects 0 children, got {}",
             children.len()
         );
         let DType::Primitive(output_ptype, _) = dtype else {

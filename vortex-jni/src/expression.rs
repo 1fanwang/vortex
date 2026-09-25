@@ -90,7 +90,7 @@ fn parse_op(op: jbyte) -> Result<Operator, JNIError> {
         9 => Operator::Sub,
         10 => Operator::Mul,
         11 => Operator::Div,
-        other => throw_runtime!("unknown binary operator code: {other}"),
+        other => throw_runtime!(InvalidArgument: "unknown binary operator code: {other}"),
     })
 }
 
@@ -106,7 +106,7 @@ fn parse_duplicate_handling(tag: jbyte) -> Result<DuplicateHandling, JNIError> {
     Ok(match tag {
         0 => DuplicateHandling::RightMost,
         1 => DuplicateHandling::Error,
-        other => throw_runtime!("unknown duplicate handling code: {other}"),
+        other => throw_runtime!(InvalidArgument: "unknown duplicate handling code: {other}"),
     })
 }
 
@@ -461,7 +461,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalDecimal(
             )))));
         }
         if unscaled_big_endian.len(env)? > 32 {
-            throw_runtime!("Decimal value must fit with 32 bytes");
+            throw_runtime!(Overflow: "Decimal value must fit with 32 bytes");
         }
 
         let bytes = env.convert_byte_array(&unscaled_big_endian)?;
@@ -481,7 +481,7 @@ fn decimal_value_from_be_bytes(
     dtype: &DecimalDType,
 ) -> Result<DecimalValue, JNIError> {
     if bytes.is_empty() {
-        throw_runtime!("decimal unscaled value must have at least one byte");
+        throw_runtime!(InvalidArgument: "decimal unscaled value must have at least one byte");
     }
     let value = i256_from_twos_complement_be(bytes);
     // Pick the narrowest backing integer that fits the dtype's precision.
@@ -555,7 +555,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalDate(
                 |_| vortex_err!(Overflow: "date value does not fit in i32 days: {value}"),
             )?),
             TimeUnit::Milliseconds => ScalarValue::from(value),
-            other => throw_runtime!("date does not support time unit {other}"),
+            other => throw_runtime!(InvalidArgument: "date does not support time unit {other}"),
         };
         Ok(into_raw(lit(Scalar::try_new(dtype, Some(storage_value))?)))
     })
@@ -620,7 +620,7 @@ fn uuid_dtype(nullability: Nullability) -> Result<DType, JNIError> {
 fn uuid_scalar(bytes: &[u8]) -> Result<Scalar, JNIError> {
     if bytes.len() != UUID_BYTE_LEN {
         throw_runtime!(
-            "UUID literal must be exactly {UUID_BYTE_LEN} bytes, got {}",
+            InvalidArgument: "UUID literal must be exactly {UUID_BYTE_LEN} bytes, got {}",
             bytes.len()
         );
     }
@@ -659,7 +659,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalUuid(
             )?))));
         }
         if value.is_null() {
-            throw_runtime!("UUID literal bytes must not be null");
+            throw_runtime!(InvalidArgument: "UUID literal bytes must not be null");
         }
         let bytes = env.convert_byte_array(&value)?;
         Ok(into_raw(lit(uuid_scalar(&bytes)?)))
@@ -687,7 +687,7 @@ pub extern "system" fn Java_dev_vortex_jni_NativeExpression_literalNull(
             6 => DType::Primitive(PType::F64, Nullability::Nullable),
             7 => DType::Utf8(Nullability::Nullable),
             8 => DType::Binary(Nullability::Nullable),
-            other => throw_runtime!("unknown null dtype tag: {other}"),
+            other => throw_runtime!(InvalidArgument: "unknown null dtype tag: {other}"),
         };
         Ok(into_raw(lit(Scalar::null(dtype))))
     })

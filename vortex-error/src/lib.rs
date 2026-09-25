@@ -299,9 +299,23 @@ impl<T> VortexExpect for Option<T> {
 
 /// A convenient macro for creating a VortexError.
 ///
-/// The optional leading `Kind:` names a [`VortexErrorKind`]; without one the error is
-/// [`VortexErrorKind::Other`]. Every kind takes the same `Kind: "format", args..` shape, so no
-/// kind gets a bespoke argument grammar that a format string could be mistaken for.
+/// The leading `Kind:` names the [`VortexErrorKind`] and is required: pick the kind that says
+/// what went wrong, and `Other` only when none does. Every kind takes the same
+/// `Kind: "format", args..` shape, so no kind gets a bespoke argument grammar that a format string
+/// could be mistaken for.
+///
+/// ```
+/// use vortex_error::{VortexErrorKind, vortex_err};
+///
+/// let err = vortex_err!(InvalidArgument: "negative length {}", -1);
+/// assert_eq!(err.kind(), VortexErrorKind::InvalidArgument);
+/// ```
+///
+/// A message without a kind does not compile:
+///
+/// ```compile_fail
+/// let err = vortex_error::vortex_err!("negative length {}", -1);
+/// ```
 #[macro_export]
 macro_rules! vortex_err {
     (Context: $msg:literal, $err:expr) => {
@@ -316,8 +330,12 @@ macro_rules! vortex_err {
     ($kind:ident: $err:expr $(,)?) => {
         $crate::__private::fmt_err($crate::VortexErrorKind::$kind, &format_args!("{}", $err))
     };
-    ($fmt:literal $(, $arg:expr)* $(,)?) => {
-        $crate::vortex_err!(Other: $fmt, $($arg),*)
+    ($fmt:literal $($rest:tt)*) => {
+        ::core::compile_error!(::core::concat!(
+            "vortex_err! needs a kind before its message, e.g. `vortex_err!(InvalidArgument: ",
+            ::core::stringify!($fmt),
+            ")`"
+        ))
     };
 }
 
@@ -331,6 +349,16 @@ macro_rules! vortex_bail {
 
 /// A macro that mirrors `assert!` but instead of panicking on a failed condition,
 /// it will immediately return an erroneous `VortexResult` to the calling context.
+///
+/// Without a message the error is an [`VortexErrorKind::AssertionFailed`] naming the condition. A
+/// message needs a leading `Kind:`, as in [`vortex_err!`]:
+///
+/// ```compile_fail
+/// fn check(len: usize) -> vortex_error::VortexResult<()> {
+///     vortex_error::vortex_ensure!(len > 0, "length must be positive");
+///     Ok(())
+/// }
+/// ```
 #[macro_export]
 macro_rules! vortex_ensure {
     ($cond:expr) => {
@@ -359,6 +387,12 @@ macro_rules! vortex_ensure_eq {
 
 /// A convenient macro for panicking with a VortexError in the presence of a programmer error
 /// (e.g., an invariant has been violated).
+///
+/// Like [`vortex_err!`], a message needs a leading `Kind:`; an existing error can be passed as is.
+///
+/// ```compile_fail
+/// vortex_error::vortex_panic!("unreachable state {}", 3);
+/// ```
 #[macro_export]
 macro_rules! vortex_panic {
     (Context: $msg:literal, $err:expr) => {{
@@ -367,11 +401,16 @@ macro_rules! vortex_panic {
     ($kind:ident: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::vortex_panic!($crate::vortex_err!($kind: $fmt, $($arg),*))
     };
+    // Before the `$err:expr` arms, which a bare message would otherwise match.
+    ($fmt:literal $($rest:tt)*) => {
+        ::core::compile_error!(::core::concat!(
+            "vortex_panic! needs a kind before its message, e.g. `vortex_panic!(AssertionFailed: ",
+            ::core::stringify!($fmt),
+            ")`"
+        ))
+    };
     ($err:expr, $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::panic_err_ctx($err, &format_args!($fmt $(, $arg)*))
-    };
-    ($fmt:literal $(, $arg:expr)* $(,)?) => {
-        $crate::__private::panic_fmt(&format_args!($fmt $(, $arg)*))
     };
     ($err:expr) => {
         $crate::__private::panic_err($err)
@@ -506,16 +545,6 @@ pub mod __private {
     #[inline(never)]
     pub fn panic_err(err: VortexError) -> ! {
         panic!("{err}")
-    }
-
-    #[doc(hidden)]
-    #[cold]
-    #[inline(never)]
-    pub fn panic_fmt(args: &Arguments<'_>) -> ! {
-        panic!(
-            "{}",
-            VortexError::new(VortexErrorKind::Other, args.to_string())
-        )
     }
 
     #[doc(hidden)]

@@ -28,11 +28,11 @@ pub(crate) fn validate_vector_storage_dtype(storage: &DType) -> VortexResult<()>
 
     vortex_ensure!(
         element_dtype.is_float(),
-        "Vector element dtype must be a float, got {element_dtype}"
+        MismatchedTypes: "Vector element dtype must be a float, got {element_dtype}"
     );
     vortex_ensure!(
         !element_dtype.is_nullable(),
-        "Vector element dtype must be non-nullable"
+        InvalidArgument: "Vector element dtype must be non-nullable"
     );
 
     Ok(())

@@ -51,7 +51,7 @@ impl vx_view {
     /// "ptr" must be valid for "len" reads or NULL with "len == 0".
     pub(crate) unsafe fn as_bytes<'a>(&self) -> VortexResult<&'a [u8]> {
         if self.ptr.is_null() {
-            vortex_ensure!(self.len == 0, "null vx_view pointer with non-zero length");
+            vortex_ensure!(self.len == 0, InvalidArgument: "null vx_view pointer with non-zero length");
             return Ok(&[]);
         }
         Ok(unsafe { slice::from_raw_parts(self.ptr.cast(), self.len) })

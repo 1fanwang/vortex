@@ -144,7 +144,7 @@ impl Array<Union> {
     ) -> VortexResult<Self> {
         vortex_ensure!(
             matches!(type_ids.dtype(), DType::Primitive(PType::U8, _)),
-            "UnionArray type_ids must be u8, got {}",
+            MismatchedTypes: "UnionArray type_ids must be u8, got {}",
             type_ids.dtype()
         );
 

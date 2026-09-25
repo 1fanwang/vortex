@@ -132,8 +132,9 @@ impl ExtVTable for Timestamp {
             None => bytes.extend_from_slice(0u16.to_le_bytes().as_slice()),
             Some(tz) => {
                 let tz_bytes = tz.as_bytes();
-                let tz_len = u16::try_from(tz_bytes.len())
-                    .unwrap_or_else(|err| vortex_panic!("tz did not fit in u16: {}", err));
+                let tz_len = u16::try_from(tz_bytes.len()).unwrap_or_else(
+                    |err| vortex_panic!(Overflow: "tz did not fit in u16: {}", err),
+                );
                 bytes.extend_from_slice(tz_len.to_le_bytes().as_slice());
                 bytes.extend_from_slice(tz_bytes);
             }
@@ -145,7 +146,7 @@ impl ExtVTable for Timestamp {
     fn deserialize_metadata(&self, data: &[u8]) -> VortexResult<Self::Metadata> {
         vortex_ensure!(
             data.len() >= 3,
-            "Timestamp metadata must have at least 3 bytes, got {}",
+            Serde: "Timestamp metadata must have at least 3 bytes, got {}",
             data.len()
         );
 
@@ -166,7 +167,7 @@ impl ExtVTable for Timestamp {
         // Attempt to load from len-prefixed bytes
         vortex_ensure!(
             data.len() >= 3 + tz_len,
-            "Timestamp metadata is truncated: declared timezone length {} but only {} bytes available",
+            Serde: "Timestamp metadata is truncated: declared timezone length {} but only {} bytes available",
             tz_len,
             data.len() - 3
         );
@@ -184,7 +185,7 @@ impl ExtVTable for Timestamp {
     fn validate_dtype(ext_dtype: &ExtDType<Self>) -> VortexResult<()> {
         vortex_ensure!(
             matches!(ext_dtype.storage_dtype(), DType::Primitive(PType::I64, _)),
-            "Timestamp storage dtype must be i64"
+            MismatchedTypes: "Timestamp storage dtype must be i64"
         );
         Ok(())
     }

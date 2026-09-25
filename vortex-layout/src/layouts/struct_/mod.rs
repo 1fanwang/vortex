@@ -69,7 +69,7 @@ impl VTable for Struct {
             let child_row_count = args.children.child_row_count(idx);
             vortex_ensure!(
                 child_row_count == args.row_count,
-                "Struct child {idx} row count does not match parent"
+                InvalidArgument: "Struct child {idx} row count does not match parent"
             );
         }
         Ok(())
@@ -181,7 +181,7 @@ impl Layout<Struct> {
         let expected = fields.nfields() + usize::from(dtype.is_nullable());
         vortex_ensure!(
             nchildren == expected,
-            "Struct layout has {nchildren} children, expected {expected}"
+            InvalidArgument: "Struct layout has {nchildren} children, expected {expected}"
         );
         Ok(())
     }

@@ -32,7 +32,7 @@ pub(super) fn to_arrow_decimal(
 ) -> VortexResult<ArrowArrayRef> {
     vortex_ensure!(
         matches!(array.dtype(), DType::Decimal(..)),
-        "Cannot convert Vortex array with dtype {} to an Arrow {} array",
+        MismatchedTypes: "Cannot convert Vortex array with dtype {} to an Arrow {} array",
         array.dtype(),
         data_type
     );
