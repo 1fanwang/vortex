@@ -48,14 +48,9 @@ impl ArrayParentReduceRule<Chunked> for ChunkedUnaryScalarFnPushDownRule {
         let new_chunks: Vec<_> = array
             .iter_chunks()
             .map(|chunk| {
-                ScalarFnArray::try_new_cached(
-                    parent.scalar_fn().clone(),
-                    vec![chunk.clone()],
-                    chunk.len(),
-                    parent.cache().cloned(),
-                )?
-                .into_array()
-                .optimize()
+                ScalarFnArray::try_new(parent.scalar_fn().clone(), vec![chunk.clone()])?
+                    .into_array()
+                    .optimize()
             })
             .try_collect()?;
 
@@ -105,16 +100,9 @@ impl ArrayParentReduceRule<Chunked> for ChunkedConstantScalarFnPushDownRule {
                     })
                     .collect();
 
-                // Each chunk evaluates the same node with the same constants, so it shares the
-                // node's cache.
-                ScalarFnArray::try_new_cached(
-                    parent.scalar_fn().clone(),
-                    new_children,
-                    chunk.len(),
-                    parent.cache().cloned(),
-                )?
-                .into_array()
-                .optimize()
+                ScalarFnArray::try_new(parent.scalar_fn().clone(), new_children)?
+                    .into_array()
+                    .optimize()
             })
             .try_collect()?;
 

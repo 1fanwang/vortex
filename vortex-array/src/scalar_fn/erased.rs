@@ -46,11 +46,6 @@ use crate::scalar_fn::typed::TypedScalarFnInstance;
 pub struct ScalarFnRef(pub(super) Arc<dyn DynScalarFn>);
 
 impl ScalarFnRef {
-    /// Whether `self` and `other` are the same instance, not merely equal.
-    pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.0, &other.0)
-    }
-
     /// Returns the ID of this scalar function.
     pub fn id(&self) -> ScalarFnId {
         self.0.id()

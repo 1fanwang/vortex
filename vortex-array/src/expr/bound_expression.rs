@@ -20,7 +20,6 @@ use crate::expr::display::DisplayTreeExpr;
 use crate::expr::scope::Scope;
 use crate::expr::traversal::TraversalOrder;
 use crate::expr::traversal::pre_order_visit_down;
-use crate::scalar_fn::ScalarFnCache;
 use crate::scalar_fn::ScalarFnRef;
 use crate::scalar_fn::ScalarFnVTable;
 use crate::stats::rewrite::falsify;
@@ -46,10 +45,6 @@ pub enum BoundExpression {
         /// Sharing keeps clones cheap even though the iterative [`Drop`] implementation prevents
         /// consumers from destructuring a `BoundExpression` by value.
         children: Arc<Vec<BoundExpression>>,
-        /// State the scalar function derives once and reuses for every batch this node evaluates.
-        ///
-        /// Clones of the node share it; it takes no part in comparing or hashing the node.
-        cache: ScalarFnCache,
     },
     /// The scope itself. Its dtype is the scope's root dtype.
     Root {
@@ -74,13 +69,11 @@ impl PartialEq for ExactBoundExpr {
                     dtype: lhs_dtype,
                     scalar_fn: lhs_fn,
                     children: lhs_children,
-                    ..
                 },
                 BoundExpression::Scalar {
                     dtype: rhs_dtype,
                     scalar_fn: rhs_fn,
                     children: rhs_children,
-                    ..
                 },
             ) => {
                 lhs_fn == rhs_fn
@@ -145,7 +138,6 @@ impl BoundExpression {
             dtype,
             scalar_fn,
             children: children.into(),
-            cache: ScalarFnCache::default(),
         })
     }
 

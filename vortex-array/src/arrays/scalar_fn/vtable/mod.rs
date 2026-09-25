@@ -168,8 +168,7 @@ impl VTable for ScalarFn {
     }
 
     fn execute(array: Array<Self>, ctx: &mut ExecutionCtx) -> VortexResult<ExecutionResult> {
-        let args =
-            VecExecutionArgs::new(array.children(), array.len()).with_cache(array.cache().cloned());
+        let args = VecExecutionArgs::new(array.children(), array.len());
         array
             .scalar_fn()
             .execute(&args, ctx)

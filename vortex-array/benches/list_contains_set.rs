@@ -129,53 +129,6 @@ fn bench_in_set(bencher: Bencher, set: Scalar, needles: ArrayRef) {
         .bench_values(|(array, mut ctx)| array.execute::<BoolArray>(&mut ctx).unwrap());
 }
 
-/// One bound expression applied batch after batch, as a scan applies it: the set is prepared by
-/// the first batch and cached on the bound node for every batch after.
-fn bench_in_set_bound(bencher: Bencher, set: Scalar, needles: ArrayRef) {
-    let session = vortex_array::array_session();
-    let bound = list_contains(lit(set), root())
-        .optimize_recursive(needles.dtype())
-        .unwrap()
-        .bind(needles.dtype())
-        .unwrap();
-    bencher
-        .with_inputs(|| {
-            (
-                needles.clone().apply_bound(&bound).unwrap(),
-                session.create_execution_ctx(),
-            )
-        })
-        .bench_values(|(array, mut ctx)| array.execute::<BoolArray>(&mut ctx).unwrap());
-}
-
-#[divan::bench(args = SET_LENS)]
-fn i64_random_bound(bencher: Bencher, set_len: usize) {
-    let (set, needles) = random_i64(set_len);
-    bench_in_set_bound(bencher, i64_set(&set), i64_needles(&needles, 1));
-}
-
-#[divan::bench(args = SET_LENS)]
-fn i64_random_chunked_bound(bencher: Bencher, set_len: usize) {
-    let (set, needles) = random_i64(set_len);
-    bench_in_set_bound(bencher, i64_set(&set), i64_needles(&needles, CHUNKS));
-}
-
-#[divan::bench(args = SET_LENS)]
-fn utf8_random_bound(bencher: Bencher, set_len: usize) {
-    let (set, needles) = random_i64(set_len);
-    let set: Vec<String> = set.iter().map(|v| format!("value-{v}")).collect();
-    let needles: Vec<String> = needles.iter().map(|v| format!("value-{v}")).collect();
-    bench_in_set_bound(bencher, utf8_set(&set), utf8_needles(&needles, 1));
-}
-
-#[divan::bench(args = SET_LENS)]
-fn utf8_random_chunked_bound(bencher: Bencher, set_len: usize) {
-    let (set, needles) = random_i64(set_len);
-    let set: Vec<String> = set.iter().map(|v| format!("value-{v}")).collect();
-    let needles: Vec<String> = needles.iter().map(|v| format!("value-{v}")).collect();
-    bench_in_set_bound(bencher, utf8_set(&set), utf8_needles(&needles, CHUNKS));
-}
-
 #[divan::bench(args = SET_LENS)]
 fn i64_random(bencher: Bencher, set_len: usize) {
     let (set, needles) = random_i64(set_len);

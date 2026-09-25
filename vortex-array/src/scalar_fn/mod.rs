@@ -23,9 +23,6 @@ use crate::scalar_fn::fns::literal::Literal;
 mod vtable;
 pub use vtable::*;
 
-mod cache;
-pub use cache::*;
-
 mod plugin;
 pub use plugin::*;
 

@@ -15,7 +15,6 @@ use crate::array::Array;
 use crate::array::ArrayParts;
 use crate::array::TypedArrayRef;
 use crate::arrays::ScalarFn;
-use crate::scalar_fn::ScalarFnCache;
 use crate::scalar_fn::ScalarFnRef;
 
 // ScalarFnArray has a variable number of slots (one per child)
@@ -23,8 +22,6 @@ use crate::scalar_fn::ScalarFnRef;
 #[derive(Clone, Debug)]
 pub struct ScalarFnData {
     pub(super) scalar_fn: ScalarFnRef,
-    /// The cache of the bound expression node this array evaluates, when it came from one.
-    pub(super) cache: Option<ScalarFnCache>,
 }
 
 impl Display for ScalarFnData {
@@ -39,11 +36,6 @@ impl ScalarFnData {
     #[inline(always)]
     pub fn scalar_fn(&self) -> &ScalarFnRef {
         &self.scalar_fn
-    }
-
-    /// The cache of the bound expression node this array evaluates, when it came from one.
-    pub fn cache(&self) -> Option<&ScalarFnCache> {
-        self.cache.as_ref()
     }
 }
 
@@ -96,21 +88,6 @@ impl Array<ScalarFn> {
         children: Vec<ArrayRef>,
         len: usize,
     ) -> VortexResult<Self> {
-        Self::try_new_cached(scalar_fn, children, len, None)
-    }
-
-    /// Create a new ScalarFnArray that evaluates a bound expression node, sharing the node's
-    /// [`ScalarFnCache`] so that state the function derives once serves every array the node is
-    /// applied as.
-    ///
-    /// The children must be the node's, or a rewrite of them that keeps its constant values and
-    /// argument dtypes: a function may trust a cache it is handed to have been derived from them.
-    pub fn try_new_cached(
-        scalar_fn: ScalarFnRef,
-        children: Vec<ArrayRef>,
-        len: usize,
-        cache: Option<ScalarFnCache>,
-    ) -> VortexResult<Self> {
         Self::validate_arity(&scalar_fn, children.len())?;
         Self::validate_children_len(&children, len)?;
 
@@ -118,7 +95,6 @@ impl Array<ScalarFn> {
         let dtype = scalar_fn.return_dtype(&arg_dtypes)?;
         let data = ScalarFnData {
             scalar_fn: scalar_fn.clone(),
-            cache,
         };
         let vtable = ScalarFn { id: scalar_fn.id() };
 
