@@ -7,7 +7,6 @@
 //! It is used by the fuzzer to test the correctness of the scalar value implementation.
 
 use std::iter;
-use std::sync::Arc;
 
 use arbitrary::Result;
 use arbitrary::Unstructured;
@@ -74,7 +73,7 @@ pub fn random_scalar(u: &mut Unstructured, dtype: &DType) -> Result<Scalar> {
                         .unwrap_or(false)
                         .then(|| random_scalar(u, edt).map(|s| s.into_value()))
                 })
-                .collect::<Result<Arc<[_]>>>()?,
+                .collect::<Result<Vec<_>>>()?,
             )),
         )
         .vortex_expect("unable to construct random `Scalar`_"),
@@ -83,7 +82,7 @@ pub fn random_scalar(u: &mut Unstructured, dtype: &DType) -> Result<Scalar> {
             Some(ScalarValue::Tuple(
                 (0..*size)
                     .map(|_| random_scalar(u, edt).map(|s| s.into_value()))
-                    .collect::<Result<Arc<[_]>>>()?,
+                    .collect::<Result<Vec<_>>>()?,
             )),
         )
         .vortex_expect("unable to construct random `Scalar`_"),
@@ -94,13 +93,13 @@ pub fn random_scalar(u: &mut Unstructured, dtype: &DType) -> Result<Scalar> {
                     u.arbitrary().unwrap_or(false).then(|| {
                         let key = random_scalar(u, &map.key_dtype())?;
                         let value = random_scalar(u, &map.value_dtype())?;
-                        Ok(Some(ScalarValue::Tuple(Arc::new([
+                        Ok(Some(ScalarValue::Tuple(vec![
                             key.into_value(),
                             value.into_value(),
-                        ]))))
+                        ])))
                     })
                 })
-                .collect::<Result<Arc<[_]>>>()?,
+                .collect::<Result<Vec<_>>>()?,
             )),
         )
         .vortex_expect("unable to construct random `Scalar`_"),
@@ -109,7 +108,7 @@ pub fn random_scalar(u: &mut Unstructured, dtype: &DType) -> Result<Scalar> {
             Some(ScalarValue::Tuple(
                 sdt.fields()
                     .map(|d| random_scalar(u, &d).map(|s| s.into_value()))
-                    .collect::<Result<Arc<[_]>>>()?,
+                    .collect::<Result<Vec<_>>>()?,
             )),
         )
         .vortex_expect("unable to construct random `Scalar`_"),

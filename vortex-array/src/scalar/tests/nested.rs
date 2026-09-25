@@ -311,13 +311,10 @@ mod tests {
                 Arc::from(DType::Primitive(PType::U16, Nullability::Nullable)),
                 Nullability::Nullable,
             ),
-            Some(ScalarValue::Tuple(
-                vec![
-                    Some(ScalarValue::Primitive(PValue::U16(6))),
-                    Some(ScalarValue::Primitive(PValue::U16(100))),
-                ]
-                .into(),
-            )),
+            Some(ScalarValue::Tuple(vec![
+                Some(ScalarValue::Primitive(PValue::U16(6))),
+                Some(ScalarValue::Primitive(PValue::U16(100))),
+            ])),
         );
 
         // Cast U16 -> U32.
@@ -353,14 +350,11 @@ mod tests {
                 Arc::from(DType::Primitive(PType::U16, Nullability::Nullable)),
                 Nullability::Nullable,
             ),
-            Some(ScalarValue::Tuple(
-                vec![
-                    Some(ScalarValue::Primitive(PValue::U16(100))),
-                    Some(ScalarValue::Primitive(PValue::U16(256))), // Too large for U8
-                    Some(ScalarValue::Primitive(PValue::U16(1000))), // Too large for U8
-                ]
-                .into(),
-            )),
+            Some(ScalarValue::Tuple(vec![
+                Some(ScalarValue::Primitive(PValue::U16(100))),
+                Some(ScalarValue::Primitive(PValue::U16(256))), // Too large for U8
+                Some(ScalarValue::Primitive(PValue::U16(1000))), // Too large for U8
+            ])),
         );
 
         let target_u8 = DType::List(
@@ -1526,22 +1520,5 @@ mod tests {
                 .typed_value::<i32>(),
             Some(1)
         );
-    }
-
-    #[test]
-    fn cloning_a_nested_scalar_shares_its_values() {
-        // The constant behind every batch of an array is a clone, which must not copy a long list.
-        let list = Scalar::list(
-            Arc::new(DType::Primitive(PType::I32, Nullability::NonNullable)),
-            vec![1i32.into(), 2i32.into()],
-            Nullability::NonNullable,
-        );
-        let clone = list.clone();
-        let (Some(ScalarValue::Tuple(values)), Some(ScalarValue::Tuple(cloned))) =
-            (list.value(), clone.value())
-        else {
-            unreachable!("a non-null list scalar holds a tuple")
-        };
-        assert!(Arc::ptr_eq(values, cloned));
     }
 }

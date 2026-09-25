@@ -482,7 +482,7 @@ fn list_from_proto(
             Serde: "expected a tuple-backed dtype for ListValue, got {dtype}"
         ),
     };
-    Ok(ScalarValue::Tuple(values.into()))
+    Ok(ScalarValue::Tuple(values))
 }
 
 /// Deserialize a present union scalar value.
@@ -603,13 +603,10 @@ mod tests {
                 Arc::new(DType::Primitive(PType::I32, Nullability::Nullable)),
                 Nullability::Nullable,
             ),
-            Some(ScalarValue::Tuple(
-                vec![
-                    Some(ScalarValue::Primitive(42i32.into())),
-                    Some(ScalarValue::Primitive(43i32.into())),
-                ]
-                .into(),
-            )),
+            Some(ScalarValue::Tuple(vec![
+                Some(ScalarValue::Primitive(42i32.into())),
+                Some(ScalarValue::Primitive(43i32.into())),
+            ])),
         ));
     }
 

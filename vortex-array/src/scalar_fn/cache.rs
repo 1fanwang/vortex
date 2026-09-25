@@ -23,9 +23,8 @@ type Entry = Arc<dyn Any + Send + Sync>;
 /// The state may depend only on the node's function, its argument dtypes, and the values of its
 /// constant arguments. A rewrite that keeps all three — slicing or filtering the node, or splitting
 /// it over the chunks of an argument — carries the cache along; one that changes an argument's
-/// dtype must not. A function should still check that the constant and dtypes it derived state
-/// from are the ones it is executing with, which shared constant storage makes a pointer
-/// comparison.
+/// dtype must not. A function should still check, as far as it cheaply can, that it is executing
+/// with the constants and dtypes it derived state from.
 ///
 /// Clones share the state. The cache takes no part in comparing or hashing the expression that
 /// owns it.

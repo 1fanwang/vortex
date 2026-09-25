@@ -155,7 +155,7 @@ mod tests {
             Some(ScalarValue::Primitive(PValue::F32(f32_value))),
         ];
 
-        let scalar = Scalar::new(struct_dtype, Some(ScalarValue::Tuple(field_values.into())));
+        let scalar = Scalar::new(struct_dtype, Some(ScalarValue::Tuple(field_values)));
 
         let struct_scalar = scalar.as_struct();
         let fields: Vec<_> = (0..3)
@@ -212,7 +212,7 @@ mod tests {
             ))),
         ];
 
-        let scalar = Scalar::new(list_dtype, Some(ScalarValue::Tuple(elements.into())));
+        let scalar = Scalar::new(list_dtype, Some(ScalarValue::Tuple(elements)));
 
         let list_scalar = scalar.as_list();
         let elements = list_scalar.elements().unwrap();
@@ -358,7 +358,7 @@ mod tests {
 
         let scalar = Scalar::new(
             DType::Extension(ext_dtype.erased()),
-            Some(ScalarValue::Tuple(field_values.into())),
+            Some(ScalarValue::Tuple(field_values)),
         );
 
         // Verify the struct field was coerced

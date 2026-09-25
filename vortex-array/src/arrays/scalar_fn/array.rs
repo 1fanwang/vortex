@@ -102,6 +102,9 @@ impl Array<ScalarFn> {
     /// Create a new ScalarFnArray that evaluates a bound expression node, sharing the node's
     /// [`ScalarFnCache`] so that state the function derives once serves every array the node is
     /// applied as.
+    ///
+    /// The children must be the node's, or a rewrite of them that keeps its constant values and
+    /// argument dtypes: a function may trust a cache it is handed to have been derived from them.
     pub fn try_new_cached(
         scalar_fn: ScalarFnRef,
         children: Vec<ArrayRef>,

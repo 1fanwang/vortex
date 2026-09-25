@@ -47,7 +47,6 @@ use crate::match_each_integer_ptype;
 use crate::match_each_unsigned_integer_ptype;
 use crate::proto::expr as pb;
 use crate::scalar::Scalar;
-use crate::scalar::ScalarValue;
 use crate::scalar_fn::Arity;
 use crate::scalar_fn::ChildName;
 use crate::scalar_fn::ExecutionArgs;
@@ -357,56 +356,60 @@ fn compute_list_contains(
         return lists_contain_needles(array, value, nullability, options, ctx);
     }
 
-    prepared_set(array, value.dtype(), options, cache, ctx)?
-        .set
-        .contains(value, ctx)
+    prepared_set(array, value.dtype(), options, cache, ctx)?.contains(value, ctx)
 }
 
-/// A set prepared from a constant list, with the list and needle dtype it was prepared for.
+/// A set prepared from a constant list, with the shape of the list and the needle dtype it was
+/// prepared for.
 struct CachedSet {
-    list: Arc<[Option<ScalarValue>]>,
+    list_dtype: DType,
+    list_len: usize,
     needle_dtype: DType,
-    set: PreparedSet,
+    set: Arc<PreparedSet>,
 }
 
 /// The set prepared from the constant `list`, taken from the bound node's `cache` when it holds.
 ///
 /// A bound node's constant list is fixed, so the node prepares its set once for every batch it
-/// evaluates. The cached set is used only when it was prepared from this very list — the same
-/// shared storage — and for this needle dtype; anything else prepares afresh.
+/// evaluates. Only rewrites that keep the node's constants carry its [`ScalarFnCache`], so the
+/// cached set is checked against the list's dtype and length and the needle dtype, and anything
+/// else prepares afresh; comparing every value of the list would cost as much as preparing it.
 fn prepared_set(
     list: &ArrayRef,
     needle_dtype: &DType,
     options: &ListContainsOptions,
     cache: Option<&ScalarFnCache>,
     ctx: &mut ExecutionCtx,
-) -> VortexResult<Arc<CachedSet>> {
-    let values = list
-        .as_opt::<Constant>()
-        .and_then(|constant| match constant.scalar().value() {
-            Some(ScalarValue::Tuple(values)) => Some(Arc::clone(values)),
-            _ => None,
-        })
-        .ok_or_else(|| vortex_err!("Expected a non-null constant list, got {}", list.dtype()))?;
-
-    let prepare = |ctx: &mut ExecutionCtx| -> VortexResult<CachedSet> {
+) -> VortexResult<Arc<PreparedSet>> {
+    let prepare = |ctx: &mut ExecutionCtx| -> VortexResult<Arc<PreparedSet>> {
         let set = ListContainsSet::try_new(list, needle_dtype, options, ctx)?
             .ok_or_else(|| vortex_err!("A non-null constant list of {needle_dtype} has a set"))?;
-        Ok(CachedSet {
-            list: Arc::clone(&values),
-            needle_dtype: needle_dtype.clone(),
-            set: set.prepare(ctx)?,
-        })
+        Ok(Arc::new(set.prepare(ctx)?))
+    };
+    let Some(cache) = cache else {
+        return prepare(ctx);
     };
 
-    let Some(cache) = cache else {
-        return prepare(ctx).map(Arc::new);
-    };
-    let cached = cache.get_or_try_init(|| prepare(ctx))?;
-    if Arc::ptr_eq(&cached.list, &values) && &cached.needle_dtype == needle_dtype {
-        Ok(cached)
+    let constant = list
+        .as_opt::<Constant>()
+        .ok_or_else(|| vortex_err!("Expected a constant list, got {}", list.dtype()))?;
+    let list_scalar = constant.scalar();
+    let list_len = list_scalar.as_list().len();
+    let cached = cache.get_or_try_init(|| {
+        Ok(CachedSet {
+            list_dtype: list_scalar.dtype().clone(),
+            list_len,
+            needle_dtype: needle_dtype.clone(),
+            set: prepare(ctx)?,
+        })
+    })?;
+    if &cached.list_dtype == list_scalar.dtype()
+        && cached.list_len == list_len
+        && &cached.needle_dtype == needle_dtype
+    {
+        Ok(Arc::clone(&cached.set))
     } else {
-        prepare(ctx).map(Arc::new)
+        prepare(ctx)
     }
 }
 
@@ -1818,15 +1821,16 @@ mod tests {
     }
 
     #[test]
-    fn cached_set_answers_only_for_its_own_list() -> VortexResult<()> {
-        // One cache handed to arrays over two different lists: the second must not be answered
-        // with the set prepared for the first.
+    fn cached_set_answers_only_for_a_list_of_its_shape() -> VortexResult<()> {
+        // One cache handed to arrays over lists of different lengths: the second must not be
+        // answered with the set prepared for the first. Sharing a cache between lists of the same
+        // shape breaks the cache's contract, which only rewrites keeping the constants honour.
         let cache = ScalarFnCache::default();
         let needles = PrimitiveArray::from_option_iter([Some(1i32), Some(2)]).into_array();
         let mut ctx = array_session().create_execution_ctx();
         for (set, expected) in [
             (i32_set(vec![Some(1)]), [Some(true), Some(false)]),
-            (i32_set(vec![Some(2)]), [Some(false), Some(true)]),
+            (i32_set(vec![Some(2), Some(3)]), [Some(false), Some(true)]),
         ] {
             let array = ScalarFnArray::try_new_cached(
                 ListContains.bind(ListContainsOptions::default()),
