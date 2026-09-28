@@ -9,6 +9,9 @@ pub use array::FoRSlots;
 
 pub(crate) mod compute;
 
+mod plugin;
+pub use plugin::FoRPlugin;
+
 mod vtable;
 pub use vtable::FoR;
 pub use vtable::FoRArray;
