@@ -668,7 +668,11 @@ fn supported_data_types(dt: &DataType) -> bool {
 /// Currently GetFieldFunc, OctetLengthFunc, and ArrayLength are supported.
 fn can_scalar_fn_be_pushed_down(scalar_fn: &ScalarFunctionExpr, schema: &Schema) -> bool {
     if ScalarFunctionExpr::try_downcast_func::<GetFieldFunc>(scalar_fn).is_some() {
-        return true;
+        // Field access is pushable only when its entire source is convertible.
+        // A struct-producing DataFusion UDF must remain above the native scan.
+        return DefaultExpressionConvertor::default()
+            .try_convert_scalar_function(scalar_fn)
+            .is_ok();
     }
 
     if ScalarFunctionExpr::try_downcast_func::<OctetLengthFunc>(scalar_fn)
@@ -749,6 +753,7 @@ mod tests {
     use datafusion_common::config::ConfigOptions;
     use datafusion_expr::Operator as DFOperator;
     use datafusion_expr::ScalarUDF;
+    use datafusion_functions::core::named_struct::NamedStructFunc;
     use datafusion_physical_expr::PhysicalExpr;
     use datafusion_physical_plan::expressions as df_expr;
     use insta::assert_snapshot;
@@ -1196,6 +1201,34 @@ mod tests {
         let octet_length = octet_length_expr(expr, &test_schema);
 
         assert!(can_be_pushed_down_impl(&octet_length, &test_schema));
+    }
+
+    #[rstest]
+    fn test_get_field_of_unsupported_struct_function_stays_in_datafusion(test_schema: Schema) {
+        let field_name = Arc::new(df_expr::Literal::new(ScalarValue::Utf8(Some(
+            "value".to_string(),
+        )))) as Arc<dyn PhysicalExpr>;
+        let value = Arc::new(df_expr::Column::new("id", 0)) as Arc<dyn PhysicalExpr>;
+        let struct_expr = Arc::new(
+            ScalarFunctionExpr::try_new(
+                Arc::new(ScalarUDF::from(NamedStructFunc::new())),
+                vec![Arc::clone(&field_name), value],
+                &test_schema,
+                Arc::new(ConfigOptions::new()),
+            )
+            .unwrap(),
+        ) as Arc<dyn PhysicalExpr>;
+        let get_field = Arc::new(
+            ScalarFunctionExpr::try_new(
+                Arc::new(ScalarUDF::from(GetFieldFunc::new())),
+                vec![struct_expr, field_name],
+                &test_schema,
+                Arc::new(ConfigOptions::new()),
+            )
+            .unwrap(),
+        ) as Arc<dyn PhysicalExpr>;
+
+        assert!(!can_be_pushed_down_impl(&get_field, &test_schema));
     }
 
     #[rstest]
