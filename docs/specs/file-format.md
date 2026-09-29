@@ -85,7 +85,7 @@ valid to store a `Float64` array, a `Boolean` array, or any other root data type
 ## Footer
 
 The footer is a flat buffer serialized `Footer` object. This object contains all the information required to
-load the root `Layout` object into a usable `LayoutReader`).
+load the root `Layout` object into a usable `LayoutReader`.
 For example, it contains the locations, compression schemes, encryption schemes, and required alignment of all segments in the file.
 
 :::{literalinclude} ../../vortex-file/flatbuffers/vortex-file/footer.fbs
