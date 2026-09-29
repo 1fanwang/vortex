@@ -207,6 +207,18 @@ These CI checks are the ones most often missed when adding files rather than edi
   `foo/mod.rs` plus `foo/tests.rs`, included from `foo/mod.rs` behind the appropriate test
   configuration.
 
+## Benchmark Data
+
+- Parquet written by data generators (`vortex-bench`, `benchmarks/`, `vortex-sqllogictest`)
+  must use zstd level 3, never Snappy. Set it explicitly: parquet-rs defaults to uncompressed and
+  its `ZstdLevel::default()` is level 1, while DuckDB `COPY`/`EXPORT DATABASE` and `tpchgen-cli`
+  default to Snappy.
+  - parquet-rs: `Compression::ZSTD(ZstdLevel::try_new(3)?)`
+  - DuckDB: `(FORMAT parquet, COMPRESSION zstd, COMPRESSION_LEVEL 3)`
+  - tpchgen-cli: `--parquet-compression='ZSTD(3)'`
+- Benchmarks that deliberately compare Parquet codecs, such as the GPU compress benchmark's
+  `--codec`, are exempt.
+
 ## Common Mistakes
 
 Check new and modified lines against this list before finishing:

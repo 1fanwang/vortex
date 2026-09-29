@@ -32,7 +32,7 @@ import duckdb
 data_dir, scale_factor = sys.argv[1], sys.argv[2]
 con = duckdb.connect()
 con.execute(f"CALL dsdgen(sf={scale_factor})")
-con.execute(f"EXPORT DATABASE '{data_dir}' (FORMAT parquet)")
+con.execute(f"EXPORT DATABASE '{data_dir}' (FORMAT parquet, COMPRESSION zstd, COMPRESSION_LEVEL 3)")
 PY
 # EXPORT DATABASE also writes load/schema scripts that the tests do not use.
 rm -f "${DATA_DIR}"/load.sql "${DATA_DIR}"/schema.sql
