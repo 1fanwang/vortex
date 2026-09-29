@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: Copyright the Vortex contributors
 
+use std::iter;
 use std::mem::MaybeUninit;
 
 use fastlanes::FoR;
+use itertools::Itertools;
 use num_traits::PrimInt;
 use num_traits::WrappingAdd;
 use vortex_array::ArrayView;
@@ -15,9 +17,11 @@ use vortex_array::dtype::PhysicalPType;
 use vortex_array::dtype::UnsignedPType;
 use vortex_array::match_each_integer_ptype;
 use vortex_array::match_each_unsigned_integer_ptype;
+use vortex_array::scalar::Scalar;
 use vortex_buffer::Buffer;
 use vortex_error::VortexExpect;
 use vortex_error::VortexResult;
+use vortex_error::vortex_err;
 
 use crate::BitPacked;
 use crate::BitPackedArrayExt;
@@ -51,13 +55,27 @@ impl<T: PhysicalPType<Physical = T> + FoR> UnpackStrategy<T> for FoRStrategy<T> 
 }
 
 pub fn decompress(array: &FoRArray, ctx: &mut ExecutionCtx) -> VortexResult<PrimitiveArray> {
+    match array.constant_reference() {
+        Some(reference) => decompress_one_ref(array, &reference, ctx),
+        None => {
+            match_each_integer_ptype!(array.ptype(), |T| { decompress_many_refs::<T>(array, ctx) })
+        }
+    }
+}
+
+/// Decompress an array whose chunks all share `reference`.
+fn decompress_one_ref(
+    array: &FoRArray,
+    reference: &Scalar,
+    ctx: &mut ExecutionCtx,
+) -> VortexResult<PrimitiveArray> {
     let ptype = array.ptype();
 
     // Try to do fused unpack.
-    if array.reference_scalar().dtype().is_unsigned_int()
+    if ptype.is_unsigned_int()
         && let Some(bp) = array.encoded().as_opt::<BitPacked>()
     {
-        return match_each_unsigned_integer_ptype!(array.ptype(), |T| {
+        return match_each_unsigned_integer_ptype!(ptype, |T| {
             fused_decompress::<T>(array, bp, ctx)
         });
     }
@@ -67,8 +85,7 @@ pub fn decompress(array: &FoRArray, ctx: &mut ExecutionCtx) -> VortexResult<Prim
     let validity = encoded.validity()?;
 
     Ok(match_each_integer_ptype!(ptype, |T| {
-        let min = array
-            .reference_scalar()
+        let min = reference
             .as_primitive()
             .typed_value::<T>()
             .vortex_expect("reference must be non-null");
@@ -83,6 +100,32 @@ pub fn decompress(array: &FoRArray, ctx: &mut ExecutionCtx) -> VortexResult<Prim
     }))
 }
 
+/// Decompress an array whose chunks have different references.
+fn decompress_many_refs<T: NativePType + WrappingAdd + PrimInt>(
+    array: &FoRArray,
+    ctx: &mut ExecutionCtx,
+) -> VortexResult<PrimitiveArray> {
+    let encoded = array.encoded().clone().execute::<PrimitiveArray>(ctx)?;
+    if encoded.is_empty() {
+        return Ok(encoded);
+    }
+    let validity = encoded.validity()?;
+    let references = array.references().clone().execute::<PrimitiveArray>(ctx)?;
+    let references = references.as_slice::<T>();
+
+    // The first chunk may be partial when the array was sliced.
+    let first_len = (FL_CHUNK_SIZE - usize::from(array.offset())).min(array.len());
+    let mut values = encoded.into_buffer_mut::<T>();
+    let (first, rest) = values.as_mut_slice().split_at_mut(first_len);
+    let chunks = iter::once(first).chain(rest.chunks_mut(FL_CHUNK_SIZE));
+    for (chunk, &reference) in chunks.zip_eq(references) {
+        for value in chunk {
+            *value = value.wrapping_add(&reference);
+        }
+    }
+    Ok(PrimitiveArray::new(values.freeze(), validity))
+}
+
 pub(crate) fn fused_decompress<
     T: PhysicalPType<Physical = T> + UnsignedPType + FoR + WrappingAdd,
 >(
@@ -91,7 +134,8 @@ pub(crate) fn fused_decompress<
     ctx: &mut ExecutionCtx,
 ) -> VortexResult<PrimitiveArray> {
     let ref_ = for_
-        .reference_scalar()
+        .constant_reference()
+        .ok_or_else(|| vortex_err!("fused FoR decompression requires a constant reference"))?
         .as_primitive()
         .as_::<T>()
         .vortex_expect("cannot be null");
@@ -110,7 +154,7 @@ pub(crate) fn fused_decompress<
     )?;
 
     let mut builder = PrimitiveBuilder::<T>::with_capacity_in(
-        for_.reference_scalar().dtype().nullability(),
+        for_.dtype().nullability(),
         bp.len(),
         ctx.allocator(),
     );

@@ -11,6 +11,7 @@ use vortex_array::scalar::Scalar;
 use vortex_error::VortexResult;
 
 use crate::FoR;
+use crate::r#for::array::FoRArrayExt;
 use crate::r#for::array::FoRArraySlotsExt;
 
 /// FoR-specific is_constant kernel.
@@ -33,6 +34,10 @@ impl DynAggregateKernel for FoRIsConstantKernel {
         let Some(array) = batch.as_opt::<FoR>() else {
             return Ok(None);
         };
+        // TODO(mk): support many references.
+        if array.constant_reference().is_none() {
+            return Ok(None);
+        }
 
         let result = is_constant(array.encoded(), ctx)?;
         Ok(Some(IsConstant::make_partial(batch, result, ctx)?))

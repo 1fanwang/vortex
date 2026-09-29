@@ -69,7 +69,11 @@ where
         return Ok(None);
     }
 
-    let reference = lhs.reference_scalar();
+    // TODO(mk): support many references.
+
+    let Some(reference) = lhs.constant_reference() else {
+        return Ok(None);
+    };
     let reference = reference.as_primitive().typed_value::<T>();
 
     // We encode the RHS into the FoR domain.

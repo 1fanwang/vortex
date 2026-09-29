@@ -146,7 +146,10 @@ impl Scheme for FoRScheme {
         let compressed = BitPackingScheme.compress(compressor, &biased_data, leaf_ctx, exec_ctx)?;
 
         // TODO(connor): This should really be `new_unchecked`.
-        let for_compressed = FoR::try_new(compressed, for_array.reference_scalar().clone())?;
+        let reference = for_array
+            .constant_reference()
+            .vortex_expect("FoR::encode uses a single reference");
+        let for_compressed = FoR::try_new(compressed, reference)?;
         for_compressed
             .as_ref()
             .statistics()

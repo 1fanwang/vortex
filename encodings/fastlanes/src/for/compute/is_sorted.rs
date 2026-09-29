@@ -14,6 +14,7 @@ use vortex_array::scalar::Scalar;
 use vortex_error::VortexResult;
 
 use crate::FoR;
+use crate::r#for::array::FoRArrayExt;
 use crate::r#for::array::FoRArraySlotsExt;
 
 #[derive(Debug)]
@@ -33,6 +34,10 @@ impl DynAggregateKernel for FoRIsSortedKernel {
         let Some(array) = batch.as_opt::<FoR>() else {
             return Ok(None);
         };
+        // TODO(mk): support many references.
+        if array.constant_reference().is_none() {
+            return Ok(None);
+        }
 
         let encoded = array.encoded().clone().execute::<PrimitiveArray>(ctx)?;
         let unsigned_array = PrimitiveArray::from_buffer_handle(
