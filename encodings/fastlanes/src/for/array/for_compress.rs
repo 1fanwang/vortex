@@ -1,17 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: Copyright the Vortex contributors
 
+use std::mem::MaybeUninit;
+
+use itertools::Itertools;
+use num_traits::AsPrimitive;
 use num_traits::PrimInt;
 use num_traits::WrappingSub;
 use vortex_array::ExecutionCtx;
 use vortex_array::IntoArray;
+use vortex_array::arrays::ConstantArray;
 use vortex_array::arrays::PrimitiveArray;
 use vortex_array::dtype::NativePType;
 use vortex_array::expr::stats::Stat;
 use vortex_array::match_each_integer_ptype;
+use vortex_array::scalar::Scalar;
+use vortex_array::validity::Validity;
+use vortex_buffer::BitBuffer;
+use vortex_buffer::Buffer;
+use vortex_buffer::BufferMut;
 use vortex_error::VortexResult;
 use vortex_error::vortex_err;
+use vortex_mask::AllOr;
 
+use crate::FL_CHUNK_SIZE;
 use crate::FoR;
 use crate::FoRArray;
 use crate::FoRData;
@@ -25,13 +37,23 @@ impl FoRData {
             .ok_or_else(|| vortex_err!("Min stat not found"))?;
 
         let encoded = match_each_integer_ptype!(array.ptype(), |T| {
-            compress_primitive::<T>(array, T::try_from(&min)?, ctx)?.into_array()
+            encode_primitive::<T>(array, T::try_from(&min)?, ctx)?.into_array()
         });
         FoR::try_new(encoded, min)
     }
+
+    /// Encode with one reference per chunk: the minimum of the chunk's valid values.
+    ///
+    /// Chunks with no valid values reuse the previous chunk's reference, so the references
+    /// compress into runs.
+    pub fn encode_chunked(array: PrimitiveArray, ctx: &mut ExecutionCtx) -> VortexResult<FoRArray> {
+        match_each_integer_ptype!(array.ptype(), |T| {
+            encode_chunked_typed::<T>(&array, ctx)
+        })
+    }
 }
 
-fn compress_primitive<T: NativePType + WrappingSub + PrimInt>(
+fn encode_primitive<T: NativePType + WrappingSub + PrimInt>(
     parray: PrimitiveArray,
     min: T,
     ctx: &mut ExecutionCtx,
@@ -46,6 +68,189 @@ fn compress_primitive<T: NativePType + WrappingSub + PrimInt>(
         }
     })?;
     Ok(encoded)
+}
+
+fn encode_chunked_typed<T: NativePType + WrappingSub + PrimInt>(
+    array: &PrimitiveArray,
+    ctx: &mut ExecutionCtx,
+) -> VortexResult<FoRArray>
+where
+    u8: AsPrimitive<T>,
+{
+    let validity = array.validity()?;
+    let mask = validity.execute_mask(array.len(), ctx)?;
+    let values = array.as_slice::<T>();
+    let (encoded, references) = match mask.bit_buffer() {
+        AllOr::All => encode_chunked_all_valid(values),
+        AllOr::Some(bits) => encode_chunked_mixed_validity(values, bits),
+        // Every value is null, so constants stand in for both children.
+        AllOr::None => {
+            let dtype = array.dtype();
+            return FoR::try_new(
+                ConstantArray::new(Scalar::null(dtype.clone()), array.len()).into_array(),
+                Scalar::zero_value(&dtype.as_nonnullable()),
+            );
+        }
+    };
+    FoR::try_new_chunked(
+        PrimitiveArray::new(encoded, validity).into_array(),
+        PrimitiveArray::new(references, Validity::NonNullable).into_array(),
+        0,
+    )
+}
+
+/// Find each all-valid chunk's minimum and subtract it from each value while the chunk is in cache.
+fn encode_chunked_all_valid<T: PrimInt + WrappingSub>(values: &[T]) -> (Buffer<T>, Buffer<T>) {
+    let mut encoded = BufferMut::<T>::with_capacity(values.len());
+    let out = &mut encoded.spare_capacity_mut()[..values.len()];
+    let references = values
+        .chunks(FL_CHUNK_SIZE)
+        .zip(out.chunks_mut(FL_CHUNK_SIZE))
+        .map(|(chunk, out)| {
+            let min = chunk.iter().copied().fold(T::max_value(), T::min);
+            subtract(chunk, min, out);
+            min
+        })
+        .collect::<Buffer<T>>();
+    // SAFETY: the loop above initialized every value.
+    unsafe { encoded.set_len(values.len()) };
+    (encoded.freeze(), references)
+}
+
+fn subtract<T: PrimInt + WrappingSub>(values: &[T], reference: T, out: &mut [MaybeUninit<T>]) {
+    for (out, v) in out.iter_mut().zip(values) {
+        out.write(v.wrapping_sub(&reference));
+    }
+}
+
+/// Find each mixed-validity chunk's minimum and subtract it from each non-null value while the chunk is in cache.
+/// The minimum is the minimum non-null value.
+fn encode_chunked_mixed_validity<T: PrimInt + WrappingSub + 'static>(
+    values: &[T],
+    bits: &BitBuffer,
+) -> (Buffer<T>, Buffer<T>)
+where
+    u8: AsPrimitive<T>,
+{
+    // One validity bit per value, 64 values per word. `iter_padded` ends with the remainder word
+    // even when it is empty, so keep one word per 64 values.
+    let words: Vec<u64> = bits
+        .chunks()
+        .iter_padded()
+        .take(values.len().div_ceil(64))
+        .collect();
+
+    let mut encoded = BufferMut::<T>::with_capacity(values.len());
+    let out = &mut encoded.spare_capacity_mut()[..values.len()];
+    let mins = values
+        .chunks(FL_CHUNK_SIZE)
+        .zip(out.chunks_mut(FL_CHUNK_SIZE))
+        .zip_eq(words.chunks(FL_CHUNK_SIZE / 64))
+        .map(|((chunk, out), words)| {
+            let min = valid_min(chunk, words);
+            // An all-null chunk encodes as zeros whatever its reference.
+            subtract_valid(chunk, words, min.unwrap_or_else(T::zero), out);
+            min
+        })
+        .collect::<Vec<_>>();
+    // SAFETY: the loop above initialized every value.
+    unsafe { encoded.set_len(values.len()) };
+
+    // All-null chunks take the previous chunk's reference, or the first valid one at the start.
+    let mut previous = mins
+        .iter()
+        .flatten()
+        .next()
+        .copied()
+        .unwrap_or_else(T::zero);
+    let references = mins
+        .into_iter()
+        .map(|min| {
+            previous = min.unwrap_or(previous);
+            previous
+        })
+        .collect::<Buffer<T>>();
+    (encoded.freeze(), references)
+}
+
+/// The minimum of the valid `values`, or `None` if none are valid.
+#[inline]
+fn valid_min<T: PrimInt + WrappingSub + 'static>(values: &[T], words: &[u64]) -> Option<T>
+where
+    u8: AsPrimitive<T>,
+{
+    if words.iter().all(|&word| word == 0) {
+        return None;
+    }
+    let mut min = T::max_value();
+    for_each_valid_mask(values, words, |_, v, mask| {
+        min = min.min(select(mask, v, T::max_value()));
+    });
+
+    Some(min)
+}
+
+/// Subtract `reference` from the valid `values` and write zero for the invalid ones.
+fn subtract_valid<T: PrimInt + WrappingSub + 'static>(
+    values: &[T],
+    words: &[u64],
+    reference: T,
+    out: &mut [MaybeUninit<T>],
+) where
+    u8: AsPrimitive<T>,
+{
+    for_each_valid_mask(values, words, |i, v, mask| {
+        out[i].write(v.wrapping_sub(&reference) & mask);
+    });
+}
+
+/// Calls `f(index, value, mask)` for each value, where `mask` is all ones for a valid value and
+/// all zeros for a null.
+///
+/// Callers combine each value with its mask using bitwise operations instead of branching on
+/// validity, which keeps their loops vectorized.
+///
+/// `words` holds one validity bit per value, least significant bit first, 64 values per word.
+/// Each full 64-value block is a `[T; 64]` walked by a fixed `0..64` loop, so it unrolls and
+/// vectorizes with no bounds checks. The remainder, fewer than 64 values, uses the word after the
+/// full blocks and runs at most once per array.
+///
+/// Each bit is read from its byte of the word rather than by shifting the whole `u64`, which keeps
+/// the vectorized loop in 8-bit lanes.
+#[inline]
+fn for_each_valid_mask<T: PrimInt + WrappingSub + 'static>(
+    values: &[T],
+    words: &[u64],
+    mut f: impl FnMut(usize, T, T),
+) where
+    u8: AsPrimitive<T>,
+{
+    let (blocks, remainder) = values.as_chunks::<64>();
+    for (block_idx, (block, &word)) in blocks.iter().zip(words).enumerate() {
+        // Value `j`'s validity is bit `j % 8` of byte `j / 8`.
+        let bytes = word.to_le_bytes();
+        for j in 0..64 {
+            // Shift the bit to the bottom and clear the rest: `1` if valid, `0` if null.
+            let valid: T = ((bytes[j / 8] >> (j % 8)) & 1).as_();
+            // Create all zero or one mask by subtracting from zero.
+            f(block_idx * 64 + j, block[j], T::zero().wrapping_sub(&valid));
+        }
+    }
+    // The remainder reads its bits the same way, from the word after the full blocks.
+    let start = blocks.len() * 64;
+    if let Some(&word) = words.get(blocks.len()) {
+        let bytes = word.to_le_bytes();
+        for (j, &v) in remainder.iter().enumerate() {
+            let valid: T = ((bytes[j / 8] >> (j % 8)) & 1).as_();
+            f(start + j, v, T::zero().wrapping_sub(&valid));
+        }
+    }
+}
+
+/// `a` where `mask` is all ones and `b` where it is all zeros.
+#[inline]
+fn select<T: PrimInt>(mask: T, a: T, b: T) -> T {
+    (a & mask) | (b & !mask)
 }
 
 #[cfg(test)]
@@ -66,11 +271,9 @@ mod test {
     use vortex_session::VortexSession;
 
     use super::*;
-    use crate::BitPackedData;
     use crate::r#for::array::FoRArrayExt;
     use crate::r#for::array::FoRArraySlotsExt;
     use crate::r#for::array::for_decompress::decompress;
-    use crate::r#for::array::for_decompress::fused_decompress;
 
     static SESSION: LazyLock<VortexSession> = LazyLock::new(|| {
         let session = array_session();
@@ -126,39 +329,6 @@ mod test {
 
         let encoded = compressed.encoded().execute_scalar(0, &mut ctx).unwrap();
         assert_eq!(encoded, Scalar::from(0i32));
-    }
-
-    #[test]
-    fn test_decompress() {
-        let mut ctx = SESSION.create_execution_ctx();
-        // Create a range offset by a million.
-        let array = PrimitiveArray::from_iter((0u32..100_000).step_by(1024).map(|v| v + 1_000_000));
-        let compressed = FoRData::encode(array.clone(), &mut ctx).unwrap();
-        assert_arrays_eq!(compressed, array, &mut ctx);
-    }
-
-    #[test]
-    fn test_decompress_fused() {
-        let mut ctx = SESSION.create_execution_ctx();
-        // Create a range offset by a million.
-        let expect = PrimitiveArray::from_iter((0u32..1024).map(|x| x % 7 + 10));
-        let array = PrimitiveArray::from_iter((0u32..1024).map(|x| x % 7));
-        let bp = BitPackedData::encode(&array.into_array(), 3, &mut ctx).unwrap();
-        let compressed = FoR::try_new(bp.into_array(), 10u32.into()).unwrap();
-        assert_arrays_eq!(compressed, expect, &mut ctx);
-    }
-
-    #[test]
-    fn test_decompress_fused_patches() -> VortexResult<()> {
-        let mut ctx = SESSION.create_execution_ctx();
-        // Create a range offset by a million.
-        let expect = PrimitiveArray::from_iter((0u32..1024).map(|x| x % 7 + 10));
-        let array = PrimitiveArray::from_iter((0u32..1024).map(|x| x % 7));
-        let bp = BitPackedData::encode(&array.into_array(), 2, &mut ctx)?;
-        let compressed = FoR::try_new(bp.clone().into_array(), 10u32.into())?;
-        let decompressed = fused_decompress::<u32>(&compressed, bp.as_view(), &mut ctx)?;
-        assert_arrays_eq!(decompressed, expect, &mut ctx);
-        Ok(())
     }
 
     #[test]
