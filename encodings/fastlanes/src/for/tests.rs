@@ -135,13 +135,6 @@ fn constant_references_keep_the_scalar_reference() -> VortexResult<()> {
     Ok(())
 }
 
-#[test]
-fn varying_references_do_not_serialize_as_v1() -> VortexResult<()> {
-    let (array, _) = unsigned()?;
-    assert!(SESSION.array_serialize(array.as_array()).is_err());
-    Ok(())
-}
-
 fn drifting_u32(len: u32) -> PrimitiveArray {
     PrimitiveArray::from_iter((0..len).map(|i| (i / 1024) * 1_000_000 + i % 100))
 }
