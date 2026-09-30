@@ -8,11 +8,17 @@ use vortex_error::vortex_err;
 
 use crate::ArrayRef;
 use crate::ExecutionCtx;
+use crate::IntoArray;
 use crate::array::probe::ArrayProbe;
 use crate::array::probe::array::check_bounds;
 use crate::array::probe::array::check_dtype;
 use crate::array::probe::array::child_of;
+use crate::arrays::BoolArray;
+use crate::arrays::ScalarFn;
 use crate::scalar::Scalar;
+use crate::scalar_fn::ArrayReduceNode;
+use crate::scalar_fn::ReduceNode;
+use crate::scalar_fn::ReduceNodeValidity;
 use crate::validity::Validity;
 
 /// A row accessor that owns its array and keeps preparation between reads.
@@ -55,7 +61,12 @@ impl RepeatedArrayProbe {
 
     /// Read the scalar at `index`, including its nullness, reusing retained preparation.
     pub fn execute_scalar(&mut self, index: usize, ctx: &mut ExecutionCtx) -> VortexResult<Scalar> {
-        if !self.execute_is_valid(index, ctx)? {
+        // For some scalar functions executing validity is equal to executing the
+        // function itself. Thus execute_is_valid + probe_scalar_retained do
+        // two evaluations instead of one. probe_scalar_once for such functions
+        // already gives you the nullable scalar, so skip the first check
+        // TODO(myrrc) this should be removed once we no longer probe validity here
+        if !self.irreducible_validity()? && !self.execute_is_valid(index, ctx)? {
             return Ok(Scalar::null(self.array.dtype().clone()));
         }
         let result =
@@ -63,6 +74,18 @@ impl RepeatedArrayProbe {
                 .dyn_array()
                 .probe_scalar_retained(&self.array, index, &mut self.state, ctx);
         check_dtype(&self.array, result)
+    }
+
+    fn irreducible_validity(&self) -> VortexResult<bool> {
+        if self.uniform_validity.is_some() || self.validity.is_some() {
+            return Ok(false);
+        }
+        Ok(self.array.dtype().is_nullable()
+            && self.array.is::<ScalarFn>()
+            && matches!(
+                ArrayReduceNode::new(&self.array).validity()?,
+                ReduceNodeValidity::Irreducible
+            ))
     }
 
     /// Whether the row at `index` is valid, through the retained validity.
@@ -85,6 +108,15 @@ impl RepeatedArrayProbe {
                     return Ok(false);
                 }
                 Validity::Array(array) => {
+                    // ScalarFn's validity mask is lazy but we don't want to
+                    // reevaluate it for every new probe request
+                    // TODO(myrrc) remove this once probing api allows us
+                    // to specify validity
+                    let array = if self.array.is::<ScalarFn>() {
+                        array.execute::<BoolArray>(ctx)?.into_array()
+                    } else {
+                        array
+                    };
                     self.validity = Some(Box::new(RepeatedArrayProbe::new(array)));
                 }
             }
