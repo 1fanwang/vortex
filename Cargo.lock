@@ -11440,8 +11440,10 @@ dependencies = [
  "codspeed-divan-compat",
  "itertools 0.14.0",
  "mimalloc",
+ "rand 0.10.3",
  "rstest",
  "serde",
+ "vortex-bench-support",
  "vortex-buffer",
  "vortex-error",
 ]
