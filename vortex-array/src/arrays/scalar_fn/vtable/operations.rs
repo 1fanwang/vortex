@@ -5,6 +5,7 @@ use vortex_error::VortexResult;
 
 use crate::ExecutionCtx;
 use crate::IntoArray;
+use crate::ProbeState;
 use crate::array::ArrayView;
 use crate::array::OperationsVTable;
 use crate::arrays::ConstantArray;
@@ -16,6 +17,15 @@ use crate::scalar_fn::VecExecutionArgs;
 
 impl OperationsVTable<ScalarFn> for ScalarFn {
     type ProbeState = ();
+
+    /// The evaluated scalar carries the row's nullness, so no separate validity check is needed.
+    fn probe_scalar(
+        state: &mut ProbeState<'_, ScalarFn>,
+        index: usize,
+        ctx: &mut ExecutionCtx,
+    ) -> VortexResult<Scalar> {
+        Self::scalar_at(state.array(), index, ctx)
+    }
 
     fn scalar_at(
         array: ArrayView<'_, ScalarFn>,
