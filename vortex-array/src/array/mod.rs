@@ -393,15 +393,13 @@ impl<V: VTable> DynArrayData for ArrayData<V> {
 
     fn with_slots(&self, this: &ArrayRef, slots: ArraySlots) -> VortexResult<ArrayRef> {
         let stats = this.statistics().to_owned();
-        Ok(Array::<V>::try_from_parts(
-            ArrayParts::new(
-                self.vtable.clone(),
-                this.dtype().clone(),
-                this.len(),
-                self.data.clone(),
-            )
-            .with_slots(slots),
-        )?
+        Ok(Array::<V>::try_from_parts(ArrayParts::new(
+            self.vtable.clone(),
+            this.dtype().clone(),
+            this.len(),
+            self.data.clone(),
+            slots,
+        ))?
         .with_stats_set(stats)
         .into_array())
     }
@@ -419,17 +417,21 @@ impl<V: VTable> DynArrayData for ArrayData<V> {
     unsafe fn with_slots_unchecked(&self, this: &ArrayRef, slots: ArraySlots) -> ArrayRef {
         // SAFETY: we intentionally skip `V::validate` here. Caller guarantees that the resulting
         // array is either repaired or not externally observed.
-        let store = unsafe {
-            ArrayInner::<ArrayData<V>>::new_unchecked(
-                self.vtable.clone(),
-                this.len(),
-                this.dtype().clone(),
-                self.data.clone(),
-                slots,
-                this.statistics().to_array_stats(),
-            )
-        };
-        ArrayRef::from_inner(Arc::new(store))
+        let parts = ArrayParts::new(
+            self.vtable.clone(),
+            this.dtype().clone(),
+            this.len(),
+            self.data.clone(),
+            slots,
+        );
+        let encoding_id = self.vtable.id();
+        let stats = this.statistics().to_array_stats();
+        let uninit = Arc::new_uninit();
+
+        // SAFETY: `uninit` is new.
+        let store = unsafe { ArrayInner::init_arc(uninit, parts, encoding_id, stats) };
+
+        ArrayRef::from_inner(store)
     }
 
     fn reduce(&self, this: &ArrayRef) -> VortexResult<Option<ArrayRef>> {
