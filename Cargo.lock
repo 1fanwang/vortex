@@ -2812,7 +2812,6 @@ dependencies = [
  "vortex",
  "vortex-arrow",
  "vortex-bench",
- "vortex-cuda",
  "vortex-datafusion",
  "vortex-metrics",
 ]
@@ -4238,7 +4237,6 @@ dependencies = [
  "tracing",
  "vortex",
  "vortex-bench",
- "vortex-cuda",
  "vortex-duckdb",
 ]
 
@@ -11298,7 +11296,6 @@ dependencies = [
  "vortex-sequence",
  "vortex-session",
  "vortex-sparse",
- "vortex-tensor",
  "vortex-utils",
  "vortex-uuid",
  "vortex-zigzag",
@@ -11331,7 +11328,6 @@ version = "0.1.0"
 dependencies = [
  "allocator-api2",
  "arbitrary",
- "arc-swap",
  "arcref",
  "arrow-buffer 59.3.0",
  "async-lock",
@@ -11460,7 +11456,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "sha2",
  "spatialbench",
  "spatialbench-arrow",
  "sysinfo",
@@ -11804,7 +11799,6 @@ dependencies = [
  "geo-types",
  "itertools 0.14.0",
  "jiff",
- "kanal",
  "num-traits",
  "object_store 0.13.2",
  "parking_lot",
@@ -11902,7 +11896,6 @@ name = "vortex-file"
 version = "0.1.0"
 dependencies = [
  "allocator-api2",
- "async-stream",
  "async-trait",
  "bytes",
  "codspeed-divan-compat",
@@ -12439,7 +12432,6 @@ dependencies = [
  "vortex-arrow",
  "vortex-btrblocks",
  "vortex-buffer",
- "vortex-compressor",
  "vortex-edition",
  "vortex-error",
  "vortex-mask",
