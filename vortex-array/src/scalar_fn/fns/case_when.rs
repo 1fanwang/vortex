@@ -299,7 +299,7 @@ impl ScalarFnVTable for CaseWhen {
             return Ok(Some(x.clone()));
         }
 
-        if !fill_null_rewrite_supported(x.dtype()) {
+        if !FillNull::supports_dtype(x.dtype()) {
             return Ok(None);
         }
 
@@ -317,13 +317,6 @@ impl ScalarFnVTable for CaseWhen {
     fn is_infallible(&self, _options: &Self::Options) -> bool {
         true
     }
-}
-
-fn fill_null_rewrite_supported(dtype: &DType) -> bool {
-    matches!(
-        dtype,
-        DType::Bool(_) | DType::Primitive(_, _) | DType::Decimal(_, _)
-    )
 }
 
 /// Average run length at which slicing + context-aware builder appends become cheaper than `scalar_at`.
@@ -477,6 +470,7 @@ mod tests {
     use crate::dtype::Nullability;
     use crate::dtype::PType;
     use crate::dtype::StructFields;
+    use crate::dtype::UnionVariants;
     use crate::expr::Expression;
     use crate::expr::case_when;
     use crate::expr::case_when_no_else;
@@ -1506,31 +1500,55 @@ mod tests {
             case_when(is_null(root()), lit("fallback"), root()),
             case_when(is_not_null(root()), root(), lit("fallback")),
         ] {
-            let original = input
+            let optimized = expr.bind(input.dtype())?.optimize_recursive()?;
+            assert!(optimized.is::<FillNull>(), "{optimized}");
+            let result = input
                 .clone()
-                .apply_bound(&expr.bind(input.dtype())?)?
+                .apply_bound(&optimized)?
                 .execute::<Canonical>(&mut ctx)?
                 .into_array();
             assert_arrays_eq!(
-                original,
-                VarBinViewArray::from_iter_nullable_str([Some("a"), Some("fallback")]),
+                result,
+                VarBinViewArray::from_iter_str(["a", "fallback"]),
                 &mut ctx
             );
+        }
+        Ok(())
+    }
 
-            let optimized = expr.optimize_recursive(input.dtype())?;
-            let optimized_display = optimized.to_string();
-            assert!(optimized_display.contains("CASE"));
-            assert!(!optimized_display.contains("fill_null"));
-            let result = input
-                .clone()
-                .apply_bound(&optimized.bind(input.dtype())?)?
-                .execute::<Canonical>(&mut ctx)?
-                .into_array()
-                .cast(input.dtype().clone())?;
-            assert_arrays_eq!(
-                result,
-                VarBinViewArray::from_iter_nullable_str([Some("a"), Some("fallback")]),
-                &mut ctx
+    #[test]
+    fn test_simplify_coalesce_follows_fill_null_capability() -> VortexResult<()> {
+        let union = UnionVariants::try_new(
+            ["number"].into(),
+            vec![DType::Primitive(PType::I32, Nullability::NonNullable)],
+            vec![0],
+        )?;
+        let cases = [
+            (
+                "utf8",
+                DType::Utf8(Nullability::Nullable),
+                Scalar::utf8("fallback", Nullability::NonNullable),
+            ),
+            (
+                "union",
+                DType::Union(union.clone(), Nullability::Nullable),
+                Scalar::union(union, 0, Scalar::from(1i32), Nullability::NonNullable)?,
+            ),
+            (
+                "variant",
+                DType::Variant(Nullability::Nullable),
+                Scalar::variant(Scalar::from(1i32)),
+            ),
+        ];
+
+        for (name, dtype, fill) in cases {
+            let optimized = case_when(is_null(root()), lit(fill), root())
+                .bind(&dtype)?
+                .optimize_recursive()?;
+            assert_eq!(
+                optimized.is::<FillNull>(),
+                FillNull::supports_dtype(&dtype),
+                "{name}: {optimized}"
             );
         }
         Ok(())
