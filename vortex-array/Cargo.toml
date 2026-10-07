@@ -4,16 +4,12 @@ authors = { workspace = true }
 categories = { workspace = true }
 description = "Vortex in memory columnar data format"
 edition = { workspace = true }
-homepage = { workspace = true }
 include = { workspace = true }
 keywords = { workspace = true }
 license = { workspace = true }
-readme = "README.md"
 repository = { workspace = true }
 rust-version = { workspace = true }
 
-# Exports the `flatbuffers` and `proto` schema directories to dependent build scripts.
-links = "vortex-array"
 version = { workspace = true }
 
 [package.metadata.docs.rs]
@@ -28,7 +24,6 @@ workspace = true
 
 [dependencies]
 arbitrary = { workspace = true, optional = true }
-arc-swap = { workspace = true }
 arcref = { workspace = true }
 arrow-buffer = { workspace = true }
 async-lock = { workspace = true }
@@ -36,6 +31,8 @@ bytes = { workspace = true }
 cfg-if = { workspace = true }
 cudarc = { workspace = true, optional = true }
 enum-iterator = { workspace = true }
+fearless_simd = { workspace = true }
+fearless_simd_macros = { workspace = true }
 flatbuffers = { workspace = true }
 futures = { workspace = true, features = ["alloc", "async-await", "std"] }
 goldenfile = { workspace = true, optional = true }
@@ -69,7 +66,6 @@ tabled = { workspace = true, optional = true, default-features = false, features
     "std",
 ] }
 tracing = { workspace = true }
-uuid = { workspace = true }
 vortex-array-macros = { workspace = true }
 vortex-buffer = { workspace = true }
 vortex-compute = { workspace = true }
@@ -87,9 +83,6 @@ _test-harness = ["dep:goldenfile", "dep:rstest", "dep:rstest_reuse"]
 serde = ["dep:serde", "vortex-buffer/serde", "vortex-mask/serde"]
 # Exposes experimental row-function APIs without compatibility guarantees.
 unstable_row_fns = []
-
-[build-dependencies]
-vortex-build = { workspace = true }
 
 [dev-dependencies]
 allocator-api2 = { workspace = true }
@@ -154,11 +147,19 @@ name = "row_fn_output"
 harness = false
 
 [[bench]]
+name = "row_fn_utf8_input"
+harness = false
+
+[[bench]]
 name = "kleene_bool"
 harness = false
 
 [[bench]]
 name = "like"
+harness = false
+
+[[bench]]
+name = "list_contains_set"
 harness = false
 
 [[bench]]
@@ -230,6 +231,10 @@ harness = false
 
 [[bench]]
 name = "validity_is_valid"
+harness = false
+
+[[bench]]
+name = "scalar_fn_probe"
 harness = false
 
 [[bench]]
@@ -314,4 +319,8 @@ harness = false
 
 [[bench]]
 name = "slice_dict_primitive"
+harness = false
+
+[[bench]]
+name = "probe"
 harness = false

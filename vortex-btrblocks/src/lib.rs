@@ -74,14 +74,10 @@ mod canonical_compressor;
 /// Compression scheme implementations.
 pub mod schemes;
 mod session;
-#[cfg(test)]
-#[cfg(not(codspeed))]
-mod trace_tests;
 
 // Re-export framework types from vortex-compressor for backwards compatibility.
 // Btrblocks-specific exports.
 pub use builder::BtrBlocksCompressorBuilder;
-pub use builder::DELTA_SCHEME;
 pub use canonical_compressor::BtrBlocksCompressor;
 pub use schemes::patches::compress_patches;
 pub use session::CompressionSession;
@@ -98,3 +94,10 @@ pub use vortex_compressor::stats::FloatStats;
 pub use vortex_compressor::stats::GenerateStatsOptions;
 pub use vortex_compressor::stats::IntegerStats;
 pub use vortex_compressor::stats::StringStats;
+
+#[cfg(test)]
+static SESSION: std::sync::LazyLock<vortex_session::VortexSession> =
+    std::sync::LazyLock::new(vortex_array::array_session);
+
+#[cfg(test)]
+mod tests;

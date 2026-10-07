@@ -14,6 +14,7 @@ mod varbin;
 use vortex_error::VortexExpect;
 use vortex_error::VortexResult;
 use vortex_error::vortex_bail;
+use vortex_mask::Mask;
 use vortex_session::registry::CachedId;
 
 use self::bool::check_bool_constant;
@@ -76,7 +77,7 @@ fn arrays_value_equal(a: &ArrayRef, b: &ArrayRef, ctx: &mut ExecutionCtx) -> Vor
     // Compare values element-wise. Result is null where both inputs are null,
     // true/false where both are valid.
     let eq_result = a.binary(b.clone(), Operator::Eq)?;
-    let eq_result = eq_result.null_as_false().execute(ctx)?;
+    let eq_result = eq_result.fill_null(false)?.execute::<Mask>(ctx)?;
 
     Ok(eq_result.true_count() == valid_count)
 }
@@ -274,7 +275,7 @@ impl AggregateFnVTable for IsConstant {
     }
 
     fn serialize(&self, _options: &Self::Options) -> VortexResult<Option<Vec<u8>>> {
-        unimplemented!("IsConstant is not yet serializable");
+        vortex_bail!("IsConstant is not yet serializable");
     }
 
     fn return_dtype(&self, _options: &Self::Options, input_dtype: &DType) -> Option<DType> {
@@ -379,6 +380,10 @@ impl AggregateFnVTable for IsConstant {
 
         match batch {
             Columnar::Constant(c) => {
+                if c.is_empty() {
+                    return Ok(());
+                }
+
                 partial.check_value(c.scalar().clone().into_nullable());
                 Ok(())
             }
@@ -421,7 +426,7 @@ impl AggregateFnVTable for IsConstant {
                     Canonical::FixedSizeList(f) => check_fixed_size_list_constant(f, ctx)?,
                     Canonical::Null(_) => true,
                     Canonical::Union(_) => {
-                        todo!("TODO(connor)[Union]: implement IsConstant for Union arrays")
+                        vortex_bail!("TODO(connor)[Union]: implement IsConstant for Union arrays")
                     }
                     Canonical::Variant(_) => {
                         vortex_bail!("Variant arrays don't support IsConstant")
@@ -480,6 +485,7 @@ mod tests {
     use crate::array_session;
     use crate::arrays::BoolArray;
     use crate::arrays::ChunkedArray;
+    use crate::arrays::ConstantArray;
     use crate::arrays::DecimalArray;
     use crate::arrays::ListArray;
     use crate::arrays::PrimitiveArray;
@@ -779,6 +785,18 @@ mod tests {
         let all_null = map_array_from_rows(&[None, None])?;
         assert!(is_constant(&all_null, &mut ctx)?);
 
+        Ok(())
+    }
+
+    #[test]
+    fn empty_constant_leaves_partial_empty() -> VortexResult<()> {
+        let mut ctx = array_session().create_execution_ctx();
+        let array = ConstantArray::new(Scalar::from(99i32), 0).into_array();
+        let mut acc = Accumulator::try_new(IsConstant, EmptyOptions, array.dtype().clone())?;
+
+        acc.accumulate(&array, &mut ctx)?;
+
+        assert!(acc.partial_scalar()?.is_null());
         Ok(())
     }
 

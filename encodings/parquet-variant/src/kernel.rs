@@ -43,6 +43,7 @@ use vortex_array::scalar_fn::ScalarFnVTable;
 use vortex_array::scalar_fn::fns::variant_get::VariantGet;
 use vortex_array::scalar_fn::fns::variant_get::VariantPath;
 use vortex_array::scalar_fn::fns::variant_get::VariantPathElement;
+use vortex_arrow::ArrowExportOptions;
 use vortex_arrow::ArrowSession;
 use vortex_arrow::ArrowSessionExt;
 use vortex_error::VortexResult;
@@ -106,7 +107,7 @@ impl ExecuteParentKernel<ParquetVariant> for VariantGetKernel {
             return Ok(None);
         }
 
-        let arrow_variant = array.to_arrow(ctx)?;
+        let arrow_variant = array.to_arrow(&ArrowExportOptions::default(), ctx)?;
         let arrow_input: ArrowArrayRef = Arc::new(arrow_variant.into_inner());
         let session = ctx.session().clone();
         let as_type = to_arrow_as_type(parent.options.dtype(), &session.arrow())?;
@@ -344,6 +345,7 @@ mod tests {
     static SESSION: LazyLock<VortexSession> = LazyLock::new(|| {
         let session = vortex_array::array_session();
         crate::initialize(&session);
+        vortex_uuid::initialize(&session);
         session
     });
 
@@ -355,8 +357,8 @@ mod tests {
         use arrow_schema::extension::ExtensionType;
         use arrow_schema::extension::Uuid as ArrowUuid;
         use vortex_array::dtype::extension::ExtDType;
-        use vortex_array::extension::uuid::Uuid;
-        use vortex_array::extension::uuid::UuidMetadata;
+        use vortex_uuid::Uuid;
+        use vortex_uuid::UuidMetadata;
 
         let storage = VortexDType::FixedSizeList(
             Arc::new(VortexDType::Primitive(PType::U8, Nullability::NonNullable)),

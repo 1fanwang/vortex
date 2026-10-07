@@ -56,7 +56,7 @@ jobs:
           - { shard: 3, name: "Array dictionaries", packages: "vortex-array", array-group: "dictionary", features: "--features _test-harness" }
           - { shard: 4, name: "Array builders & views", packages: "vortex-array", array-group: "builders", features: "--features _test-harness" }
           - { shard: 5, name: "Core & encodings", packages: "vortex-buffer vortex-error vortex-mask vortex-compute vortex-file vortex-alp vortex-bytebool vortex-datetime-parts" }
-          - { shard: 6, name: "Main library & storage", packages: "vortex vortex-btrblocks vortex-row" }
+          - { shard: 6, name: "Main library & storage", packages: "vortex vortex-btrblocks vortex-compressor vortex-row" }
           - { shard: 7, name: "FastLanes & decimals", packages: "vortex-decimal-byte-parts vortex-fastlanes", features: "--features _test-harness" }
           - { shard: 8, name: "Encodings & layout", packages: "vortex-pco vortex-runend vortex-sequence vortex-sparse vortex-zigzag vortex-zstd vortex-layout" }
           - { shard: 9, name: "Strings, tensor & spatial", packages: "vortex-fsst vortex-tensor vortex-spatial", features: "--features _test-harness" }
@@ -115,7 +115,7 @@ jobs:
           VORTEX_BENCH_VARIANT: simulation
         run: cargo codspeed build --locked ${{ matrix.features }} $(printf -- '-p %s ' ${{ matrix.packages }}) ${{ steps.select.outputs.benches }} --profile bench
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@4296e51e7041e24dadb86d1d6e8b9320d223dbe8  # v5
+        uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea  # v5
         with:
           run: cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
@@ -263,7 +263,7 @@ jobs:
       # component only exists because `#[cpu_features]` puts it there: an untagged benchmark has one
       # component fewer and cannot match, whatever it is called.
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@4296e51e7041e24dadb86d1d6e8b9320d223dbe8  # v5
+        uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea  # v5
         env:
           # Use more samples to reduce noise between walltime runs.
           DIVAN_SAMPLE_COUNT: "1000"
@@ -366,7 +366,7 @@ jobs:
       - name: Restore executable permissions
         run: find target/codspeed -type f -exec chmod +x {} +
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@4296e51e7041e24dadb86d1d6e8b9320d223dbe8  # v5
+        uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea  # v5
         env:
           CARGO_MANIFEST_DIR: ${{ github.workspace }}/vortex-cuda
         with:

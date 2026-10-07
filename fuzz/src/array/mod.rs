@@ -341,13 +341,12 @@ impl<'a> Arbitrary<'a> for FuzzArrayAction {
                         return Err(EmptyChoose);
                     }
 
-                    // Sum - returns a scalar, does NOT update current_array (terminal operation)
-                    let current_array_canonical = current_array
-                        .clone()
-                        .execute::<Canonical>(&mut ctx)
-                        .vortex_expect("execute canonical should succeed in fuzz test");
-                    let sum_result = sum_canonical_array(current_array_canonical, &mut ctx)
-                        .vortex_expect("sum_canonical_array should succeed in fuzz test");
+                    let Some(sum_result) = sum_canonical_array(&current_array, &mut ctx)
+                        .vortex_expect("sum_canonical_array should succeed in fuzz test")
+                    else {
+                        // Reject sums whose overflow can depend on grouping or addition order.
+                        return Err(EmptyChoose);
+                    };
                     (Action::Sum, ExpectedValue::Scalar(sum_result))
                 }
                 ActionType::MinMax => {
@@ -519,7 +518,7 @@ fn actions_for_dtype(dtype: &DType) -> HashSet<ActionType> {
                 })
         }
         DType::Map(..) => [Compress, Slice, Take, Filter, Mask, ScalarAt].into(),
-        DType::Union(..) => todo!("TODO(connor)[Union]: unimplemented"),
+        DType::Union(..) => vortex_panic!("TODO(connor)[Union]: unimplemented"),
         // Currently, no support at all
         DType::Variant(_) => unreachable!("Variant dtype shouldn't be fuzzed"),
         DType::Extension(_) => {

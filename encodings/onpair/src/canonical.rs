@@ -9,7 +9,7 @@
 use std::mem::MaybeUninit;
 use std::sync::Arc;
 
-use num_traits::AsPrimitive;
+use num_traits::ToPrimitive;
 use onpair::CompactDictionaryView;
 use vortex_array::ArrayRef;
 use vortex_array::ArrayView;
@@ -25,12 +25,14 @@ use vortex_buffer::ByteBufferMut;
 use vortex_error::VortexResult;
 use vortex_error::vortex_bail;
 use vortex_error::vortex_ensure;
+use vortex_error::vortex_ensure_eq;
+use vortex_error::vortex_err;
 
 use crate::OnPair;
 use crate::OnPairArraySlotsExt;
 use crate::array::dict_view;
 use crate::decode::code_boundary_at;
-use crate::decode::collect_widened;
+use crate::decode::collect_widened_range;
 
 pub(super) fn canonicalize_onpair(
     array: ArrayView<'_, OnPair>,
@@ -68,13 +70,13 @@ impl<'a> OnPairDecodePlan<'a> {
             .clone()
             .execute::<PrimitiveArray>(ctx)?;
 
-        let total_size: usize = match_each_integer_ptype!(lengths.ptype(), |P| {
+        let total_size = match_each_integer_ptype!(lengths.ptype(), |P| {
             lengths
                 .as_slice::<P>()
                 .iter()
-                .map(|&l| AsPrimitive::<usize>::as_(l))
-                .sum()
-        });
+                .try_fold(0usize, |acc, &l| acc.checked_add(l.to_usize()?))
+        })
+        .ok_or_else(|| vortex_err!("OnPair uncompressed lengths are negative or overflow"))?;
 
         // `codes_offsets` holds the per-row code boundaries and may itself be a
         // sliced or filtered view of the original. Its first and last entries
@@ -98,12 +100,18 @@ impl<'a> OnPairDecodePlan<'a> {
             code_end,
             array.codes().len()
         );
+        // Stored lengths control allocation; each code emits 1 to MAX_TOKEN_SIZE bytes.
+        let n_codes = code_end - code_start;
+        vortex_ensure!(
+            n_codes <= total_size && total_size <= n_codes.saturating_mul(onpair::MAX_TOKEN_SIZE),
+            "OnPair recorded length {total_size} is impossible for {n_codes} codes"
+        );
 
         // Slice the `codes` child to that window *before* unpacking it, so a sliced
         // array materialises only its own codes rather than the whole column's. The
         // contiguous decoder walks `codes` in order and never reads the per-row
         // boundaries, so an empty boundary slice is sound.
-        let codes = collect_widened::<u16>(&array.codes().slice(code_start..code_end)?, ctx)?;
+        let codes = collect_widened_range::<u16>(array.codes(), code_start..code_end, ctx)?;
         let dict = dict_view(array, ctx)?;
 
         Ok(Self {
@@ -130,10 +138,10 @@ impl<'a> OnPairDecodePlan<'a> {
             }
         };
 
-        vortex_ensure!(
-            written == self.total_size,
-            "OnPair codes decoded to {written} bytes but uncompressed_lengths records {}",
-            self.total_size
+        vortex_ensure_eq!(
+            written,
+            self.total_size,
+            "OnPair codes decoded length must match uncompressed_lengths"
         );
         Ok(written)
     }

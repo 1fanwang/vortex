@@ -5,13 +5,13 @@ use std::mem::MaybeUninit;
 use std::sync::Arc;
 
 use fsst::Decompressor;
+use num_traits::ToPrimitive;
 use vortex_array::ArrayRef;
 use vortex_array::ArrayView;
 use vortex_array::ExecutionCtx;
 use vortex_array::IntoArray;
 use vortex_array::arrays::PrimitiveArray;
 use vortex_array::arrays::VarBinViewArray;
-use vortex_array::arrays::varbin::VarBinArrayExt;
 use vortex_array::arrays::varbinview::build_views::MAX_BUFFER_LEN;
 use vortex_array::arrays::varbinview::build_views::build_views;
 use vortex_array::match_each_integer_ptype;
@@ -19,6 +19,8 @@ use vortex_buffer::ByteBuffer;
 use vortex_buffer::ByteBufferMut;
 use vortex_error::VortexResult;
 use vortex_error::vortex_ensure;
+use vortex_error::vortex_ensure_eq;
+use vortex_error::vortex_err;
 
 use crate::FSST;
 use crate::FSSTArrayExt;
@@ -74,16 +76,52 @@ impl FsstDecodePlan {
         fsst_array: ArrayView<'_, FSST>,
         ctx: &mut ExecutionCtx,
     ) -> VortexResult<Self> {
-        let codes = fsst_array.codes().sliced_bytes();
+        // Builder paths can bypass `FSST::execute`, so their offsets may still be encoded.
+        let offsets = fsst_array
+            .codes_offsets()
+            .clone()
+            .execute::<PrimitiveArray>(ctx)?;
+        let (first_offset, last_offset) = match_each_integer_ptype!(offsets.ptype(), |P| {
+            let offsets = offsets.as_slice::<P>();
+            (
+                offsets.first().and_then(ToPrimitive::to_usize),
+                offsets.last().and_then(ToPrimitive::to_usize),
+            )
+        });
+        let (first_offset, last_offset) = first_offset.zip(last_offset).ok_or_else(|| {
+            vortex_err!("FSST codes offsets are missing, negative or overflow usize")
+        })?;
+        let codes = fsst_array.codes_bytes();
+        vortex_ensure!(
+            first_offset <= last_offset,
+            "FSST first codes offset {first_offset} exceeds last codes offset {last_offset}"
+        );
+        vortex_ensure!(
+            last_offset <= codes.len(),
+            "FSST last codes offset {last_offset} exceeds codes bytes length {}",
+            codes.len()
+        );
+        let codes = codes.slice(first_offset..last_offset);
         let lengths = fsst_array
             .uncompressed_lengths()
             .clone()
             .execute::<PrimitiveArray>(ctx)?;
 
-        #[expect(clippy::cast_possible_truncation)]
-        let total_size: usize = match_each_integer_ptype!(lengths.ptype(), |P| {
-            lengths.as_slice::<P>().iter().map(|x| *x as usize).sum()
-        });
+        let total_size = match_each_integer_ptype!(lengths.ptype(), |P| {
+            lengths
+                .as_slice::<P>()
+                .iter()
+                .try_fold(0usize, |acc, &x| acc.checked_add(x.to_usize()?))
+        })
+        .ok_or_else(|| vortex_err!("FSST uncompressed lengths are negative or overflow"))?;
+
+        // Stored lengths size the output buffer, so bound them by the codes:
+        // symbols emit 1 to 8 bytes; escapes use two code bytes per output byte.
+        vortex_ensure!(
+            codes.len().div_ceil(2) <= total_size && total_size <= codes.len().saturating_mul(8),
+            "FSST recorded length {total_size} is impossible for {} code bytes",
+            codes.len()
+        );
 
         Ok(Self {
             codes,
@@ -104,11 +142,7 @@ impl FsstDecodePlan {
         out: &mut [MaybeUninit<u8>],
     ) -> VortexResult<usize> {
         let len = decompressor.decompress_into(self.codes.as_slice(), out);
-        vortex_ensure!(
-            len == self.total_size,
-            "FSST decoded {len} bytes, expected {}",
-            self.total_size
-        );
+        vortex_ensure_eq!(len, self.total_size, "FSST decoded length mismatch");
         Ok(len)
     }
 }
@@ -135,6 +169,7 @@ mod tests {
     use rand::RngExt;
     use rand::SeedableRng;
     use rand::prelude::StdRng;
+    use rstest::rstest;
     use vortex_array::ArrayRef;
     use vortex_array::IntoArray;
     use vortex_array::VortexSessionExecute;
@@ -143,17 +178,20 @@ mod tests {
     use vortex_array::arrays::VarBinArray;
     use vortex_array::arrays::VarBinViewArray;
     use vortex_array::arrays::varbin::VarBinArrayExt;
+    use vortex_array::assert_arrays_eq;
     use vortex_array::builders::ArrayBuilder;
     use vortex_array::builders::VarBinBuilder;
     use vortex_array::builders::VarBinViewBuilder;
     use vortex_array::dtype::DType;
     use vortex_array::dtype::Nullability;
+    use vortex_array::validity::Validity;
     use vortex_error::VortexResult;
     use vortex_session::VortexSession;
 
     use super::fsst_decode_bytes;
     use crate::FSST;
     use crate::FSSTArrayExt;
+    use crate::FSSTArraySlotsExt;
     use crate::fsst_compress;
     use crate::fsst_train_compressor;
 
@@ -298,6 +336,49 @@ mod tests {
         Ok(())
     }
 
+    #[rstest]
+    #[case::primitive(false)]
+    #[case::chunked(true)]
+    fn test_append_sliced_codes_offsets(#[case] chunked_offsets: bool) -> VortexResult<()> {
+        let mut ctx = SESSION.create_execution_ctx();
+        let input = VarBinViewArray::from_iter_str(["alpha", "bravo", "charlie"]).into_array();
+        let encoded = fsst_compress(&input, &fsst_train_compressor(&input, &mut ctx)?, &mut ctx)?;
+        let offsets = encoded
+            .codes_offsets()
+            .slice(1..4)?
+            .execute::<PrimitiveArray>(&mut ctx)?
+            .into_array();
+        let offsets = if chunked_offsets {
+            ChunkedArray::from_iter([offsets.slice(0..1)?, offsets.slice(1..3)?]).into_array()
+        } else {
+            offsets
+        };
+        let codes = VarBinArray::new(
+            offsets,
+            encoded.codes_bytes().clone(),
+            DType::Binary(Nullability::NonNullable),
+            Validity::NonNullable,
+        );
+        let sliced = FSST::try_new_with_symbol_table(
+            encoded.dtype().clone(),
+            encoded.symbol_table(),
+            codes,
+            encoded.uncompressed_lengths().slice(1..3)?,
+            &mut ctx,
+        )?;
+        let mut builder =
+            VarBinViewBuilder::with_capacity_in(input.dtype().clone(), 2, ctx.allocator().clone());
+        sliced
+            .into_array()
+            .append_to_builder(&mut builder, &mut ctx)?;
+        assert_arrays_eq!(
+            builder.finish_into_varbinview(),
+            input.slice(1..3)?,
+            &mut ctx
+        );
+        Ok(())
+    }
+
     #[test]
     fn test_rejects_incorrect_uncompressed_lengths() -> VortexResult<()> {
         let input = VarBinViewArray::from_iter_str(["hello"]).into_array();
@@ -312,6 +393,30 @@ mod tests {
         )?;
 
         assert!(fsst_decode_bytes(invalid.as_view(), &mut ctx).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_rejects_impossible_uncompressed_lengths() -> VortexResult<()> {
+        let input = VarBinViewArray::from_iter_str(["hello", "world"]).into_array();
+        let mut ctx = SESSION.create_execution_ctx();
+        let encoded = fsst_compress(&input, &fsst_train_compressor(&input, &mut ctx)?, &mut ctx)?;
+        let lengths = [
+            PrimitiveArray::from_iter([i32::MAX, 5]).into_array(),
+            PrimitiveArray::from_iter([-1i32, 5]).into_array(),
+            PrimitiveArray::from_iter([u64::MAX, 1]).into_array(),
+            PrimitiveArray::from_iter([0u32, 0]).into_array(),
+        ];
+        for lengths in lengths {
+            let invalid = FSST::try_new_with_symbol_table(
+                encoded.dtype().clone(),
+                encoded.symbol_table(),
+                encoded.codes(),
+                lengths,
+                &mut ctx,
+            )?;
+            assert!(fsst_decode_bytes(invalid.as_view(), &mut ctx).is_err());
+        }
         Ok(())
     }
 }

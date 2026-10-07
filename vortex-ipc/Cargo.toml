@@ -4,7 +4,6 @@ authors = { workspace = true }
 categories = { workspace = true }
 description = "IPC message format to exchange Vortex arrays across processes"
 edition = { workspace = true }
-homepage = { workspace = true }
 include = { workspace = true }
 keywords = { workspace = true }
 license = { workspace = true }
@@ -23,9 +22,6 @@ vortex-array = { workspace = true }
 vortex-buffer = { workspace = true }
 vortex-error = { workspace = true }
 vortex-session = { workspace = true }
-
-[build-dependencies]
-vortex-build = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }

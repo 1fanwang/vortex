@@ -18,9 +18,11 @@ use crate::scalar_fn::Arity;
 use crate::scalar_fn::ChildName;
 use crate::scalar_fn::EmptyOptions;
 use crate::scalar_fn::ExecutionArgs;
+use crate::scalar_fn::ReduceNode;
 use crate::scalar_fn::ScalarFnId;
 use crate::scalar_fn::ScalarFnVTable;
 use crate::scalar_fn::ScalarFnVTableExt;
+use crate::scalar_fn::fns::is_not_null::reduce_null;
 use crate::validity::Validity;
 
 /// Expression that checks for null values.
@@ -31,7 +33,7 @@ impl IsNull {
     /// Creates a lazy null check over `input`.
     #[expect(clippy::new_ret_no_self, reason = "constructs the lazy result array")]
     pub fn new(input: ArrayRef) -> ScalarFnArray {
-        ScalarFnArray::try_new(IsNull.bind(EmptyOptions), vec![input])
+        ScalarFnArray::try_new(IsNull.bind(EmptyOptions), [input])
             .vortex_expect("IsNull has one child and an infallible return dtype")
     }
 }
@@ -89,6 +91,10 @@ impl ScalarFnVTable for IsNull {
             Validity::AllInvalid => Ok(ConstantArray::new(true, args.row_count()).into_array()),
             Validity::Array(a) => a.not(),
         }
+    }
+
+    fn reduce<T: ReduceNode>(&self, _options: &Self::Options, node: &T) -> VortexResult<Option<T>> {
+        reduce_null(true, node)
     }
 
     fn is_strict(&self, _instance: &Self::Options) -> bool {

@@ -13,6 +13,7 @@ use std::fmt::Formatter;
 
 use vortex_error::VortexExpect;
 use vortex_error::VortexResult;
+use vortex_error::vortex_bail;
 use vortex_session::registry::CachedId;
 
 use self::bool::check_bool_sorted;
@@ -248,7 +249,7 @@ impl AggregateFnVTable for IsSorted {
     }
 
     fn serialize(&self, _options: &Self::Options) -> VortexResult<Option<Vec<u8>>> {
-        unimplemented!("IsSorted is not yet serializable");
+        vortex_bail!("IsSorted is not yet serializable");
     }
 
     fn return_dtype(&self, _options: &Self::Options, input_dtype: &DType) -> Option<DType> {
@@ -427,6 +428,10 @@ impl AggregateFnVTable for IsSorted {
 
         match batch {
             Columnar::Constant(c) => {
+                if c.is_empty() {
+                    return Ok(());
+                }
+
                 // Constant arrays are sorted but not strict sorted (if len > 1).
                 let value = c.scalar().clone().into_nullable();
                 if args.options.strict && c.len() > 1 {
@@ -596,6 +601,7 @@ mod tests {
     use crate::aggregate_fn::fns::is_sorted::is_strict_sorted;
     use crate::array_session;
     use crate::arrays::BoolArray;
+    use crate::arrays::ConstantArray;
     use crate::arrays::PrimitiveArray;
     use crate::dtype::DType;
     use crate::dtype::Nullability;
@@ -749,6 +755,19 @@ mod tests {
         )?);
         assert!(!is_strict_sorted(&sorted_array.into_array(), &mut ctx)?);
 
+        Ok(())
+    }
+
+    #[test]
+    fn empty_constant_leaves_partial_empty() -> VortexResult<()> {
+        let mut ctx = array_session().create_execution_ctx();
+        let array = ConstantArray::new(Scalar::from(99i32), 0).into_array();
+        let options = IsSortedOptions { strict: false };
+        let mut acc = Accumulator::try_new(IsSorted, options, array.dtype().clone())?;
+
+        acc.accumulate(&array, &mut ctx)?;
+
+        assert!(acc.partial_scalar()?.is_null());
         Ok(())
     }
 

@@ -187,9 +187,9 @@ impl TryToDataFusion<ScalarValue> for Scalar {
 
 /// Converts a DataFusion [`ScalarValue`] to a Vortex [`Scalar`], resolving Arrow types through
 /// `session`'s [`ArrowSession`](vortex_arrow::ArrowSession).
-pub fn scalar_from_df(value: &ScalarValue, session: &VortexSession) -> Scalar {
+pub fn scalar_from_df(value: &ScalarValue, session: &VortexSession) -> VortexResult<Scalar> {
     let arrow = session.arrow();
-    match value {
+    Ok(match value {
         ScalarValue::Null => Scalar::null(DType::Null),
         ScalarValue::Boolean(b) => b
             .map(Scalar::from)
@@ -312,11 +312,11 @@ pub fn scalar_from_df(value: &ScalarValue, session: &VortexSession) -> Scalar {
                 Scalar::null(DType::Decimal(decimal_dtype, nullable))
             }
         }
-        ScalarValue::Dictionary(_, v) => scalar_from_df(v.as_ref(), session),
+        ScalarValue::Dictionary(_, v) => scalar_from_df(v.as_ref(), session)?,
         ScalarValue::Struct(array) => struct_from_df(array, session),
-        ScalarValue::RunEndEncoded(_, _, v) => scalar_from_df(v.as_ref(), session),
-        _ => unimplemented!("Can't convert {value:?} value to a Vortex scalar"),
-    }
+        ScalarValue::RunEndEncoded(_, _, v) => scalar_from_df(v.as_ref(), session)?,
+        _ => vortex_bail!("Can't convert {value:?} value to a Vortex scalar"),
+    })
 }
 
 /// Converts a Vortex struct scalar to a DataFusion `ScalarValue::Struct`.
@@ -416,6 +416,7 @@ mod tests {
     /// Test shim: convert with a default `VortexSession` passed explicitly.
     fn from_df(value: &ScalarValue) -> Scalar {
         scalar_from_df(value, &VortexSession::default())
+            .vortex_expect("conversion should succeed in tests")
     }
 
     #[rstest]
@@ -808,7 +809,7 @@ mod tests {
     fn struct_from_df_preserves_extension_child() -> VortexResult<()> {
         use arrow_array::FixedSizeBinaryArray;
         use arrow_schema::extension::Uuid as ArrowUuid;
-        use vortex::extension::uuid::Uuid;
+        use vortex::encodings::uuid::Uuid;
 
         let mut id_field = Field::new("id", DataType::FixedSizeBinary(16), false);
         id_field.try_with_extension_type(ArrowUuid)?;

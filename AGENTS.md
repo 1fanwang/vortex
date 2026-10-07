@@ -30,10 +30,14 @@ documentation in `docs/`, and benchmark tooling in `vortex-bench/` and `benchmar
 - `vortex-scan`, `vortex-session`, `vortex-datafusion`, and `vortex-duckdb` contain scan
   and execution integrations.
 - FlatBuffers (`.fbs`) and Protocol Buffers (`.proto`) schemas live in the crate that owns the
-  types they describe (`vortex-array`, `vortex-layout`, `vortex-file`, `vortex-ipc`), and are
-  compiled into `OUT_DIR` by that crate's `build.rs` via `vortex-build`. Generated code is never
-  checked in, and a schema that includes another crate's declares that crate with `depends_on`.
-  Building therefore requires `flatc` on `PATH` (or `FLATC` set); `protoc` is not needed.
+  types they describe (`vortex-array`, `vortex-layout`, `vortex-file`, `vortex-ipc`), and their
+  Rust bindings are checked in under `<crate>/src/flatbuffers/generated/` and
+  `<crate>/src/proto/generated/`, so building needs no `flatc` or `protoc`. Never edit the
+  generated files by hand. After changing a `.fbs` schema, run
+  `cargo run -p xtask -- generate-flatbuffers`, which requires the `flatc` release pinned in
+  `xtask/src/generate_flatbuffers.rs` on `PATH` (or `FLATC` set). After changing a `.proto`
+  schema, run `cargo run -p xtask -- generate-proto`, which needs no external tooling. Commit the
+  regenerated files.
 - `vortex-python` contains Python bindings. RST-flavored project docs live in `docs/`.
 
 ## Scoped Guidance
@@ -202,6 +206,18 @@ These CI checks are the ones most often missed when adding files rather than edi
 - If an existing `foo.rs` module needs many tests, promote it to a directory module:
   `foo/mod.rs` plus `foo/tests.rs`, included from `foo/mod.rs` behind the appropriate test
   configuration.
+
+## Benchmark Data
+
+- Parquet written by data generators (`vortex-bench`, `benchmarks/`, `vortex-sqllogictest`)
+  must use zstd level 3, never Snappy. Set it explicitly: parquet-rs defaults to uncompressed and
+  its `ZstdLevel::default()` is level 1, while DuckDB `COPY`/`EXPORT DATABASE` and `tpchgen-cli`
+  default to Snappy.
+  - parquet-rs: `Compression::ZSTD(ZstdLevel::try_new(3)?)`
+  - DuckDB: `(FORMAT parquet, COMPRESSION zstd, COMPRESSION_LEVEL 3)`
+  - tpchgen-cli: `--parquet-compression='ZSTD(3)'`
+- Benchmarks that deliberately compare Parquet codecs, such as the GPU compress benchmark's
+  `--codec`, are exempt.
 
 ## Common Mistakes
 

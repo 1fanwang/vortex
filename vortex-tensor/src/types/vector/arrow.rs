@@ -24,6 +24,7 @@ use vortex_array::dtype::DType;
 use vortex_array::dtype::extension::ExtDType;
 use vortex_array::dtype::extension::ExtVTable;
 use vortex_arrow::ArrowExport;
+use vortex_arrow::ArrowExportOptions;
 use vortex_arrow::ArrowExportVTable;
 use vortex_arrow::ArrowImport;
 use vortex_arrow::ArrowImportVTable;
@@ -92,6 +93,7 @@ impl ArrowExportVTable for Vector {
         &self,
         array: ArrayRef,
         target: &Field,
+        options: &ArrowExportOptions,
         ctx: &mut ExecutionCtx,
     ) -> VortexResult<ArrowExport> {
         if !array
@@ -106,7 +108,11 @@ impl ArrowExportVTable for Vector {
         let storage = executed.storage_array().clone();
 
         let session = ctx.session().clone();
-        let arrow_storage = session.arrow().execute_arrow(storage, Some(target), ctx)?;
+        let arrow_storage =
+            session
+                .arrow()
+                .exporter(options)
+                .execute_arrow(storage, Some(target), ctx)?;
 
         Ok(ArrowExport::Exported(arrow_storage))
     }
@@ -360,6 +366,7 @@ mod tests {
             &Vector,
             primitive.clone(),
             &target,
+            &ArrowExportOptions::default(),
             &mut ctx,
         )?;
         assert!(
@@ -387,8 +394,8 @@ mod tests {
 
     #[test]
     fn from_arrow_array_returns_unsupported_for_non_vector_dtype() -> VortexResult<()> {
-        use vortex_array::extension::uuid::Uuid;
-        use vortex_array::extension::uuid::UuidMetadata;
+        use vortex_uuid::Uuid;
+        use vortex_uuid::UuidMetadata;
         let uuid_storage = DType::FixedSizeList(
             Arc::new(DType::Primitive(PType::U8, Nullability::NonNullable)),
             16,

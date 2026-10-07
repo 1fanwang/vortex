@@ -20,6 +20,7 @@ use vortex::array::match_each_integer_ptype;
 use vortex::array::match_each_native_simd_ptype;
 use vortex::dtype::NativePType;
 use vortex::encodings::fastlanes::BitPacked;
+use vortex::encodings::fastlanes::BitPackedArrayExt;
 use vortex::encodings::fastlanes::FoR;
 use vortex::encodings::fastlanes::FoRArray;
 use vortex::encodings::fastlanes::FoRArrayExt;
@@ -28,6 +29,7 @@ use vortex::error::VortexExpect;
 use vortex::error::VortexResult;
 use vortex::error::vortex_ensure;
 use vortex::error::vortex_err;
+use vortex_error::vortex_bail;
 
 use crate::CudaBufferExt;
 use crate::CudaDeviceBuffer;
@@ -57,10 +59,18 @@ impl CudaExecute for FoRExecutor {
     ) -> VortexResult<Canonical> {
         let array = Self::try_specialize(array).ok_or_else(|| vortex_err!("Expected FoRArray"))?;
 
+        // Per-chunk references have no CUDA kernel yet, so decode them on the CPU.
+        // TODO(mk): implement CUDA FoR decoding for non-constant references.
+        let Some(reference) = array.constant_reference() else {
+            vortex_bail!("CUDA FoR decoding requires a constant reference")
+        };
+
         // Fuse FOR + BP => FFOR
-        if let Some(bitpacked) = array.encoded().as_opt::<BitPacked>() {
+        if let Some(bitpacked) = array.encoded().as_opt::<BitPacked>()
+            && bitpacked.bit_widths().is_global()
+        {
             match_each_integer_ptype!(bitpacked.ptype(bitpacked.dtype()), |P| {
-                let reference: P = array.reference_scalar().try_into()?;
+                let reference: P = (&reference).try_into()?;
                 return decode_bitpacked(bitpacked.into_owned(), reference, None, ctx).await;
             })
         }
@@ -68,10 +78,11 @@ impl CudaExecute for FoRExecutor {
         // Fuse FOR + SLICE + BP => SLICE + FFOR
         if let Some(slice_array) = array.encoded().as_opt::<Slice>()
             && let Some(bitpacked) = slice_array.child().as_opt::<BitPacked>()
+            && bitpacked.bit_widths().is_global()
         {
             let slice_range = slice_array.slice_range().clone();
             let unpacked = match_each_integer_ptype!(bitpacked.ptype(bitpacked.dtype()), |P| {
-                let reference: P = array.reference_scalar().try_into()?;
+                let reference: P = (&reference).try_into()?;
                 decode_bitpacked(bitpacked.into_owned(), reference, None, ctx).await?
             });
 
@@ -95,7 +106,8 @@ where
     vortex_ensure!(array_len > 0, "FoR encoded array must not be empty");
 
     let reference: P = array
-        .reference_scalar()
+        .constant_reference()
+        .ok_or_else(|| vortex_err!("CUDA FoR decoding requires a constant reference"))?
         .as_primitive()
         .as_::<P>()
         .vortex_expect("Cannot have a null reference");

@@ -9,7 +9,6 @@ members = [
     "vortex-utils",
     "vortex-session",
     "vortex-edition",
-    "vortex-build",
     "vortex-metrics",
     "vortex-io",
     "vortex-cloud",
@@ -61,6 +60,7 @@ members = [
     "encodings/bytebool",
     "encodings/parquet-variant",
     "encodings/onpair",
+    "encodings/uuid",
     # Benchmarks
     "benchmarks/bench-support",
     "benchmarks/lance-bench",
@@ -78,7 +78,6 @@ resolver = "3"
 authors = ["Vortex Authors <hello@vortex.dev>"]
 categories = ["database-implementations", "data-structures", "compression"]
 edition = "2024"
-homepage = "https://github.com/spiraldb/vortex"
 include = [
 
     "build.rs",
@@ -91,7 +90,7 @@ include = [
 keywords = ["vortex"]
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/spiraldb/vortex"
+repository = "https://github.com/vortex-data/vortex"
 rust-version = "1.95"
 version = "0.1.0"
 
@@ -111,7 +110,6 @@ arrow-ipc = "59.2"
 arrow-row = "59.2"
 arrow-schema = "59.2"
 arrow-select = "59.2"
-arrow-string = "59.2"
 async-executor = "1.14.0"
 async-fs = "2.2.0"
 async-lock = "3.4"
@@ -120,7 +118,7 @@ async-trait = "0.1.89"
 base16ct = "1.0.0"
 bigdecimal = "0.4.8"
 bindgen = "0.72.0"
-bit-vec = "0.9.0"
+bit-vec = "0.10.1"
 bitvec = "1.0.1"
 bytes = "1.11.1"
 bzip2 = "0.6.0"
@@ -160,7 +158,9 @@ datafusion-sqllogictest = { version = "55.0.0" }
 divan = { package = "codspeed-divan-compat", version = "5.0.0" }
 enum-iterator = "2.0.0"
 env_logger = "0.11"
-fastlanes = "0.7.0"
+fastlanes = { version = "0.7.0", features = ["runtime"] }
+fearless_simd = "1.0.0"
+fearless_simd_macros = "0.1.0"
 flatbuffers = "25.2.10"
 fsst-rs = "0.6.0"
 futures = { version = "0.3.31", default-features = false }
@@ -231,7 +231,6 @@ rand = "0.10.1"
 rand_distr = "0.6"
 ratatui = { version = "0.30", default-features = false }
 regex = "1.12"
-regex-automata = "0.4"
 regex-syntax = "0.8.9"
 reqwest = { version = "0.13.0", features = [
     "blocking",
@@ -264,11 +263,10 @@ spatialbench-parquet = { package = "parquet", version = "56", features = [
 ] }
 static_assertions = "1.1"
 strum = "0.28"
-syn = { version = "3.0.2", features = ["full"] }
+syn = { version = "3.0.4", features = ["full"] }
 sysinfo = "0.38.0"
 tabled = { version = "0.21.0", default-features = false }
 taffy = "0.12"
-take_mut = "0.2.2"
 tar = "0.4"
 target-lexicon = "0.13"
 temp-env = "0.3"
@@ -304,7 +302,6 @@ vortex-array-macros = { version = "0.1.0", path = "./vortex-array-macros" }
 vortex-arrow = { version = "0.1.0", path = "./vortex-arrow", default-features = false }
 vortex-btrblocks = { version = "0.1.0", path = "./vortex-btrblocks", default-features = false }
 vortex-buffer = { version = "0.1.0", path = "./vortex-buffer", default-features = false }
-vortex-build = { version = "0.1.0", path = "./vortex-build" }
 vortex-bytebool = { version = "0.1.0", path = "./encodings/bytebool", default-features = false }
 vortex-cloud = { version = "0.1.0", path = "./vortex-cloud", default-features = false }
 vortex-compressor = { version = "0.1.0", path = "./vortex-compressor", default-features = false }
@@ -335,6 +332,7 @@ vortex-sparse = { version = "0.1.0", path = "./encodings/sparse", default-featur
 vortex-spatial = { version = "0.1.0", path = "./vortex-spatial", default-features = false }
 vortex-tensor = { version = "0.1.0", path = "./vortex-tensor", default-features = false }
 vortex-utils = { version = "0.1.0", path = "./vortex-utils", default-features = false }
+vortex-uuid = { version = "0.1.0", path = "./encodings/uuid", default-features = false }
 vortex-zigzag = { version = "0.1.0", path = "./encodings/zigzag", default-features = false }
 vortex-zstd = { version = "0.1.0", path = "./encodings/zstd", default-features = false }
 # END crates published by this project
@@ -402,8 +400,8 @@ repeat_vec_with_capacity = "deny"
 reserve_after_initialization = "deny"
 same_name_method = "deny"
 tests_outside_test_module = "deny"
-# todo = "deny"
-# unimplemented = "deny"
+todo = "deny"
+unimplemented = "deny"
 unwrap_in_result = "deny"
 unwrap_used = "deny"
 use_debug = "deny"

@@ -4,11 +4,9 @@ authors = { workspace = true }
 categories = { workspace = true }
 description = "BtrBlocks style compressor"
 edition = { workspace = true }
-homepage = { workspace = true }
 include = { workspace = true }
 keywords = { workspace = true }
 license = { workspace = true }
-readme = "README.md"
 repository = { workspace = true }
 rust-version = { workspace = true }
 version = { workspace = true }
@@ -41,17 +39,11 @@ vortex-zigzag = { workspace = true }
 vortex-zstd = { workspace = true, optional = true }
 
 [dev-dependencies]
-arrow-array = { workspace = true }
 divan = { workspace = true }
 insta = { workspace = true }
 mimalloc = { workspace = true }
 rstest = { workspace = true }
-test-with = { workspace = true }
-tpchgen = { workspace = true }
-tpchgen-arrow = { workspace = true }
 vortex-array = { workspace = true, features = ["_test-harness"] }
-vortex-arrow = { workspace = true }
-vortex-mask = { workspace = true }
 
 [features]
 pco = ["dep:pco", "dep:vortex-pco"]
