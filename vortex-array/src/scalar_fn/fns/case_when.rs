@@ -470,7 +470,6 @@ mod tests {
     use crate::dtype::Nullability;
     use crate::dtype::PType;
     use crate::dtype::StructFields;
-    use crate::dtype::UnionVariants;
     use crate::expr::Expression;
     use crate::expr::case_when;
     use crate::expr::case_when_no_else;
@@ -1517,40 +1516,42 @@ mod tests {
     }
 
     #[test]
-    fn test_simplify_coalesce_follows_fill_null_capability() -> VortexResult<()> {
-        let union = UnionVariants::try_new(
-            ["number"].into(),
-            vec![DType::Primitive(PType::I32, Nullability::NonNullable)],
-            vec![0],
-        )?;
-        let cases = [
-            (
-                "utf8",
-                DType::Utf8(Nullability::Nullable),
-                Scalar::utf8("fallback", Nullability::NonNullable),
-            ),
-            (
-                "union",
-                DType::Union(union.clone(), Nullability::Nullable),
-                Scalar::union(union, 0, Scalar::from(1i32), Nullability::NonNullable)?,
-            ),
-            (
-                "variant",
-                DType::Variant(Nullability::Nullable),
-                Scalar::variant(Scalar::from(1i32)),
-            ),
-        ];
+    fn test_simplify_list_coalesce_keeps_case_when() -> VortexResult<()> {
+        // Lists have no fill_null kernel, so the COALESCE shape must stay a CASE WHEN.
+        let mut ctx = SESSION.create_execution_ctx();
+        let element_dtype = Arc::new(DType::Primitive(PType::I32, Nullability::NonNullable));
+        let input_dtype = DType::List(Arc::clone(&element_dtype), Nullability::Nullable);
+        let mut builder = builder_with_capacity_in(&input_dtype, 2, ctx.allocator());
+        builder.append_scalar(&Scalar::list(
+            Arc::clone(&element_dtype),
+            vec![Scalar::from(1i32)],
+            Nullability::Nullable,
+        ))?;
+        builder.append_scalar(&Scalar::null(input_dtype))?;
+        let input = builder.finish();
+        let fill = Scalar::list(
+            element_dtype,
+            vec![Scalar::from(2i32)],
+            Nullability::NonNullable,
+        );
 
-        for (name, dtype, fill) in cases {
-            let optimized = case_when(is_null(root()), lit(fill), root())
-                .bind(&dtype)?
-                .optimize_recursive()?;
-            assert_eq!(
-                optimized.is::<FillNull>(),
-                FillNull::supports_dtype(&dtype),
-                "{name}: {optimized}"
-            );
-        }
+        let optimized = case_when(is_null(root()), lit(fill.clone()), root())
+            .bind(input.dtype())?
+            .optimize_recursive()?;
+        assert!(optimized.is::<CaseWhen>(), "{optimized}");
+        let result = input
+            .clone()
+            .apply_bound(&optimized)?
+            .execute::<Canonical>(&mut ctx)?
+            .into_array();
+        assert_eq!(
+            result.execute_scalar(0, &mut ctx)?,
+            input.execute_scalar(0, &mut ctx)?
+        );
+        assert_eq!(
+            result.execute_scalar(1, &mut ctx)?,
+            fill.cast(result.dtype())?
+        );
         Ok(())
     }
 

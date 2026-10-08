@@ -21,7 +21,7 @@ use crate::arrays::Bool;
 use crate::arrays::Decimal;
 use crate::arrays::Primitive;
 use crate::arrays::ScalarFnArray;
-use crate::builders::builder_with_capacity_in;
+use crate::arrays::VarBinView;
 use crate::dtype::DType;
 use crate::expr::BoundExpression;
 use crate::scalar::Scalar;
@@ -50,9 +50,20 @@ impl FillNull {
         ScalarFnArray::try_new(FillNull.bind(EmptyOptions), [input, fill_value])
     }
 
-    /// Returns whether fill-null can execute values of `dtype`.
+    /// Returns whether fill_null can execute inputs of `dtype`.
+    ///
+    /// These are the dtypes whose canonical arrays have a [`FillNullKernel`], so update this list
+    /// whenever `fill_null_canonical` gains or loses one. Rewrites into fill_null, such as the
+    /// CASE WHEN simplification, check it first because other dtypes fail at execution time.
     pub(crate) fn supports_dtype(dtype: &DType) -> bool {
-        !matches!(dtype, DType::Null) && has_builder(dtype)
+        matches!(
+            dtype,
+            DType::Bool(_)
+                | DType::Primitive(..)
+                | DType::Decimal(..)
+                | DType::Utf8(_)
+                | DType::Binary(_)
+        )
     }
 }
 
@@ -185,46 +196,15 @@ fn fill_null_canonical(
         }
         CanonicalView::Decimal(a) => <Decimal as FillNullKernel>::fill_null(a, fill_value, ctx)?
             .ok_or_else(|| vortex_err!("FillNullKernel for DecimalArray returned None")),
-        _ if FillNull::supports_dtype(arr.dtype()) => fill_null_with_builder(&arr, fill_value, ctx),
+        CanonicalView::VarBinView(a) => {
+            <VarBinView as FillNullKernel>::fill_null(a, fill_value, ctx)?
+                .ok_or_else(|| vortex_err!("FillNullKernel for VarBinViewArray returned None"))
+        }
         other => vortex_bail!(
             "No FillNullKernel for canonical array {}",
             other.to_array_ref().encoding_id()
         ),
     }
-}
-
-fn has_builder(dtype: &DType) -> bool {
-    match dtype {
-        DType::Null
-        | DType::Bool(_)
-        | DType::Primitive(..)
-        | DType::Decimal(..)
-        | DType::Utf8(_)
-        | DType::Binary(_) => true,
-        DType::List(element, _) | DType::FixedSizeList(element, ..) => has_builder(element),
-        DType::Map(map, _) => has_builder(&map.key_dtype()) && has_builder(&map.value_dtype()),
-        DType::Struct(fields, _) => fields.fields().all(|field| has_builder(&field)),
-        DType::Union(..) | DType::Variant(_) => false,
-        DType::Extension(ext) => has_builder(ext.storage_dtype()),
-    }
-}
-
-fn fill_null_with_builder(
-    array: &ArrayRef,
-    fill_value: &Scalar,
-    ctx: &mut ExecutionCtx,
-) -> VortexResult<ArrayRef> {
-    let mut builder = builder_with_capacity_in(fill_value.dtype(), array.len(), ctx.allocator());
-    let mut probe = array.repeated_probe();
-    for index in 0..array.len() {
-        let value = probe.execute_scalar(index, ctx)?;
-        if value.is_null() {
-            builder.append_scalar(fill_value)?;
-        } else {
-            builder.append_scalar(&value.cast(fill_value.dtype())?)?;
-        }
-    }
-    Ok(builder.finish())
 }
 
 #[cfg(test)]
@@ -245,11 +225,11 @@ mod tests {
     use crate::builders::builder_with_capacity_in;
     use crate::builtins::ArrayBuiltins;
     use crate::dtype::DType;
+    use crate::dtype::DecimalDType;
     use crate::dtype::MapDType;
     use crate::dtype::Nullability;
     use crate::dtype::PType;
     use crate::dtype::StructFields;
-    use crate::dtype::UnionVariants;
     use crate::expr::fill_null;
     use crate::expr::get_item;
     use crate::expr::lit;
@@ -324,139 +304,50 @@ mod tests {
         assert_arrays_eq!(result, PrimitiveArray::from_iter([1i32, 2, 3]), &mut ctx);
     }
 
+    /// Inputs with both valid and null rows execute exactly for the dtypes that `supports_dtype`
+    /// accepts, so adding a kernel without updating `supports_dtype` fails here.
     #[test]
-    fn evaluate_builder_backed_dtypes() -> VortexResult<()> {
+    fn supports_dtype_matches_kernels() -> VortexResult<()> {
         let mut ctx = array_session().create_execution_ctx();
-
-        for (name, value, fill) in supported_scalar_pairs()? {
-            let mut builder = builder_with_capacity_in(value.dtype(), 2, ctx.allocator());
-            builder.append_scalar(&value)?;
-            builder.append_scalar(&Scalar::null(value.dtype().clone()))?;
-            let input = builder.finish();
-
-            let result = input
-                .fill_null(fill.clone())?
-                .execute::<Canonical>(&mut ctx)?
-                .into_array();
-            assert_eq!(result.dtype(), fill.dtype(), "{name}");
-            assert_eq!(
-                result.execute_scalar(0, &mut ctx)?,
-                value.cast(fill.dtype())?,
-                "{name}"
-            );
-            assert_eq!(result.execute_scalar(1, &mut ctx)?, fill, "{name}");
-        }
-        Ok(())
-    }
-
-    #[test]
-    fn supports_builder_backed_dtypes_only() -> VortexResult<()> {
-        for (name, value, _) in supported_scalar_pairs()? {
-            assert!(FillNull::supports_dtype(value.dtype()), "{name}");
-        }
-
-        let union = UnionVariants::try_new(
-            ["number"].into(),
-            vec![DType::Primitive(PType::I32, Nullability::NonNullable)],
-            vec![0],
-        )?;
-        for dtype in [
-            DType::Null,
-            DType::Union(union, Nullability::Nullable),
-            DType::Variant(Nullability::Nullable),
-            DType::List(
-                Arc::new(DType::Variant(Nullability::Nullable)),
+        let i32_dtype = DType::Primitive(PType::I32, Nullability::NonNullable);
+        let dtypes = [
+            DType::Bool(Nullability::Nullable),
+            DType::Primitive(PType::I32, Nullability::Nullable),
+            DType::Decimal(DecimalDType::new(19, 2), Nullability::Nullable),
+            DType::Utf8(Nullability::Nullable),
+            DType::Binary(Nullability::Nullable),
+            DType::List(Arc::new(i32_dtype.clone()), Nullability::Nullable),
+            DType::FixedSizeList(Arc::new(i32_dtype.clone()), 2, Nullability::Nullable),
+            DType::Struct(
+                StructFields::from_iter([("value", i32_dtype.clone())]),
                 Nullability::Nullable,
             ),
-        ] {
-            assert!(!FillNull::supports_dtype(&dtype), "{dtype}");
+            DType::Map(
+                MapDType::try_new(i32_dtype.clone(), i32_dtype, false)?,
+                Nullability::Nullable,
+            ),
+            DType::Extension(Date::new(TimeUnit::Days, Nullability::Nullable).erased()),
+        ];
+
+        for dtype in dtypes {
+            let fill = Scalar::default_value(&dtype.as_nonnullable());
+            let mut builder = builder_with_capacity_in(&dtype, 2, ctx.allocator());
+            builder.append_scalar(&fill.cast(&dtype)?)?;
+            builder.append_null();
+            let filled = builder
+                .finish()
+                .fill_null(fill.clone())?
+                .execute::<Canonical>(&mut ctx);
+
+            if FillNull::supports_dtype(&dtype) {
+                let filled = filled?.into_array();
+                assert_eq!(filled.dtype(), fill.dtype(), "{dtype}");
+                assert_eq!(filled.execute_scalar(1, &mut ctx)?, fill, "{dtype}");
+            } else {
+                assert!(filled.is_err(), "{dtype} executes but is not supported");
+            }
         }
         Ok(())
-    }
-
-    fn supported_scalar_pairs() -> VortexResult<Vec<(&'static str, Scalar, Scalar)>> {
-        let element_dtype = Arc::new(DType::Primitive(PType::I32, Nullability::NonNullable));
-        let map_dtype = MapDType::try_new(
-            DType::Primitive(PType::I32, Nullability::NonNullable),
-            DType::Utf8(Nullability::NonNullable),
-            false,
-        )?;
-        let struct_fields = StructFields::from_iter([(
-            "value",
-            DType::Primitive(PType::I32, Nullability::NonNullable),
-        )]);
-
-        Ok(vec![
-            (
-                "utf8",
-                Scalar::utf8("a", Nullability::Nullable),
-                Scalar::utf8("fallback", Nullability::NonNullable),
-            ),
-            (
-                "binary",
-                Scalar::binary(vec![1], Nullability::Nullable),
-                Scalar::binary(vec![2], Nullability::NonNullable),
-            ),
-            (
-                "list",
-                Scalar::list(
-                    Arc::clone(&element_dtype),
-                    vec![Scalar::from(1i32)],
-                    Nullability::Nullable,
-                ),
-                Scalar::list(
-                    Arc::clone(&element_dtype),
-                    vec![Scalar::from(2i32)],
-                    Nullability::NonNullable,
-                ),
-            ),
-            (
-                "fixed_size_list",
-                Scalar::fixed_size_list(
-                    Arc::clone(&element_dtype),
-                    vec![Scalar::from(1i32), Scalar::from(2i32)],
-                    Nullability::Nullable,
-                ),
-                Scalar::fixed_size_list(
-                    Arc::clone(&element_dtype),
-                    vec![Scalar::from(3i32), Scalar::from(4i32)],
-                    Nullability::NonNullable,
-                ),
-            ),
-            (
-                "map",
-                Scalar::map(
-                    DType::Map(map_dtype.clone(), Nullability::Nullable),
-                    [(
-                        Scalar::from(1i32),
-                        Scalar::utf8("a", Nullability::NonNullable),
-                    )],
-                ),
-                Scalar::map(
-                    DType::Map(map_dtype, Nullability::NonNullable),
-                    [(
-                        Scalar::from(2i32),
-                        Scalar::utf8("b", Nullability::NonNullable),
-                    )],
-                ),
-            ),
-            (
-                "struct",
-                Scalar::struct_(
-                    DType::Struct(struct_fields.clone(), Nullability::Nullable),
-                    [Scalar::from(1i32)],
-                ),
-                Scalar::struct_(
-                    DType::Struct(struct_fields, Nullability::NonNullable),
-                    [Scalar::from(2i32)],
-                ),
-            ),
-            (
-                "extension",
-                Scalar::extension::<Date>(TimeUnit::Days, Scalar::from(Some(1i32))),
-                Scalar::extension::<Date>(TimeUnit::Days, Scalar::from(2i32)),
-            ),
-        ])
     }
 
     #[test]
